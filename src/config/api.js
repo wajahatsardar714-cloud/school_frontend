@@ -38,18 +38,24 @@ export const API_ENDPOINTS = {
   SECTION_DETAIL: (id) => `/api/sections/${id}`,
   SECTION_STUDENTS: (id) => `/api/sections/${id}/students`,
 
-  // Fee Vouchers
-  FEE_VOUCHERS: '/api/fee-vouchers',
-  FEE_VOUCHER_DETAIL: (id) => `/api/fee-vouchers/${id}`,
-  FEE_VOUCHER_GENERATE: '/api/fee-vouchers/generate',
-  FEE_VOUCHER_BULK_GENERATE: '/api/fee-vouchers/bulk-generate',
-  FEE_VOUCHER_PDF: (id) => `/api/fee-vouchers/${id}/pdf`,
+  // Fee Vouchers (Backend: /api/vouchers)
+  FEE_VOUCHERS: '/api/vouchers',
+  FEE_VOUCHER_DETAIL: (id) => `/api/vouchers/${id}`,
+  FEE_VOUCHER_GENERATE: '/api/vouchers/generate',
+  FEE_VOUCHER_BULK_GENERATE: '/api/vouchers/generate-bulk',
+  FEE_VOUCHER_PDF: (id) => `/api/vouchers/${id}/pdf`,
+  FEE_VOUCHER_ITEMS: (id) => `/api/vouchers/${id}/items`,
 
-  // Fee Payments
-  FEE_PAYMENTS: '/api/fee-payments',
-  FEE_PAYMENT_RECORD: '/api/fee-payments/record',
-  FEE_PAYMENT_RECEIPT: (id) => `/api/fee-payments/${id}/receipt`,
-  FEE_DEFAULTERS: '/api/fee-payments/defaulters',
+  // Fee Payments (Backend: /api/fees)
+  FEE_PAYMENTS: '/api/fees/payments',
+  FEE_PAYMENT_RECORD: '/api/fees/payment',
+  FEE_PAYMENT_DELETE: (id) => `/api/fees/payment/${id}`,
+  FEE_PAYMENT_RECEIPT: (id) => `/api/fees/payment/${id}/receipt`,
+  FEE_VOUCHER_PAYMENTS: (id) => `/api/fees/voucher/${id}/payments`,
+  FEE_DEFAULTERS: '/api/fees/defaulters',
+  FEE_STUDENT_HISTORY: (id) => `/api/fees/student/${id}`,
+  FEE_STUDENT_DUE: (id) => `/api/fees/student/${id}/due`,
+  FEE_STATS: '/api/fees/stats',
 
   // Faculty
   FACULTY: '/api/faculty',
@@ -82,11 +88,14 @@ export const API_ENDPOINTS = {
   REPORTS_FEE_COLLECTION: '/api/reports/fee-collection',
   REPORTS_DEFAULTERS: '/api/reports/defaulters',
 
-  // Analytics
+  // Analytics (Backend: /api/analytics)
   ANALYTICS_DASHBOARD: '/api/analytics/dashboard',
   ANALYTICS_REVENUE_TRENDS: '/api/analytics/revenue-trends',
-  ANALYTICS_ENROLLMENT_STATS: '/api/analytics/enrollment-stats',
-  ANALYTICS_CLASS_PERFORMANCE: '/api/analytics/class-performance',
+  ANALYTICS_ENROLLMENT_TRENDS: '/api/analytics/enrollment-trends',
+  ANALYTICS_CLASS_COLLECTION: '/api/analytics/class-collection',
+  ANALYTICS_FACULTY_STATS: '/api/analytics/faculty-stats',
+  ANALYTICS_EXPENSE_ANALYSIS: '/api/analytics/expense-analysis',
+  ANALYTICS_PERFORMANCE: '/api/analytics/performance',
 
   // Documents
   DOCUMENTS: '/api/documents',

@@ -1,39 +1,74 @@
 import { apiClient } from './apiClient'
 import { API_ENDPOINTS } from '../config/api'
 
+/**
+ * Analytics Service
+ * Backend: /api/analytics
+ */
 export const analyticsService = {
+  /**
+   * Complete dashboard overview
+   * GET /api/analytics/dashboard
+   * Response: { students, faculty, fees, salaries, today, recent_activity }
+   */
   async getDashboard() {
     return await apiClient.get(API_ENDPOINTS.ANALYTICS_DASHBOARD)
   },
 
-  async getRevenueTrends(filters = {}) {
+  /**
+   * Revenue trends (last N months)
+   * GET /api/analytics/revenue-trends?months=6
+   * Response: Monthly breakdown with fee_collections, salary_payments, expenses, net_profit
+   */
+  async getRevenueTrends(months = 6) {
     const params = new URLSearchParams()
-    
-    if (filters.start_date) params.append('start_date', filters.start_date)
-    if (filters.end_date) params.append('end_date', filters.end_date)
-    if (filters.granularity) params.append('granularity', filters.granularity)
-    
+    if (months) params.append('months', months)
     const query = params.toString() ? `?${params.toString()}` : ''
     return await apiClient.get(`${API_ENDPOINTS.ANALYTICS_REVENUE_TRENDS}${query}`)
   },
 
-  async getEnrollmentStats(filters = {}) {
-    const params = new URLSearchParams()
-    
-    if (filters.year) params.append('year', filters.year)
-    if (filters.class_id) params.append('class_id', filters.class_id)
-    
-    const query = params.toString() ? `?${params.toString()}` : ''
-    return await apiClient.get(`${API_ENDPOINTS.ANALYTICS_ENROLLMENT_STATS}${query}`)
+  /**
+   * Student enrollment trends
+   * GET /api/analytics/enrollment-trends
+   * Response: { trends (monthly), class_distribution }
+   */
+  async getEnrollmentTrends() {
+    return await apiClient.get(API_ENDPOINTS.ANALYTICS_ENROLLMENT_TRENDS)
   },
 
-  async getClassPerformance(filters = {}) {
-    const params = new URLSearchParams()
-    
-    if (filters.class_id) params.append('class_id', filters.class_id)
-    if (filters.metric) params.append('metric', filters.metric)
-    
-    const query = params.toString() ? `?${params.toString()}` : ''
-    return await apiClient.get(`${API_ENDPOINTS.ANALYTICS_CLASS_PERFORMANCE}${query}`)
+  /**
+   * Class-wise fee collection analysis
+   * GET /api/analytics/class-collection
+   * Response: Per class - total_vouchers, total_fee_generated, total_collected, total_pending, collection_rate
+   */
+  async getClassCollection() {
+    return await apiClient.get(API_ENDPOINTS.ANALYTICS_CLASS_COLLECTION)
+  },
+
+  /**
+   * Faculty & salary statistics
+   * GET /api/analytics/faculty-stats
+   * Response: { designation_stats, salary_distribution, salary_trend }
+   */
+  async getFacultyStats() {
+    return await apiClient.get(API_ENDPOINTS.ANALYTICS_FACULTY_STATS)
+  },
+
+  /**
+   * Expense analysis
+   * GET /api/analytics/expense-analysis
+   * Response: { monthly_trend, expense_comparison }
+   */
+  async getExpenseAnalysis() {
+    return await apiClient.get(API_ENDPOINTS.ANALYTICS_EXPENSE_ANALYSIS)
+  },
+
+  /**
+   * Performance metrics with growth
+   * GET /api/analytics/performance
+   * Response: { current_month, last_month, growth }
+   */
+  async getPerformance() {
+    return await apiClient.get(API_ENDPOINTS.ANALYTICS_PERFORMANCE)
   },
 }

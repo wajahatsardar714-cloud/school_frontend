@@ -6,12 +6,18 @@ const navigationItems = [
   { path: '/dashboard', label: 'Dashboard', icon: '📊', roles: ['ADMIN', 'ACCOUNTANT'] },
   { path: '/admission/list', label: 'Students', icon: '🎓', roles: ['ADMIN', 'ACCOUNTANT'] },
   { path: '/classes', label: 'Classes', icon: '📚', roles: ['ADMIN'] },
+  { path: '/guardians', label: 'Guardians', icon: '👨‍👩‍👧‍👦', roles: ['ADMIN', 'ACCOUNTANT'] },
   { path: '/faculty', label: 'Faculty', icon: '👨‍🏫', roles: ['ADMIN'], subItems: [
     { path: '/faculty', label: 'Manage Faculty', roles: ['ADMIN'] },
     { path: '/faculty/salary-structure', label: 'Salary Structure', roles: ['ADMIN'] },
     { path: '/faculty/salary-vouchers', label: 'Salary Vouchers', roles: ['ADMIN'] }
   ]},
+  { path: '/fees', label: 'Fee Management', icon: '💳', roles: ['ADMIN', 'ACCOUNTANT'], subItems: [
+    { path: '/fees/vouchers', label: 'Fee Vouchers', roles: ['ADMIN', 'ACCOUNTANT'] },
+    { path: '/fees/payments', label: 'Payments', roles: ['ADMIN', 'ACCOUNTANT'] }
+  ]},
   { path: '/expenses', label: 'Expenses', icon: '💸', roles: ['ADMIN', 'ACCOUNTANT'] },
+  { path: '/analytics', label: 'Analytics', icon: '📈', roles: ['ADMIN'] },
   { path: '/users', label: 'Users', icon: '👥', roles: ['ADMIN'] },
 ]
 

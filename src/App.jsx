@@ -13,6 +13,10 @@ import SalaryStructureManagement from './components/SalaryStructureManagement'
 import SalaryVoucherManagement from './components/SalaryVoucherManagement'
 import ExpenseManagement from './components/ExpenseManagement'
 import UserManagement from './components/UserManagement'
+import FeeVoucherManagement from './components/FeeVoucherManagement'
+import FeePaymentManagement from './components/FeePaymentManagement'
+import GuardianManagement from './components/GuardianManagement'
+import AnalyticsDashboard from './components/AnalyticsDashboard'
 import Sidebar from './components/layout/Sidebar'
 import Header from './components/layout/Header'
 import './App.css'
@@ -57,6 +61,16 @@ function AppLayout() {
             <Route path="/faculty" element={<FacultyManagement />} />
             <Route path="/faculty/salary-structure" element={<SalaryStructureManagement />} />
             <Route path="/faculty/salary-vouchers" element={<SalaryVoucherManagement />} />
+            
+            {/* Fee Management Routes */}
+            <Route path="/fees/vouchers" element={<FeeVoucherManagement />} />
+            <Route path="/fees/payments" element={<FeePaymentManagement />} />
+            
+            {/* Guardian Management */}
+            <Route path="/guardians" element={<GuardianManagement />} />
+            
+            {/* Analytics */}
+            <Route path="/analytics" element={<AnalyticsDashboard />} />
             
             {/* Expense Routes */}
             <Route path="/expenses" element={<ExpenseManagement />} />
