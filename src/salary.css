@@ -1,0 +1,926 @@
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal,
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.25), 0 10px 30px rgba(0, 0, 0, 0.15);
+  max-width: 520px;
+  width: 100%;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease-out;
+}
+
+.modal-content.modal-large {
+  max-width: 680px;
+}
+
+.modal-content.modal-xl {
+  max-width: 800px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 28px;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.modal-header h2,
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.025em;
+}
+
+.modal-header .close-btn,
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.75rem;
+  font-weight: 300;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  line-height: 1;
+}
+
+.modal-header .close-btn:hover,
+.modal-close:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.modal-body,
+.modal-content form {
+  padding: 28px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 18px 28px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+/* Modal Form Styles */
+.modal-content form .form-group {
+  margin-bottom: 20px;
+}
+
+.modal-content form label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.modal-content form input,
+.modal-content form select,
+.modal-content form textarea {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 0.9375rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  color: #1e293b;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.modal-content form input:focus,
+.modal-content form select:focus,
+.modal-content form textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.modal-content form input::placeholder,
+.modal-content form textarea::placeholder {
+  color: #94a3b8;
+}
+
+.modal-content form input:disabled,
+.modal-content form select:disabled {
+  background: #f1f5f9;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.modal-content form select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 18px;
+  padding-right: 44px;
+}
+
+/* Modal Form Buttons */
+.modal-content form .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.modal-content form .btn-primary,
+.modal-content form .btn-secondary {
+  padding: 12px 28px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-content form .btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.modal-content form .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);
+  transform: translateY(-1px);
+}
+
+.modal-content form .btn-primary:disabled {
+  background: #94a3b8;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.modal-content form .btn-secondary {
+  background: white;
+  color: #475569;
+  border: 2px solid #e2e8f0;
+}
+
+.modal-content form .btn-secondary:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.info-box {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.info-box p {
+  margin: 0 0 8px 0;
+  color: #1e40af;
+  font-size: 0.875rem;
+}
+
+.info-box p:last-child {
+  margin-bottom: 0;
+}
+
+/* Salary Structure Management */
+.salary-structure-management .content-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.salary-structure-management .faculty-list-panel,
+.salary-structure-management .salary-details-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.salary-structure-management .faculty-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.salary-structure-management .faculty-card {
+  padding: 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.salary-structure-management .faculty-card:hover {
+  border-color: #3b82f6;
+  background: #f8fafc;
+}
+
+.salary-structure-management .faculty-card.selected {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.salary-structure-management .faculty-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.salary-structure-management .faculty-card-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.salary-structure-management .faculty-card-body p {
+  margin: 6px 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.salary-structure-management .salary-badge {
+  color: #059669;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.salary-structure-management .panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.salary-structure-management .current-salary-card {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  padding: 24px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.salary-structure-management .current-salary-card h3 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.salary-structure-management .salary-amount {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.salary-structure-management .effective-date {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 14px;
+}
+
+.salary-structure-management .salary-history-table table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+.salary-structure-management .salary-history-table th {
+  text-align: left;
+  padding: 12px;
+  background: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.salary-structure-management .salary-history-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 14px;
+}
+
+.salary-structure-management .salary-history-table td.amount {
+  font-weight: 600;
+  color: #059669;
+}
+
+/* Salary Voucher Management */
+.salary-voucher-management .filters-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+}
+
+.salary-voucher-management .filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.salary-voucher-management .content-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 24px;
+}
+
+.salary-voucher-management .voucher-list-panel,
+.salary-voucher-management .voucher-details-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.salary-voucher-management .voucher-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.salary-voucher-management .voucher-card {
+  padding: 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.salary-voucher-management .voucher-card:hover {
+  border-color: #3b82f6;
+  background: #f8fafc;
+}
+
+.salary-voucher-management .voucher-card.selected {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.salary-voucher-management .voucher-card.paid {
+  border-left: 4px solid #059669;
+}
+
+.salary-voucher-management .voucher-card.unpaid {
+  border-left: 4px solid #f59e0b;
+}
+
+.salary-voucher-management .voucher-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.salary-voucher-management .voucher-card-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.salary-voucher-management .voucher-card-body p {
+  margin: 6px 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.salary-voucher-management .total-amount {
+  color: #1f2937;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.salary-voucher-management .paid-amount {
+  color: #059669;
+  font-size: 13px;
+}
+
+.salary-voucher-management .panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.salary-voucher-management .panel-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.salary-voucher-management .details-card {
+  background: #f9fafb;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.salary-voucher-management .details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.salary-voucher-management .details-grid div {
+  font-size: 14px;
+}
+
+.salary-voucher-management .adjustments-section,
+.salary-voucher-management .payment-history-section {
+  margin-top: 24px;
+}
+
+.salary-voucher-management .adjustments-section table,
+.salary-voucher-management .payment-history-section table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+
+.salary-voucher-management table th {
+  text-align: left;
+  padding: 12px;
+  background: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.salary-voucher-management table td {
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 14px;
+}
+
+.salary-voucher-management table td.amount {
+  font-weight: 600;
+}
+
+.salary-voucher-management .text-success {
+  color: #059669;
+}
+
+.salary-voucher-management .text-warning {
+  color: #f59e0b;
+}
+
+.salary-voucher-management .btn-icon {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: transform 0.2s;
+}
+
+.salary-voucher-management .btn-icon:hover {
+  transform: scale(1.2);
+}
+
+.salary-voucher-management .btn-danger-icon:hover {
+  transform: scale(1.3);
+}
+
+.salary-voucher-management .payment-summary-card {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 24px;
+  border-radius: 12px;
+  margin-top: 24px;
+}
+
+.salary-voucher-management .summary-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.salary-voucher-management .summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.salary-voucher-management .summary-item.total {
+  border-bottom: none;
+  padding-top: 12px;
+  border-top: 2px solid rgba(255, 255, 255, 0.4);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.salary-voucher-management .summary-item span.amount {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.salary-voucher-management .empty-text {
+  color: #9ca3af;
+  font-style: italic;
+  padding: 16px;
+  text-align: center;
+}
+
+.salary-voucher-management .info-box {
+  background: #eff6ff;
+  border-left: 4px solid #3b82f6;
+  padding: 16px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+}
+
+.salary-voucher-management .info-box p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+/* Sidebar Sub-Navigation */
+.sidebar .sub-nav {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 8px 0;
+}
+
+.sidebar .sub-nav-item {
+  display: block;
+  padding: 10px 20px 10px 56px;
+  color: #6b7280;
+  text-decoration: none;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.sidebar .sub-nav-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #1f2937;
+}
+
+.sidebar .sub-nav-item.active {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+.sidebar .nav-arrow {
+  margin-left: auto;
+  font-size: 10px;
+  transition: transform 0.2s;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .salary-structure-management .content-grid,
+  .salary-voucher-management .content-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .salary-voucher-management .panel-actions {
+    flex-wrap: wrap;
+  }
+  
+  .salary-voucher-management .details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .salary-voucher-management .filters-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .salary-structure-management .panel-header,
+  .salary-voucher-management .panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .salary-voucher-management .panel-actions {
+    width: 100%;
+  }
+  
+  .salary-voucher-management .panel-actions button {
+    flex: 1;
+  }
+}
+
+/* Stats Grid */
+.salary-voucher-management .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.salary-voucher-management .stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.salary-voucher-management .stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.salary-voucher-management .stat-card .stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.salary-voucher-management .stat-card .stat-label {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.salary-voucher-management .stat-card .stat-amount {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.salary-voucher-management .stat-card.stat-success {
+  border-left: 4px solid #22c55e;
+}
+
+.salary-voucher-management .stat-card.stat-success .stat-value {
+  color: #22c55e;
+}
+
+.salary-voucher-management .stat-card.stat-warning {
+  border-left: 4px solid #f59e0b;
+}
+
+.salary-voucher-management .stat-card.stat-warning .stat-value {
+  color: #f59e0b;
+}
+
+.salary-voucher-management .stat-card.stat-info {
+  border-left: 4px solid #3b82f6;
+}
+
+.salary-voucher-management .stat-card.stat-info .stat-value {
+  color: #3b82f6;
+  font-size: 1.5rem;
+}
+
+/* Header Actions */
+.salary-voucher-management .header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* Checkbox List for Bulk Generate */
+.checkbox-list {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.checkbox-item:hover {
+  background: #f8fafc;
+}
+
+.checkbox-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.checkbox-item span {
+  flex: 1;
+}
+
+.checkbox-item .salary-tag {
+  font-size: 0.75rem;
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+/* Button Info */
+.btn-info {
+  background: #0ea5e9;
+  color: white;
+}
+
+.btn-info:hover {
+  background: #0284c7;
+}
+
+.btn-info:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* Responsive Stats */
+@media (max-width: 1024px) {
+  .salary-voucher-management .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .salary-voucher-management .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .salary-voucher-management .header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .salary-voucher-management .header-actions button {
+    width: 100%;
+  }
+}
+
+/* Form Section Styles */
+.form-section {
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.form-section:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.form-section-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.form-section-description {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: -12px 0 20px 0;
+  line-height: 1.5;
+}
+
+.form-section-highlight {
+  background: linear-gradient(135deg, #fef9c3 0%, #fef3c7 50%, #fde68a 100%);
+  margin: 0 -28px 0 -28px;
+  padding: 24px 28px;
+  border-radius: 0;
+  border-bottom: none;
+  border-top: 2px dashed #f59e0b;
+  border-left: 4px solid #f59e0b;
+}
+
+.form-section-highlight .form-section-title {
+  color: #92400e;
+}
+
+.form-section-info {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  margin: 0 -28px 0 -28px;
+  padding: 20px 28px;
+  border-bottom: none;
+  border-top: 2px solid #3b82f6;
+}
+
+.form-section-info .info-text {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #1e40af;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.form-section-info .info-text::before {
+  content: "ℹ️";
+  font-size: 1.1rem;
+}
+
+.field-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.required {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+/* Form Grid Layout */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.form-group.full-width {
+  grid-column: span 2;
+}
+
+@media (max-width: 640px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-group.full-width {
+    grid-column: span 1;
+  }
+  
+  .form-section-highlight,
+  .form-section-info {
+    margin: 0 -20px;
+    padding: 20px;
+  }
+  
+  .modal-content .form-group.full-width {
+    grid-column: span 1;
+  }
+}
