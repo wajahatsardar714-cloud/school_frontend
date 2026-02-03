@@ -31,16 +31,24 @@ const FeeStatistics = () => {
   )
 
   const stats = useMemo(() => {
-    return statsData?.data || statsData || {
-      total_vouchers: 0,
-      paid_vouchers: 0,
-      partial_vouchers: 0,
-      unpaid_vouchers: 0,
-      total_fee_amount: 0,
-      total_collected: 0,
-      total_due: 0,
-      collection_percentage: 0,
-      total_students: 0,
+    const data = statsData?.data || statsData || {}
+    
+    const total_fee_amount = parseFloat(data.total_fee_generated || 0)
+    const total_collected = parseFloat(data.total_collected || 0)
+    const collection_percentage = total_fee_amount > 0 
+      ? (total_collected / total_fee_amount) * 100 
+      : 0
+
+    return {
+      total_vouchers: parseInt(data.total_vouchers || 0),
+      paid_vouchers: parseInt(data.paid_vouchers || 0),
+      partial_vouchers: parseInt(data.partial_vouchers || 0),
+      unpaid_vouchers: parseInt(data.unpaid_vouchers || 0),
+      total_fee_amount,
+      total_collected,
+      total_due: parseFloat(data.total_pending || 0),
+      collection_percentage,
+      total_students: parseInt(data.total_students || 0),
     }
   }, [statsData])
 

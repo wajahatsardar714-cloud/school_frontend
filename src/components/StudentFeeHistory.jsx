@@ -16,10 +16,10 @@ const StudentFeeHistory = () => {
   )
 
   // Fetch student fee history
-  const { 
-    data: historyData, 
+  const {
+    data: historyData,
     loading: historyLoading,
-    refetch: refreshHistory 
+    refetch: refreshHistory
   } = useFetch(
     () => feePaymentService.getStudentHistory(studentId),
     [studentId],
@@ -44,7 +44,7 @@ const StudentFeeHistory = () => {
   const selectedStudent = useMemo(() => {
     if (!studentId) return null
     const students = studentsData?.data || []
-    return students.find(s => s.id === parseInt(studentId))
+    return students.find(s => String(s.id) === String(studentId))
   }, [studentId, studentsData])
 
   const filteredStudents = useMemo(() => {
@@ -106,9 +106,9 @@ const StudentFeeHistory = () => {
 
         <div className="filter-group">
           <label>Select Student</label>
-          <select 
+          <select
             className="filter-select"
-            value={studentId} 
+            value={studentId}
             onChange={(e) => setStudentId(e.target.value)}
             disabled={studentsLoading}
           >
@@ -181,8 +181,8 @@ const StudentFeeHistory = () => {
                 <div className="stat-label">Paid Vouchers</div>
                 <div className="stat-value">{summary.paid_vouchers}</div>
                 <div className="stat-detail">
-                  {summary.total_vouchers > 0 
-                    ? ((summary.paid_vouchers / summary.total_vouchers) * 100).toFixed(1) 
+                  {summary.total_vouchers > 0
+                    ? ((summary.paid_vouchers / summary.total_vouchers) * 100).toFixed(1)
                     : 0}% paid
                 </div>
               </div>
@@ -233,16 +233,16 @@ const StudentFeeHistory = () => {
                       </tr>
                     ) : (
                       history.map(record => {
-                        const isOverdue = record.status !== 'PAID' && 
-                          record.due_date && 
+                        const isOverdue = record.status !== 'PAID' &&
+                          record.due_date &&
                           new Date(record.due_date) < new Date()
 
                         return (
                           <tr key={record.voucher_id} className={isOverdue ? 'row-overdue' : ''}>
                             <td>
-                              {new Date(record.month).toLocaleDateString('en-US', { 
-                                month: 'long', 
-                                year: 'numeric' 
+                              {new Date(record.month).toLocaleDateString('en-US', {
+                                month: 'long',
+                                year: 'numeric'
                               })}
                             </td>
                             <td>{record.class_name}</td>
@@ -278,7 +278,7 @@ const StudentFeeHistory = () => {
                             </td>
                             <td>
                               <div className="action-buttons">
-                                <button 
+                                <button
                                   className="btn-small btn-view"
                                   onClick={() => window.open(`/fees/vouchers?id=${record.voucher_id}`, '_blank')}
                                   title="View Voucher"
@@ -286,7 +286,7 @@ const StudentFeeHistory = () => {
                                   👁️
                                 </button>
                                 {record.status !== 'PAID' && (
-                                  <button 
+                                  <button
                                     className="btn-small btn-pay"
                                     onClick={() => window.location.href = `/fees/payments?voucher_id=${record.voucher_id}`}
                                     title="Make Payment"
@@ -316,9 +316,9 @@ const StudentFeeHistory = () => {
                     <div className="timeline-marker"></div>
                     <div className="timeline-content">
                       <div className="timeline-date">
-                        {new Date(record.month).toLocaleDateString('en-US', { 
-                          month: 'long', 
-                          year: 'numeric' 
+                        {new Date(record.month).toLocaleDateString('en-US', {
+                          month: 'long',
+                          year: 'numeric'
                         })}
                       </div>
                       <div className="timeline-details">
