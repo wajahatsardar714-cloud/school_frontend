@@ -15,6 +15,7 @@ import ExpenseManagement from './components/ExpenseManagement'
 import UserManagement from './components/UserManagement'
 import FeeVoucherManagement from './components/FeeVoucherManagement'
 import FeePaymentManagement from './components/FeePaymentManagement'
+import DiscountManagement from './components/DiscountManagement'
 import GuardianManagement from './components/GuardianManagement'
 import AnalyticsDashboard from './components/AnalyticsDashboard'
 import Sidebar from './components/layout/Sidebar'
@@ -65,6 +66,7 @@ function AppLayout() {
             {/* Fee Management Routes */}
             <Route path="/fees/vouchers" element={<FeeVoucherManagement />} />
             <Route path="/fees/payments" element={<FeePaymentManagement />} />
+            <Route path="/fees/discounts" element={<DiscountManagement />} />
             
             {/* Guardian Management */}
             <Route path="/guardians" element={<GuardianManagement />} />

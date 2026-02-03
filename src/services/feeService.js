@@ -101,6 +101,60 @@ export const feeVoucherService = {
 }
 
 /**
+ * Discount Service
+ * Backend: /api/discounts
+ */
+export const discountService = {
+  /**
+   * Create or update student discount
+   * POST /api/discounts
+   * Body: { student_id, class_id, discount_type, discount_value, reason, effective_from }
+   */
+  async create(discountData) {
+    return await apiClient.post('/api/discounts', discountData)
+  },
+
+  /**
+   * List all discounts with filters
+   * GET /api/discounts?student_id=&class_id=&discount_type=
+   */
+  async list(filters = {}) {
+    const params = new URLSearchParams()
+    
+    if (filters.student_id) params.append('student_id', filters.student_id)
+    if (filters.class_id) params.append('class_id', filters.class_id)
+    if (filters.discount_type) params.append('discount_type', filters.discount_type)
+    
+    const query = params.toString() ? `?${params.toString()}` : ''
+    return await apiClient.get(`/api/discounts${query}`)
+  },
+
+  /**
+   * Get discounts for specific student
+   * GET /api/discounts/student/:id
+   */
+  async getByStudent(studentId) {
+    return await apiClient.get(`/api/discounts/student/${studentId}`)
+  },
+
+  /**
+   * Update discount
+   * PUT /api/discounts/:id
+   */
+  async update(id, discountData) {
+    return await apiClient.put(`/api/discounts/${id}`, discountData)
+  },
+
+  /**
+   * Delete discount
+   * DELETE /api/discounts/:id
+   */
+  async delete(id) {
+    return await apiClient.delete(`/api/discounts/${id}`)
+  }
+}
+
+/**
  * Fee Payment Service
  * Backend: /api/fees
  */

@@ -14,7 +14,8 @@ const navigationItems = [
   ]},
   { path: '/fees', label: 'Fee Management', icon: '💳', roles: ['ADMIN', 'ACCOUNTANT'], subItems: [
     { path: '/fees/vouchers', label: 'Fee Vouchers', roles: ['ADMIN', 'ACCOUNTANT'] },
-    { path: '/fees/payments', label: 'Payments', roles: ['ADMIN', 'ACCOUNTANT'] }
+    { path: '/fees/payments', label: 'Payments', roles: ['ADMIN', 'ACCOUNTANT'] },
+    { path: '/fees/discounts', label: 'Discounts', roles: ['ADMIN', 'ACCOUNTANT'] }
   ]},
   { path: '/expenses', label: 'Expenses', icon: '💸', roles: ['ADMIN', 'ACCOUNTANT'] },
   { path: '/analytics', label: 'Analytics', icon: '📈', roles: ['ADMIN'] },
