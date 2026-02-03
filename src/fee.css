@@ -1110,3 +1110,213 @@ th.sortable:hover {
   font-size: 0.8125rem;
   font-weight: 500;
 }
+
+/* ===============================================
+   PHASE 3: STATISTICS DASHBOARD STYLES
+   =============================================== */
+
+/* Quick filters */
+.quick-filters {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-filter {
+  padding: 0.5rem 1rem;
+  border: 1px solid #e0e0e0;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #666;
+  transition: all 0.2s ease;
+}
+
+.btn-filter:hover {
+  border-color: #4a6cf7;
+  color: #4a6cf7;
+  background: #f8f9ff;
+}
+
+.btn-filter:active {
+  transform: scale(0.98);
+}
+
+/* Progress section */
+.progress-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.progress-section h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+  color: #1a1a2e;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 40px;
+  background: #f0f0f0;
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 0.75rem;
+}
+
+.progress-bar {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: white;
+  font-size: 0.875rem;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.progress-success {
+  background: linear-gradient(90deg, #27ae60, #2ecc71);
+}
+
+.progress-warning {
+  background: linear-gradient(90deg, #f39c12, #f1c40f);
+}
+
+.progress-danger {
+  background: linear-gradient(90deg, #e74c3c, #c0392b);
+}
+
+.progress-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+/* Voucher breakdown */
+.voucher-breakdown {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.voucher-breakdown h3 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.125rem;
+  color: #1a1a2e;
+}
+
+.breakdown-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.breakdown-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.breakdown-bar {
+  width: 100%;
+  height: 50px;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.bar-segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.bar-segment:hover {
+  filter: brightness(1.1);
+  cursor: pointer;
+}
+
+.bar-success {
+  background: linear-gradient(180deg, #2ecc71, #27ae60);
+}
+
+.bar-warning {
+  background: linear-gradient(180deg, #f1c40f, #f39c12);
+}
+
+.bar-danger {
+  background: linear-gradient(180deg, #e74c3c, #c0392b);
+}
+
+.breakdown-legend {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.legend-color {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+}
+
+.legend-success {
+  background: #27ae60;
+}
+
+.legend-warning {
+  background: #f39c12;
+}
+
+.legend-danger {
+  background: #e74c3c;
+}
+
+/* Help text improvements for stats page */
+.help-text h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  color: #1a1a2e;
+}
+
+.help-text ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.help-text li {
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  color: #666;
+  line-height: 1.5;
+}
+
+.help-text li:last-child {
+  margin-bottom: 0;
+}
+
