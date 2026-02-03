@@ -18,6 +18,7 @@ import FeePaymentManagement from './components/FeePaymentManagement'
 import DiscountManagement from './components/DiscountManagement'
 import FeeDefaulters from './components/FeeDefaulters'
 import FeeStatistics from './components/FeeStatistics'
+import StudentFeeHistory from './components/StudentFeeHistory'
 import GuardianManagement from './components/GuardianManagement'
 import AnalyticsDashboard from './components/AnalyticsDashboard'
 import Sidebar from './components/layout/Sidebar'
@@ -71,6 +72,7 @@ function AppLayout() {
             <Route path="/fees/discounts" element={<DiscountManagement />} />
             <Route path="/fees/defaulters" element={<FeeDefaulters />} />
             <Route path="/fees/statistics" element={<FeeStatistics />} />
+            <Route path="/fees/student-history" element={<StudentFeeHistory />} />
             
             {/* Guardian Management */}
             <Route path="/guardians" element={<GuardianManagement />} />

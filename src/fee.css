@@ -1320,3 +1320,236 @@ th.sortable:hover {
   margin-bottom: 0;
 }
 
+/* ===============================================
+   PHASE 4: STUDENT FEE HISTORY STYLES
+   =============================================== */
+
+/* Student info card */
+.student-info-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.student-info-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.student-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4a6cf7, #3b5cd6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: bold;
+  color: white;
+  flex-shrink: 0;
+}
+
+.student-details h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  color: #1a1a2e;
+}
+
+.student-meta {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.meta-item strong {
+  color: #1a1a2e;
+  margin-right: 0.25rem;
+}
+
+/* Table section */
+.table-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.table-section h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+  color: #1a1a2e;
+}
+
+/* Overdue row styling */
+.row-overdue {
+  background: #fff5f5 !important;
+}
+
+.row-overdue:hover {
+  background: #ffe8e8 !important;
+}
+
+.overdue-date {
+  color: #e74c3c;
+  font-weight: 600;
+}
+
+/* Action buttons in table */
+.btn-small {
+  padding: 0.25rem 0.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.btn-view {
+  background: #3498db;
+  color: white;
+}
+
+.btn-view:hover {
+  background: #2980b9;
+  transform: scale(1.05);
+}
+
+.btn-pay {
+  background: #27ae60;
+  color: white;
+}
+
+.btn-pay:hover {
+  background: #229954;
+  transform: scale(1.05);
+}
+
+/* Timeline section */
+.timeline-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.timeline-section h3 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.125rem;
+  color: #1a1a2e;
+}
+
+.timeline {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 0.5rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #e0e0e0;
+}
+
+.timeline-item {
+  position: relative;
+  padding-bottom: 1.5rem;
+}
+
+.timeline-item:last-child {
+  padding-bottom: 0;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -1.625rem;
+  top: 0.25rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #4a6cf7;
+  border: 3px solid white;
+  box-shadow: 0 0 0 2px #4a6cf7;
+}
+
+.timeline-content {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 6px;
+  border-left: 3px solid #4a6cf7;
+}
+
+.timeline-date {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin-bottom: 0.5rem;
+}
+
+.timeline-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.timeline-amount {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+/* Badge success variant */
+.badge-success {
+  background: #27ae60;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+/* Responsive adjustments for student history */
+@media (max-width: 768px) {
+  .student-info-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .student-avatar {
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+  }
+
+  .student-meta {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .timeline {
+    padding-left: 1.5rem;
+  }
+
+  .timeline::before {
+    left: 0.25rem;
+  }
+
+  .timeline-marker {
+    left: -1.375rem;
+  }
+}
+
