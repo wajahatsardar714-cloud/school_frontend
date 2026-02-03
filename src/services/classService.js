@@ -33,6 +33,11 @@ export const classService = {
   async getFeeHistory(id) {
     return await apiClient.get(API_ENDPOINTS.CLASS_FEE_HISTORY(id))
   },
+
+  // Get sections for a specific class
+  async getSections(classId) {
+    return sectionService.list(classId)
+  },
 }
 
 export const sectionService = {

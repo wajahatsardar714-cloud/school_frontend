@@ -970,3 +970,143 @@ th[style*="cursor: pointer"] {
 th[style*="cursor: pointer"]:hover {
   background: #f8f9fa;
 }
+
+/* Sortable table headers (alternative selector) */
+th.sortable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  transition: background-color 0.2s;
+}
+
+th.sortable:hover {
+  background: #f8f9fa;
+}
+
+/* Contact link styling */
+.contact-link {
+  color: #4a6cf7;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.contact-link:hover {
+  text-decoration: underline;
+}
+
+/* Checkbox filter styling */
+.checkbox-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  margin-top: 1.5rem;
+}
+
+.checkbox-filter input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #4a6cf7;
+}
+
+/* Stats cards grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.stat-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #666;
+  margin-bottom: 0.25rem;
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: bold;
+  color: #1a1a2e;
+}
+
+.stat-detail {
+  font-size: 0.8125rem;
+  color: #666;
+  margin-top: 0.25rem;
+}
+
+/* Stat card variants */
+.stat-card.stat-primary {
+  border-left: 4px solid #4a6cf7;
+}
+
+.stat-card.stat-success {
+  border-left: 4px solid #27ae60;
+}
+
+.stat-card.stat-warning {
+  border-left: 4px solid #f39c12;
+}
+
+.stat-card.stat-danger {
+  border-left: 4px solid #e74c3c;
+}
+
+.stat-card.stat-info {
+  border-left: 4px solid #3498db;
+}
+
+/* Help text at bottom */
+.help-text {
+  margin-top: 2rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid #4a6cf7;
+}
+
+.help-text p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.help-text strong {
+  color: #1a1a2e;
+}
+
+/* Badge info variant */
+.badge-info {
+  background: #3498db;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
