@@ -8,12 +8,12 @@ export const studentService = {
 
   async list(filters = {}) {
     const params = new URLSearchParams()
-    
+
     if (filters.class_id) params.append('class_id', filters.class_id)
     if (filters.section_id) params.append('section_id', filters.section_id)
     if (filters.is_active !== undefined) params.append('is_active', filters.is_active)
     if (filters.is_expelled !== undefined) params.append('is_expelled', filters.is_expelled)
-    
+
     const query = params.toString() ? `?${params.toString()}` : ''
     return await apiClient.get(`${API_ENDPOINTS.STUDENTS}${query}`)
   },
@@ -73,5 +73,21 @@ export const studentService = {
 
   async removeGuardian(id, guardianId) {
     return await apiClient.delete(API_ENDPOINTS.STUDENT_REMOVE_GUARDIAN(id, guardianId))
+  },
+
+  async promote(id, promotionData) {
+    return await apiClient.post(API_ENDPOINTS.STUDENT_PROMOTE(id), promotionData)
+  },
+
+  async getDocuments(id) {
+    return await apiClient.get(API_ENDPOINTS.STUDENT_DOCUMENTS(id))
+  },
+
+  async getDocumentUrl(docId) {
+    return await apiClient.get(`/api/documents/${docId}/url`)
+  },
+
+  async downloadDocument(docId) {
+    return await apiClient.get(`/api/documents/${docId}/download`, { responseType: 'blob' })
   },
 }

@@ -461,7 +461,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .empty-state {
@@ -716,7 +718,7 @@
   accent-color: #4a6cf7;
 }
 
-.checkbox-label input[type="checkbox"]:checked + .checkbox-text strong {
+.checkbox-label input[type="checkbox"]:checked+.checkbox-text strong {
   color: #4a6cf7;
 }
 
@@ -1553,3 +1555,41 @@ th.sortable:hover {
   }
 }
 
+/* Fee Defaulter Page Enhancements */
+.guardian-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.guardian-name {
+  font-weight: 500;
+  color: #1a1a2e;
+}
+
+.contact-link.small {
+  font-size: 0.75rem;
+  color: #4a6cf7;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.contact-link.small:hover {
+  text-decoration: underline;
+}
+
+.amount-paid {
+  color: #28a745;
+  font-weight: 500;
+}
+
+.badge-info {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  padding: 0.25rem 0.625rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}

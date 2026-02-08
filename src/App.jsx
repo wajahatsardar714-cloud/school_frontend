@@ -22,6 +22,9 @@ import StudentFeeHistory from './components/StudentFeeHistory'
 import GuardianManagement from './components/GuardianManagement'
 import AnalyticsDashboard from './components/AnalyticsDashboard'
 import Sidebar from './components/layout/Sidebar'
+import StudentDashboard from './components/students/StudentDashboard'
+import ClassStudentList from './components/students/ClassStudentList'
+import StudentDetail from './components/students/StudentDetail'
 import Header from './components/layout/Header'
 import './App.css'
 
@@ -51,21 +54,26 @@ function AppLayout() {
         <main className="content">
           <Routes>
             <Route path="/dashboard" element={<Dashboard />} />
-            
+
             {/* Admission Routes */}
             <Route path="/admission/new-form" element={<AdmissionForm />} />
             <Route path="/admission/list" element={<AdmissionList />} />
-            
+
+            {/* New Students Routes */}
+            <Route path="/students" element={<StudentDashboard />} />
+            <Route path="/students/class/:classId" element={<ClassStudentList />} />
+            <Route path="/students/:studentId" element={<StudentDetail />} />
+
             {/* Class Management Routes */}
             <Route path="/classes" element={<ClassManagement />} />
             <Route path="/classes/:classId/sections" element={<SectionManagement />} />
             <Route path="/classes/:classId/fee-structure" element={<FeeStructureManagement />} />
-            
+
             {/* Faculty Routes */}
             <Route path="/faculty" element={<FacultyManagement />} />
             <Route path="/faculty/salary-structure" element={<SalaryStructureManagement />} />
             <Route path="/faculty/salary-vouchers" element={<SalaryVoucherManagement />} />
-            
+
             {/* Fee Management Routes */}
             <Route path="/fees/vouchers" element={<FeeVoucherManagement />} />
             <Route path="/fees/payments" element={<FeePaymentManagement />} />
@@ -73,16 +81,16 @@ function AppLayout() {
             <Route path="/fees/defaulters" element={<FeeDefaulters />} />
             <Route path="/fees/statistics" element={<FeeStatistics />} />
             <Route path="/fees/student-history" element={<StudentFeeHistory />} />
-            
+
             {/* Guardian Management */}
             <Route path="/guardians" element={<GuardianManagement />} />
-            
+
             {/* Analytics */}
             <Route path="/analytics" element={<AnalyticsDashboard />} />
-            
+
             {/* Expense Routes */}
             <Route path="/expenses" element={<ExpenseManagement />} />
-            
+
             {/* User Management Routes */}
             <Route path="/users" element={<UserManagement />} />
           </Routes>

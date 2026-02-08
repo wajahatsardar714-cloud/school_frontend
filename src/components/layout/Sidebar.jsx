@@ -4,22 +4,26 @@ import { useAuth } from '../../context/AuthContext'
 
 const navigationItems = [
   { path: '/dashboard', label: 'Dashboard', icon: '📊', roles: ['ADMIN', 'ACCOUNTANT'] },
-  { path: '/admission/list', label: 'Students', icon: '🎓', roles: ['ADMIN', 'ACCOUNTANT'] },
+  { path: '/students', label: 'Students', icon: '🎓', roles: ['ADMIN', 'ACCOUNTANT'] },
   { path: '/classes', label: 'Classes', icon: '📚', roles: ['ADMIN'] },
   { path: '/guardians', label: 'Guardians', icon: '👨‍👩‍👧‍👦', roles: ['ADMIN', 'ACCOUNTANT'] },
-  { path: '/faculty', label: 'Faculty', icon: '👨‍🏫', roles: ['ADMIN'], subItems: [
-    { path: '/faculty', label: 'Manage Faculty', roles: ['ADMIN'] },
-    { path: '/faculty/salary-structure', label: 'Salary Structure', roles: ['ADMIN'] },
-    { path: '/faculty/salary-vouchers', label: 'Salary Vouchers', roles: ['ADMIN'] }
-  ]},
-  { path: '/fees', label: 'Fee Management', icon: '💳', roles: ['ADMIN', 'ACCOUNTANT'], subItems: [
-    { path: '/fees/vouchers', label: 'Fee Vouchers', roles: ['ADMIN', 'ACCOUNTANT'] },
-    { path: '/fees/payments', label: 'Payments', roles: ['ADMIN', 'ACCOUNTANT'] },
-    { path: '/fees/discounts', label: 'Discounts', roles: ['ADMIN', 'ACCOUNTANT'] },
-    { path: '/fees/defaulters', label: 'Defaulters', roles: ['ADMIN', 'ACCOUNTANT'] },
-    { path: '/fees/statistics', label: 'Statistics', roles: ['ADMIN', 'ACCOUNTANT'] },
-    { path: '/fees/student-history', label: 'Student History', roles: ['ADMIN', 'ACCOUNTANT'] }
-  ]},
+  {
+    path: '/faculty', label: 'Faculty', icon: '👨‍🏫', roles: ['ADMIN'], subItems: [
+      { path: '/faculty', label: 'Manage Faculty', roles: ['ADMIN'] },
+      { path: '/faculty/salary-structure', label: 'Salary Structure', roles: ['ADMIN'] },
+      { path: '/faculty/salary-vouchers', label: 'Salary Vouchers', roles: ['ADMIN'] }
+    ]
+  },
+  {
+    path: '/fees', label: 'Fee Management', icon: '💳', roles: ['ADMIN', 'ACCOUNTANT'], subItems: [
+      { path: '/fees/vouchers', label: 'Fee Vouchers', roles: ['ADMIN', 'ACCOUNTANT'] },
+      { path: '/fees/payments', label: 'Payments', roles: ['ADMIN', 'ACCOUNTANT'] },
+      { path: '/fees/discounts', label: 'Discounts', roles: ['ADMIN', 'ACCOUNTANT'] },
+      { path: '/fees/defaulters', label: 'Defaulters', roles: ['ADMIN', 'ACCOUNTANT'] },
+      { path: '/fees/statistics', label: 'Statistics', roles: ['ADMIN', 'ACCOUNTANT'] },
+      { path: '/fees/student-history', label: 'Student History', roles: ['ADMIN', 'ACCOUNTANT'] }
+    ]
+  },
   { path: '/expenses', label: 'Expenses', icon: '💸', roles: ['ADMIN', 'ACCOUNTANT'] },
   { path: '/analytics', label: 'Analytics', icon: '📈', roles: ['ADMIN'] },
   { path: '/users', label: 'Users', icon: '👥', roles: ['ADMIN'] },
@@ -29,15 +33,15 @@ const Sidebar = () => {
   const location = useLocation()
   const { user } = useAuth()
   const [expandedItems, setExpandedItems] = useState({})
-  
-  const filteredItems = navigationItems.filter(item => 
+
+  const filteredItems = navigationItems.filter(item =>
     item.roles.includes(user?.role)
   )
 
   const toggleExpand = (path) => {
     setExpandedItems(prev => ({ ...prev, [path]: !prev[path] }))
   }
-  
+
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
@@ -46,7 +50,7 @@ const Sidebar = () => {
           <span className="logo-text">MPHS</span>
         </div>
       </div>
-      
+
       <nav className="sidebar-nav">
         {filteredItems.map((item) => (
           <div key={item.path}>

@@ -21,6 +21,8 @@ export const API_ENDPOINTS = {
   STUDENT_CLEAR_EXPULSION: (id) => `/api/students/${id}/clear-expulsion`,
   STUDENT_ADD_GUARDIAN: (id) => `/api/students/${id}/guardians`,
   STUDENT_REMOVE_GUARDIAN: (id, guardianId) => `/api/students/${id}/guardians/${guardianId}`,
+  STUDENT_PROMOTE: (id) => `/api/students/${id}/promote`,
+  STUDENT_DOCUMENTS: (id) => `/api/students/${id}/documents`,
 
   // Guardians
   GUARDIANS: '/api/guardians',

@@ -32,10 +32,10 @@ const FeeDefaulters = () => {
   )
 
   // Fetch defaulters
-  const { 
-    data: defaultersData, 
+  const {
+    data: defaultersData,
     loading: defaultersLoading,
-    refetch: refreshDefaulters 
+    refetch: refreshDefaulters
   } = useFetch(
     () => feePaymentService.getDefaulters(filters),
     [filters.class_id, filters.section_id, filters.min_due_amount, filters.overdue_only],
@@ -48,18 +48,22 @@ const FeeDefaulters = () => {
     if (!sortConfig.key) return defaulters
 
     const sorted = [...defaulters].sort((a, b) => {
-      const aVal = a[sortConfig.key]
-      const bVal = b[sortConfig.key]
+      let aVal = a[sortConfig.key]
+      let bVal = b[sortConfig.key]
+
+      // Handle numeric sorting for strings that are numbers
+      if (['due_amount', 'total_fee', 'paid_amount', 'total_vouchers'].includes(sortConfig.key)) {
+        aVal = parseFloat(aVal) || 0
+        bVal = parseFloat(bVal) || 0
+      }
 
       if (typeof aVal === 'string') {
-        return sortConfig.direction === 'asc' 
+        return sortConfig.direction === 'asc'
           ? aVal.localeCompare(bVal)
           : bVal.localeCompare(aVal)
       }
 
-      return sortConfig.direction === 'asc'
-        ? aVal - bVal
-        : bVal - aVal
+      return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal
     })
 
     return sorted
@@ -83,18 +87,26 @@ const FeeDefaulters = () => {
 
   // Export to CSV
   const exportToCSV = useCallback(() => {
-    const headers = ['Student Name', 'Roll No', 'Class', 'Section', 'Guardian', 'Contact', 'Total Vouchers', 'Paid Vouchers', 'Due Amount']
-    const rows = sortedDefaulters.map(d => [
-      d.student_name,
-      d.roll_no,
-      d.class_name,
-      d.section_name || '-',
-      d.guardian_name || '-',
-      d.guardian_contact || '-',
-      d.total_vouchers,
-      d.paid_vouchers,
-      d.due_amount,
-    ])
+    const headers = [
+      'Student Name', 'Roll No', 'Class', 'Section',
+      'Guardian', 'Contact', 'Total Vouchers',
+      'Total Fee', 'Paid Amount', 'Due Amount'
+    ]
+    const rows = sortedDefaulters.map(d => {
+      const guardian = d.guardians?.[0] || {}
+      return [
+        d.student_name,
+        d.roll_no,
+        d.class_name,
+        d.section_name || '-',
+        guardian.name || d.guardian_name || '-',
+        guardian.phone || d.guardian_contact || d.phone || '-',
+        d.total_vouchers,
+        d.total_fee || 0,
+        d.paid_amount || 0,
+        d.due_amount,
+      ]
+    })
 
     const csvContent = [
       headers.join(','),
@@ -117,14 +129,14 @@ const FeeDefaulters = () => {
       <div className="fee-header">
         <h1>⚠️ Fee Defaulters</h1>
         <div className="header-actions">
-          <button 
+          <button
             onClick={exportToCSV}
             className="btn-secondary"
             disabled={sortedDefaulters.length === 0}
           >
             📥 Export CSV
           </button>
-          <button 
+          <button
             onClick={refreshDefaulters}
             className="btn-primary"
           >
@@ -158,8 +170,8 @@ const FeeDefaulters = () => {
       <div className="filters-section">
         <div className="filter-group">
           <label>Class</label>
-          <select 
-            value={filters.class_id} 
+          <select
+            value={filters.class_id}
             onChange={(e) => setFilters({ ...filters, class_id: e.target.value, section_id: '' })}
           >
             <option value="">All Classes</option>
@@ -171,8 +183,8 @@ const FeeDefaulters = () => {
 
         <div className="filter-group">
           <label>Section</label>
-          <select 
-            value={filters.section_id} 
+          <select
+            value={filters.section_id}
             onChange={(e) => setFilters({ ...filters, section_id: e.target.value })}
             disabled={!filters.class_id}
           >
@@ -223,54 +235,67 @@ const FeeDefaulters = () => {
                 </th>
                 <th>Section</th>
                 <th>Guardian</th>
-                <th>Contact</th>
                 <th onClick={() => handleSort('total_vouchers')} className="sortable">
                   Vouchers {sortConfig.key === 'total_vouchers' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                 </th>
+                <th onClick={() => handleSort('total_fee')} className="sortable">
+                  Total Fee {sortConfig.key === 'total_fee' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>
+                <th onClick={() => handleSort('paid_amount')} className="sortable">
+                  Paid {sortConfig.key === 'paid_amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>
                 <th onClick={() => handleSort('due_amount')} className="sortable">
-                  Due Amount {sortConfig.key === 'due_amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                  Due {sortConfig.key === 'due_amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                 </th>
               </tr>
             </thead>
             <tbody>
               {sortedDefaulters.length === 0 ? (
                 <tr>
-                  <td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>
-                    {filters.overdue_only 
+                  <td colSpan="9" style={{ textAlign: 'center', padding: '2rem' }}>
+                    {filters.overdue_only
                       ? 'No overdue defaulters found! 🎉'
                       : 'No defaulters found! 🎉'}
                   </td>
                 </tr>
               ) : (
-                sortedDefaulters.map((defaulter, index) => (
-                  <tr key={`${defaulter.student_id}-${index}`}>
-                    <td>
-                      <strong>{defaulter.student_name}</strong>
-                    </td>
-                    <td>{defaulter.roll_no}</td>
-                    <td>{defaulter.class_name}</td>
-                    <td>{defaulter.section_name || '-'}</td>
-                    <td>{defaulter.guardian_name || '-'}</td>
-                    <td>
-                      {defaulter.guardian_contact ? (
-                        <a 
-                          href={`tel:${defaulter.guardian_contact}`}
-                          className="contact-link"
-                        >
-                          {defaulter.guardian_contact}
-                        </a>
-                      ) : '-'}
-                    </td>
-                    <td>
-                      <span className="badge badge-info">
-                        {defaulter.paid_vouchers}/{defaulter.total_vouchers}
-                      </span>
-                    </td>
-                    <td className="amount-due">
-                      Rs. {defaulter.due_amount?.toLocaleString()}
-                    </td>
-                  </tr>
-                ))
+                sortedDefaulters.map((defaulter, index) => {
+                  const guardian = defaulter.guardians?.[0] || {}
+                  const contact = guardian.phone || defaulter.guardian_contact || defaulter.phone
+
+                  return (
+                    <tr key={`${defaulter.student_id}-${index}`}>
+                      <td>
+                        <strong>{defaulter.student_name}</strong>
+                      </td>
+                      <td>{defaulter.roll_no}</td>
+                      <td>{defaulter.class_name}</td>
+                      <td>{defaulter.section_name || '-'}</td>
+                      <td>
+                        <div className="guardian-info">
+                          <span className="guardian-name">{guardian.name || defaulter.guardian_name || '-'}</span>
+                          {contact && (
+                            <a href={`tel:${contact}`} className="contact-link small">
+                              📞 {contact}
+                            </a>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <span className="badge badge-info">
+                          {defaulter.total_vouchers} Vouchers
+                        </span>
+                      </td>
+                      <td>Rs. {parseFloat(defaulter.total_fee || 0).toLocaleString()}</td>
+                      <td className="amount-paid">
+                        Rs. {parseFloat(defaulter.paid_amount || 0).toLocaleString()}
+                      </td>
+                      <td className="amount-due">
+                        Rs. {parseFloat(defaulter.due_amount || 0).toLocaleString()}
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>
