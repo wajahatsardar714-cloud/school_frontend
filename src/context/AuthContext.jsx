@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }) => {
     apiClient.setAuthHandlers(
       () => {
         setUser(null)
-        navigate('/login')
+        navigate('/')
       },
       () => {
         console.error('Access forbidden')
@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     authService.logout()
     setUser(null)
-    navigate('/login')
+    navigate('/')
   }
 
   const isAuthenticated = () => {
