@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import logo from '../../assets/logo.png'
 
 const navigationItems = [
   { path: '/dashboard', label: 'Dashboard', icon: '📊', roles: ['ADMIN', 'ACCOUNTANT'] },
@@ -46,7 +47,7 @@ const Sidebar = () => {
     <aside className="sidebar">
       <div className="sidebar-header">
         <div className="logo">
-          <span className="logo-icon">🏫</span>
+          <img src={logo} alt="MPHS Logo" className="sidebar-logo" />
           <span className="logo-text">MPHS</span>
         </div>
       </div>

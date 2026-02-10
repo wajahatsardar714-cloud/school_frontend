@@ -58,7 +58,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Logout Button */
@@ -126,45 +128,150 @@
   margin-bottom: 24px;
 }
 
-/* Login Page Styles */
+/* Login Page Styles - Premium Redesign */
 .login-container {
   min-height: 100vh;
-  background: #f8fafc;
+  background: #0f172a;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Dynamic Background Blobs */
+.login-background-blobs {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+}
+
+.blob {
+  position: absolute;
+  filter: blur(80px);
+  border-radius: 50%;
+  opacity: 0.5;
+  animation: blob-float 20s infinite alternate cubic-bezier(0.45, 0.05, 0.55, 0.95);
+}
+
+.blob-1 {
+  width: 500px;
+  height: 500px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2dd4bf 100%);
+  top: -100px;
+  left: -100px;
+}
+
+.blob-2 {
+  width: 400px;
+  height: 400px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  bottom: -50px;
+  right: -50px;
+  animation-delay: -5s;
+}
+
+.blob-3 {
+  width: 300px;
+  height: 300px;
+  background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.3;
+  animation-delay: -10s;
+}
+
+@keyframes blob-float {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
 }
 
 .login-box {
-  background: white;
-  padding: 40px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 48px;
+  border-radius: 24px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   width: 100%;
-  max-width: 380px;
+  max-width: 440px;
   text-align: center;
+  position: relative;
+  z-index: 10;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  animation: slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .login-header {
+  margin-bottom: 40px;
+}
+
+.logo-wrapper {
   margin-bottom: 32px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: transparent;
+}
+
+.login-logo {
+  height: 140px;
+  /* Slightly bigger still */
+  width: auto;
+  display: block;
+  border-radius: 50%;
+  /* Crops the corner marks from the asset */
+  object-fit: contain;
 }
 
 .welcome-title {
-  color: #1f2937;
-  font-size: 26px;
-  font-weight: 600;
-  margin: 0 0 8px 0;
+  color: #1e293b;
+  font-size: 32px;
+  font-weight: 800;
+  margin: 0 0 12px 0;
+  letter-spacing: -0.025em;
 }
 
 .welcome-subtitle {
-  color: #6b7280;
-  font-size: 15px;
+  color: #64748b;
+  font-size: 16px;
   margin: 0;
+  font-weight: 500;
 }
 
 .login-form {
-  margin-bottom: 24px;
+  margin-bottom: 32px;
 }
 
 .form-group {
@@ -174,31 +281,67 @@
 
 .form-group label {
   display: block;
-  color: #374151;
+  color: #475569;
   font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 8px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  margin-left: 4px;
 }
 
-.form-group input {
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 14px;
+  /* Slight adjustment */
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+  transition: all 0.2s;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.8;
+}
+
+.input-icon svg {
+  width: 20px;
+  /* Precise icon sizing */
+  height: 20px;
+}
+
+.login-form .form-group input {
   width: 100%;
-  padding: 14px 16px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  padding: 14px 16px 14px 48px !important;
+  /* Forces padding to override global styles */
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
   font-size: 16px;
-  color: #1f2937;
-  background: #ffffff;
-  transition: all 0.2s ease;
+  color: #1e293b;
+  background: white;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .form-group input::placeholder {
-  color: #9ca3af;
+  color: #cbd5e1;
 }
 
 .form-group input:focus {
   outline: none;
   border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  background: #ffffff;
+}
+
+.form-group input:focus+.input-icon,
+.input-wrapper:focus-within .input-icon {
+  color: #3b82f6;
 }
 
 .form-group input.error {
@@ -208,45 +351,151 @@
 .error-message {
   color: #ef4444;
   font-size: 13px;
-  margin-top: 6px;
+  margin-top: 8px;
+  margin-left: 4px;
   display: block;
+  font-weight: 500;
+}
+
+.error-alert {
+  padding: 12px 16px;
+  margin-bottom: 24px;
+  background-color: #fef2f2;
+  border: 1px solid #fee2e2;
+  color: #991b1b;
+  border-radius: 12px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes shake {
+
+  10%,
+  90% {
+    transform: translate3d(-1px, 0, 0);
+  }
+
+  20%,
+  80% {
+    transform: translate3d(2px, 0, 0);
+  }
+
+  30%,
+  50%,
+  70% {
+    transform: translate3d(-4px, 0, 0);
+  }
+
+  40%,
+  60% {
+    transform: translate3d(4px, 0, 0);
+  }
+}
+
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  font-size: 14px;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.remember-me input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+.forgot-password {
+  color: #3b82f6;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.forgot-password:hover {
+  text-decoration: underline;
 }
 
 .sign-in-btn {
   width: 100%;
-  background: #3b82f6;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: white;
   border: none;
-  padding: 14px 24px;
-  border-radius: 6px;
+  padding: 16px 24px;
+  border-radius: 12px;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2), 0 2px 4px -1px rgba(59, 130, 246, 0.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 54px;
 }
 
 .sign-in-btn:hover {
-  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3), 0 4px 6px -2px rgba(59, 130, 246, 0.1);
+  filter: brightness(1.05);
 }
 
 .sign-in-btn:active {
-  transform: translateY(1px);
+  transform: translateY(0);
+}
+
+.sign-in-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-loader {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spinner 0.8s linear infinite;
+}
+
+@keyframes spinner {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .login-footer {
-  color: #6b7280;
-  font-size: 14px;
+  color: #64748b;
+  font-size: 15px;
+  font-weight: 500;
 }
 
 .signup-link {
   color: #3b82f6;
+  font-weight: 700;
   cursor: pointer;
-  text-decoration: none;
 }
 
 .signup-link:hover {
   text-decoration: underline;
 }
+
+/* Page Header and other existing styles below... */
 
 /* Users & Accounts Styles */
 .page-header {
@@ -261,7 +510,12 @@
 }
 
 /* Standard Heading Styles */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   color: #1f2937;
   font-weight: 700;
   line-height: 1.2;
@@ -649,15 +903,15 @@ h6 {
     grid-template-columns: 1fr;
     gap: 16px;
   }
-  
+
   .access-options {
     grid-template-columns: 1fr;
   }
-  
+
   .users-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .user-form {
     padding: 24px;
   }
@@ -701,6 +955,12 @@ h6 {
 
 .logo-icon {
   font-size: 24px;
+}
+
+.sidebar-logo {
+  height: 32px;
+  width: auto;
+  border-radius: 4px;
 }
 
 .logo-text {
@@ -1121,60 +1381,60 @@ h6 {
     display: flex !important;
     flex-direction: column !important;
   }
-  
+
   .logo-text,
   .nav-label {
     display: none;
   }
-  
+
   .sidebar-header {
     padding: 15px 10px;
     text-align: center;
   }
-  
+
   .logo-icon {
     font-size: 20px;
   }
-  
+
   .nav-item {
     justify-content: center;
     padding: 12px 10px;
   }
-  
+
   .nav-item.active {
     border-left: none;
     border-bottom: 3px solid #60a5fa;
   }
-  
+
   .page-title {
     font-size: 16px;
   }
-  
+
   .content {
     padding: 16px;
   }
-  
+
   .page-content {
     padding: 24px 16px;
   }
-  
+
   .form-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .admission-actions {
     grid-template-columns: 1fr;
   }
-  
+
   .form-actions {
     flex-direction: column;
   }
-  
+
   .date-filters {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .students-table {
     overflow-x: auto;
   }
@@ -1452,7 +1712,8 @@ h6 {
   justify-content: center;
 }
 
-.photo-placeholder, .no-photo {
+.photo-placeholder,
+.no-photo {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1484,7 +1745,8 @@ h6 {
   margin: 5px 0;
 }
 
-.photo-placeholder small, .no-photo small {
+.photo-placeholder small,
+.no-photo small {
   color: #95a5a6;
   font-size: 12px;
 }
@@ -1734,8 +1996,15 @@ h6 {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Custom Role Input Animation */
@@ -1839,7 +2108,7 @@ h6 {
   max-width: 21cm;
   margin: 0 auto;
   background: white;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   min-height: 29.7cm;
   padding: 1cm;
   box-sizing: border-box;
@@ -1963,7 +2232,8 @@ h6 {
   page-break-inside: avoid;
 }
 
-.submit-btn, .print-btn {
+.submit-btn,
+.print-btn {
   padding: 10px 20px;
   border: none;
   border-radius: 5px;
@@ -1983,19 +2253,21 @@ h6 {
   color: white;
 }
 
-.submit-btn:hover, .print-btn:hover {
+.submit-btn:hover,
+.print-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* Print Styles for A4 */
 @media print {
+
   /* Global print settings */
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  
+
   body {
     margin: 0;
     padding: 0;
@@ -2003,7 +2275,7 @@ h6 {
     color: black !important;
     font-family: Arial, sans-serif !important;
   }
-  
+
   /* Hide unwanted elements during print */
   .sidebar,
   .main-content .header,
@@ -2018,7 +2290,7 @@ h6 {
   input[type="submit"]:not(.print-specific) {
     display: none !important;
   }
-  
+
   /* Main content area for print */
   .main-content,
   .page-content {
@@ -2029,12 +2301,12 @@ h6 {
     border: none !important;
     background: white !important;
   }
-  
+
   .app-layout {
     display: block !important;
     background: white !important;
   }
-  
+
   /* Admission form print styles */
   .admission-form-container {
     box-shadow: none !important;
@@ -2043,31 +2315,31 @@ h6 {
     background: white !important;
     border: none !important;
   }
-  
+
   .no-print-margin {
     margin-top: 0 !important;
   }
-  
+
   .school-name-form {
     font-size: 1.8em !important;
     color: black !important;
   }
-  
+
   .school-subtitle-form {
     font-size: 1em !important;
     color: black !important;
   }
-  
+
   .form-title {
     font-size: 1.1em !important;
     color: black !important;
   }
-  
+
   .form-section {
     margin-bottom: 12px !important;
     background: white !important;
   }
-  
+
   .form-group input,
   .form-group select,
   .form-group textarea {
@@ -2077,7 +2349,7 @@ h6 {
     color: black !important;
     padding: 4px !important;
   }
-  
+
   /* Voucher print styles */
   .voucher-card,
   .printable {
@@ -2088,7 +2360,7 @@ h6 {
     page-break-inside: avoid !important;
     color: black !important;
   }
-  
+
   /* Report print styles */
   .a4-print-layout {
     background: white !important;
@@ -2096,20 +2368,20 @@ h6 {
     margin: 0 !important;
     padding: 0.5cm !important;
   }
-  
+
   .print-header {
     text-align: center !important;
     margin-bottom: 20px !important;
     border-bottom: 2px solid #333 !important;
     padding-bottom: 10px !important;
   }
-  
+
   .print-header h2,
   .print-header h3 {
     color: black !important;
     margin: 5px 0 !important;
   }
-  
+
   .print-footer {
     margin-top: 20px !important;
     border-top: 1px solid #333 !important;
@@ -2117,7 +2389,7 @@ h6 {
     text-align: center !important;
     color: black !important;
   }
-  
+
   /* Table print styles */
   table {
     width: 100% !important;
@@ -2125,7 +2397,7 @@ h6 {
     margin: 10px 0 !important;
     background: white !important;
   }
-  
+
   table th,
   table td {
     border: 1px solid #333 !important;
@@ -2134,31 +2406,38 @@ h6 {
     color: black !important;
     background: white !important;
   }
-  
+
   table th {
     background: #f0f0f0 !important;
     font-weight: bold !important;
   }
-  
+
   /* Text elements */
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     color: black !important;
     margin: 10px 0 !important;
   }
-  
-  p, span, div {
+
+  p,
+  span,
+  div {
     color: black !important;
   }
-  
+
   /* Page break controls */
   .page-break {
     page-break-after: always !important;
   }
-  
+
   .no-page-break {
     page-break-inside: avoid !important;
   }
-  
+
   /* Ensure proper spacing */
   .user-card,
   .faculty-card,
@@ -2425,25 +2704,25 @@ h6 {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 15px;
   }
-  
+
   .dashboard-btn {
     min-height: 120px;
     padding: 20px 15px;
   }
-  
+
   .dashboard-btn .btn-icon {
     font-size: 28px;
   }
-  
+
   .dashboard-btn .btn-title {
     font-size: 14px;
   }
-  
+
   .welcome-message {
     padding: 15px;
     margin: 15px 0 20px 0;
   }
-  
+
   .welcome-message p {
     font-size: 14px;
   }
@@ -2619,22 +2898,23 @@ h6 {
 
 /* Print Styles for Dual Slips */
 @media print {
+
   /* Ensure all page content prints correctly */
-  .page-content > h2,
+  .page-content>h2,
   .page-content h2,
   .main-content h2 {
     color: black !important;
     font-size: 18px !important;
     margin: 0 0 15px 0 !important;
   }
-  
+
   /* Faculty and voucher specific styles */
   .faculty-grid,
   .voucher-grid {
     display: block !important;
     background: white !important;
   }
-  
+
   .faculty-card,
   .voucher-card {
     background: white !important;
@@ -2644,7 +2924,7 @@ h6 {
     page-break-inside: avoid !important;
     color: black !important;
   }
-  
+
   .dual-slip-voucher {
     background: white !important;
     border: 2px solid #000 !important;
@@ -2652,38 +2932,38 @@ h6 {
     padding: 0 !important;
     page-break-inside: avoid !important;
   }
-  
+
   .slip-container {
     display: flex !important;
     background: white !important;
   }
-  
+
   .voucher-slip {
     background: white !important;
     border: none !important;
     flex: 1 !important;
   }
-  
+
   .voucher-divider {
     border-left: 2px dashed #000 !important;
   }
-  
+
   .slip-header {
     background: #f5f5f5 !important;
     border-bottom: 2px solid #000 !important;
     color: black !important;
   }
-  
+
   .slip-header h3,
   .slip-header h4 {
     color: black !important;
   }
-  
+
   .slip-details {
     background: white !important;
     color: black !important;
   }
-  
+
   .detail-row {
     color: black !important;
     border-bottom: 1px dotted #999 !important;
@@ -3427,63 +3707,63 @@ h6 {
     grid-template-columns: 1fr;
     gap: 16px;
   }
-  
+
   .stat-card {
     padding: 20px;
   }
-  
+
   .stat-icon {
     font-size: 24px;
     width: 50px;
     height: 50px;
   }
-  
+
   .stat-value {
     font-size: 20px;
   }
-  
+
   .stat-label {
     font-size: 12px;
   }
-  
+
   .reports-section {
     padding: 20px;
     margin: 20px 0;
   }
-  
+
   .graph-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
   }
-  
+
   .graph-legend {
     gap: 16px;
   }
-  
+
   .dual-line-graph {
     height: 250px;
   }
-  
+
   .graph-summary {
     flex-direction: column;
     gap: 12px;
   }
-  
+
   .pie-chart-container {
     flex-direction: column;
     align-items: center;
     gap: 24px;
   }
-  
+
   .pie-chart {
     flex: none;
   }
-  
+
   .pie-chart-legend {
     width: 100%;
   }
-  
+
   .fee-detail-item {
     flex-direction: column;
     gap: 4px;
@@ -3496,62 +3776,62 @@ h6 {
     grid-template-columns: 1fr;
     gap: 16px;
   }
-  
+
   .students-main-btn {
     min-height: 120px;
     padding: 20px 15px;
   }
-  
+
   .students-main-btn .btn-icon {
     font-size: 28px;
   }
-  
+
   .students-main-btn .btn-title {
     font-size: 14px;
   }
-  
+
   .students-main-btn .btn-subtitle {
     font-size: 12px;
   }
-  
+
   .class-cards-container {
     grid-template-columns: 1fr;
     gap: 16px;
   }
-  
+
   .class-name-btn {
     padding: 20px 16px;
   }
-  
+
   .class-title {
     font-size: 16px;
   }
-  
+
   .sections-row {
     flex-wrap: wrap;
   }
-  
+
   .section-btn {
     flex: 1 1 50px;
     min-width: 50px;
     padding: 10px 6px;
     font-size: 12px;
   }
-  
+
   .student-list-controls {
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
   }
-  
+
   .student-actions {
     justify-content: center;
   }
-  
+
   .students-table {
     overflow-x: auto;
   }
-  
+
   .students-table th,
   .students-table td {
     padding: 8px;
@@ -3988,6 +4268,7 @@ h6 {
 
 /* Print styles for A4 layout */
 @media print {
+
   /* Hide navigation and interactive elements */
   .admission-actions,
   .fee-summary-section,
@@ -4001,21 +4282,21 @@ h6 {
   .welcome-message {
     display: none !important;
   }
-  
+
   /* Fix page content for printing */
-  .page-content > h2 {
+  .page-content>h2 {
     color: black !important;
     display: block !important;
     margin-bottom: 20px !important;
   }
-  
+
   /* Modal and layout fixes */
   .class-detail-modal {
     position: static !important;
     background: white !important;
     padding: 0 !important;
   }
-  
+
   .class-detail-content {
     max-width: none !important;
     max-height: none !important;
@@ -4024,28 +4305,27 @@ h6 {
     background: white !important;
     color: black !important;
   }
-  
+
   .a4-print-layout {
     padding: 20px !important;
     margin: 0 !important;
     background: white !important;
     color: black !important;
   }
-  
+
   /* Table styling for print */
   .students-fee-table table {
     font-size: 10px !important;
     background: white !important;
     color: black !important;
   }
-  
+
   .students-fee-table th,
   .students-fee-table td {
     color: black !important;
     background: white !important;
     border: 1px solid #333 !important;
-  }
-    padding: 6px 4px;
+    padding: 6px 4px !important;
   }
 }
 
@@ -4054,46 +4334,46 @@ h6 {
   .fee-summary-cards {
     grid-template-columns: 1fr;
   }
-  
+
   .classes-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .class-filter-input {
     width: 100%;
   }
-  
+
   .fee-filter-section {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .signature-section {
     flex-direction: column;
     gap: 30px;
   }
-  
+
   .detail-summary-card {
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .class-detail-modal {
     padding: 10px;
   }
-  
+
   .class-detail-content {
     max-width: 100vw;
   }
-  
+
   .a4-print-layout {
     padding: 20px;
   }
-  
+
   .students-fee-table {
     overflow-x: auto;
   }
-  
+
   .students-fee-table table {
     min-width: 600px;
   }
@@ -4984,6 +5264,7 @@ h6 {
 
 /* Print Styles for Collection Reports */
 @media print {
+
   /* Hide interactive elements */
   .admission-actions,
   .fee-summary-section,
@@ -4999,14 +5280,14 @@ h6 {
   .welcome-message {
     display: none !important;
   }
-  
+
   /* Show page titles for context */
-  .page-content > h2 {
+  .page-content>h2 {
     color: black !important;
     display: block !important;
     margin-bottom: 20px !important;
   }
-  
+
   /* Modal layout fixes */
   .class-detail-modal,
   .collection-report-modal {
@@ -5018,28 +5299,28 @@ h6 {
     box-shadow: none !important;
     border-radius: 0 !important;
   }
-  
+
   /* Report layout */
   .excel-report-layout {
     padding: 15px !important;
     background: white !important;
     color: black !important;
   }
-  
+
   .class-section-report {
     page-break-inside: avoid !important;
     margin-bottom: 20px !important;
     background: white !important;
     color: black !important;
   }
-  
+
   /* Table styling */
   .excel-table {
     font-size: 11px !important;
     background: white !important;
     color: black !important;
   }
-  
+
   .excel-table th,
   .excel-table td {
     padding: 6px 4px !important;
@@ -5047,17 +5328,17 @@ h6 {
     background: white !important;
     border: 1px solid #333 !important;
   }
-  
+
   .excel-table th {
     background: #f0f0f0 !important;
   }
-  
+
   .report-header {
     margin-bottom: 20px !important;
     color: black !important;
     text-align: center !important;
   }
-  
+
   .report-header h2,
   .report-header h3 {
     color: black !important;
@@ -5070,37 +5351,37 @@ h6 {
     grid-template-columns: 1fr;
     padding: 20px;
   }
-  
+
   .collection-option-btn {
     padding: 20px 15px;
   }
-  
+
   .option-title {
     font-size: 16px;
   }
-  
+
   .collection-report-modal {
     width: 95vw;
     max-width: none;
   }
-  
+
   .excel-report-layout {
     padding: 15px;
   }
-  
+
   .report-summary {
     flex-direction: column;
     gap: 10px;
     text-align: center;
   }
-  
+
   .excel-table {
     font-size: 11px;
     overflow-x: auto;
     display: block;
     white-space: nowrap;
   }
-  
+
   .excel-table thead,
   .excel-table tbody,
   .excel-table tr {
@@ -5108,7 +5389,7 @@ h6 {
     width: 100%;
     table-layout: fixed;
   }
-  
+
   .excel-table th,
   .excel-table td {
     padding: 6px 4px;
@@ -5213,23 +5494,23 @@ h6 {
     white-space: nowrap;
     padding-bottom: 5px;
   }
-  
+
   .header-actions {
     flex-direction: column;
     align-items: stretch;
     gap: 8px;
   }
-  
+
   .header-actions .back-btn {
     justify-content: center;
     font-size: 13px;
   }
-  
+
   .form-actions {
     flex-direction: column;
     padding: 15px;
   }
-  
+
   .form-actions .btn-cancel,
   .form-actions .btn-secondary,
   .form-actions .btn-submit {
@@ -5245,21 +5526,21 @@ h6 {
   .dual-voucher-container {
     flex-direction: column;
   }
-  
+
   .teacher-slip {
     border-right: none;
     border-bottom: 1px dashed #000;
   }
-  
+
   .accounts-slip {
     border-left: none;
     border-top: 1px dashed #000;
   }
-  
+
   .voucher-divider {
     display: none;
   }
-  
+
   .signature-area.accounts-signatures {
     flex-direction: column;
     gap: 15px;
@@ -5424,7 +5705,7 @@ h6 {
   .faculty-table {
     font-size: 12px;
   }
-  
+
   .faculty-table th,
   .faculty-table td {
     padding: 8px 6px;
@@ -5435,34 +5716,34 @@ h6 {
   .faculty-list-container {
     padding: 20px 15px;
   }
-  
+
   .faculty-stats {
     grid-template-columns: repeat(2, 1fr);
     gap: 15px;
     padding: 15px;
   }
-  
+
   .stat-item {
     padding: 10px;
   }
-  
+
   .stat-number {
     font-size: 18px;
   }
-  
+
   .stat-label {
     font-size: 11px;
   }
-  
+
   .faculty-table {
     font-size: 11px;
   }
-  
+
   .faculty-table th,
   .faculty-table td {
     padding: 6px 4px;
   }
-  
+
   .name-cell {
     min-width: 120px;
   }
@@ -5472,12 +5753,12 @@ h6 {
   .faculty-stats {
     grid-template-columns: 1fr;
   }
-  
+
   .faculty-table-wrapper {
     margin: 0 -15px;
     border-radius: 0;
   }
-  
+
   .daily-collection-modal {
     width: 95vw;
     max-height: 90vh;
@@ -5581,7 +5862,7 @@ h6 {
   background: #f8fafc;
 }
 
-.checkbox-label input[type="checkbox"]:checked + span,
+.checkbox-label input[type="checkbox"]:checked+span,
 .checkbox-label:has(input:checked) {
   background: #dbeafe;
   border-color: #3b82f6;
@@ -5661,7 +5942,8 @@ h6 {
   grid-template-columns: 1fr 1fr;
   gap: 15px;
   width: 100%;
-  max-width: 750px; /* Slightly smaller for better fit */
+  max-width: 750px;
+  /* Slightly smaller for better fit */
   margin: 0 auto 20px auto;
   page-break-after: always;
   background: white;
@@ -5673,7 +5955,8 @@ h6 {
 .voucher-copy {
   padding: 15px;
   border-right: 1px dashed #000;
-  min-height: 350px; /* Reduced height */
+  min-height: 350px;
+  /* Reduced height */
   position: relative;
   box-sizing: border-box;
 }
@@ -5751,29 +6034,29 @@ h6 {
   * {
     box-sizing: border-box;
   }
-  
+
   body {
     margin: 0;
     padding: 0;
     font-size: 11px;
   }
-  
+
   .page-content {
     margin: 0;
     padding: 0;
     box-shadow: none;
   }
-  
-  .voucher-form-container > *:not(.voucher-preview) {
+
+  .voucher-form-container>*:not(.voucher-preview) {
     display: none !important;
   }
-  
+
   .voucher-preview {
     margin: 0;
     padding: 0;
     box-shadow: none;
   }
-  
+
   .voucher-card {
     width: 100% !important;
     max-width: 100% !important;
@@ -5785,39 +6068,39 @@ h6 {
     grid-template-columns: 1fr 1fr !important;
     gap: 0 !important;
   }
-  
+
   .voucher-copy {
     border-color: #000 !important;
     min-height: 300px !important;
     padding: 10px !important;
     border-right: 1px dashed #000 !important;
   }
-  
+
   .voucher-copy:last-child {
     border-left: 1px dashed #000 !important;
     border-right: none !important;
   }
-  
+
   .voucher-header {
     display: none !important;
   }
-  
+
   .print-btn {
     display: none !important;
   }
-  
+
   .voucher-header-info h4 {
     font-size: 14px !important;
   }
-  
+
   .voucher-header-info h5 {
     font-size: 12px !important;
   }
-  
+
   .voucher-details {
     font-size: 11px !important;
   }
-  
+
   @page {
     size: A4;
     margin: 10mm;
@@ -5830,25 +6113,25 @@ h6 {
     grid-template-columns: 1fr;
     max-width: 100%;
   }
-  
+
   .voucher-copy {
     border-right: none;
     border-bottom: 1px dashed #000;
   }
-  
+
   .voucher-copy:last-child {
     border-left: none;
     border-bottom: none;
   }
-  
+
   .mode-options {
     flex-direction: column;
   }
-  
+
   .adjustments-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .voucher-header {
     flex-direction: column;
     gap: 15px;
@@ -6099,23 +6382,23 @@ h6 {
     gap: 15px;
     text-align: center;
   }
-  
+
   .fee-table-header,
   .fee-row {
     grid-template-columns: 1fr;
   }
-  
+
   .fee-column,
   .fee-row label {
     text-align: left;
     border-right: none;
     border-bottom: 1px solid #e5e7eb;
   }
-  
+
   .custom-fee-row {
     grid-template-columns: 1fr;
   }
-  
+
   .custom-fee-amount {
     border-top: 1px solid #e5e7eb;
   }
@@ -6522,33 +6805,33 @@ h6 {
   .two-column-layout {
     grid-template-columns: 1fr;
   }
-  
+
   .class-header {
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .class-actions {
     width: 100%;
   }
-  
+
   .class-actions button {
     flex: 1;
   }
-  
+
   .data-table {
     font-size: 12px;
   }
-  
+
   .data-table th,
   .data-table td {
     padding: 8px;
   }
-  
+
   .action-buttons {
     flex-direction: column;
   }
-  
+
   .action-buttons button {
     width: 100%;
   }
