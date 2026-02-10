@@ -34,6 +34,7 @@ const Sidebar = () => {
   const location = useLocation()
   const { user } = useAuth()
   const [expandedItems, setExpandedItems] = useState({})
+  const [isCollapsed, setIsCollapsed] = useState(false)
 
   const filteredItems = navigationItems.filter(item =>
     item.roles.includes(user?.role)
@@ -43,13 +44,36 @@ const Sidebar = () => {
     setExpandedItems(prev => ({ ...prev, [path]: !prev[path] }))
   }
 
+  const toggleSidebar = () => {
+    setIsCollapsed(prev => !prev)
+  }
+
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
         <div className="logo">
           <img src={logo} alt="MPHS Logo" className="sidebar-logo" />
-          <span className="logo-text">MPHS</span>
+          {!isCollapsed && <span className="logo-text">MPHS</span>}
         </div>
+        <button className="sidebar-toggle" onClick={toggleSidebar} title={isCollapsed ? "Expand menu" : "Collapse menu"}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {isCollapsed ? (
+              <>
+                <line x1="17" y1="10" x2="3" y2="10"/>
+                <line x1="21" y1="6" x2="3" y2="6"/>
+                <line x1="21" y1="14" x2="3" y2="14"/>
+                <line x1="17" y1="18" x2="3" y2="18"/>
+              </>
+            ) : (
+              <>
+                <line x1="21" y1="10" x2="7" y2="10"/>
+                <line x1="21" y1="6" x2="3" y2="6"/>
+                <line x1="21" y1="14" x2="3" y2="14"/>
+                <line x1="21" y1="18" x2="7" y2="18"/>
+              </>
+            )}
+          </svg>
+        </button>
       </div>
 
       <nav className="sidebar-nav">
@@ -59,13 +83,18 @@ const Sidebar = () => {
               <>
                 <div
                   className={`nav-item ${location.pathname.startsWith(item.path) ? 'active' : ''}`}
-                  onClick={() => toggleExpand(item.path)}
+                  onClick={() => !isCollapsed && toggleExpand(item.path)}
+                  title={isCollapsed ? item.label : ''}
                 >
                   <span className="nav-icon">{item.icon}</span>
-                  <span className="nav-label">{item.label}</span>
-                  <span className="nav-arrow">{expandedItems[item.path] ? '▼' : '▶'}</span>
+                  {!isCollapsed && (
+                    <>
+                      <span className="nav-label">{item.label}</span>
+                      <span className="nav-arrow">{expandedItems[item.path] ? '▼' : '▶'}</span>
+                    </>
+                  )}
                 </div>
-                {expandedItems[item.path] && (
+                {!isCollapsed && expandedItems[item.path] && (
                   <div className="sub-nav">
                     {item.subItems.map((subItem) => (
                       <Link
@@ -83,9 +112,10 @@ const Sidebar = () => {
               <Link
                 to={item.path}
                 className={`nav-item ${location.pathname === item.path || location.pathname.startsWith(item.path + '/') ? 'active' : ''}`}
+                title={isCollapsed ? item.label : ''}
               >
                 <span className="nav-icon">{item.icon}</span>
-                <span className="nav-label">{item.label}</span>
+                {!isCollapsed && <span className="nav-label">{item.label}</span>}
               </Link>
             )}
           </div>
