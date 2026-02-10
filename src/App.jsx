@@ -26,6 +26,7 @@ import StudentDashboard from './components/students/StudentDashboard'
 import ClassStudentList from './components/students/ClassStudentList'
 import StudentDetail from './components/students/StudentDetail'
 import Header from './components/layout/Header'
+import Footer from './components/layout/Footer'
 import './App.css'
 
 function App() {
@@ -95,6 +96,7 @@ function AppLayout() {
             <Route path="/users" element={<UserManagement />} />
           </Routes>
         </main>
+        <Footer />
       </div>
     </div>
   )
