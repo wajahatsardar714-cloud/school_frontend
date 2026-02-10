@@ -35,9 +35,34 @@ const FeeStatistics = () => {
     
     const total_fee_amount = parseFloat(data.total_fee_generated || 0)
     const total_collected = parseFloat(data.total_collected || 0)
+    
+    // Calculate due correctly: total_fee - total_collected
+    // If backend returns negative, it means they calculated collected - fee, so fix it
+    let total_due = parseFloat(data.total_pending || 0)
+    
+    // If due is negative, it means backend calculated wrong direction
+    if (total_due < 0) {
+      total_due = Math.abs(total_due) // This would still be wrong
+      // Better: calculate it ourselves
+      total_due = total_fee_amount - total_collected
+    }
+    
+    // Ensure due is never negative (overpayment should show as 0)
+    if (total_due < 0) {
+      total_due = 0
+    }
+    
     const collection_percentage = total_fee_amount > 0 
       ? (total_collected / total_fee_amount) * 100 
       : 0
+
+    console.log('Stats Calculation:', {
+      total_fee_amount,
+      total_collected,
+      backend_pending: data.total_pending,
+      calculated_due: total_due,
+      collection_percentage
+    })
 
     return {
       total_vouchers: parseInt(data.total_vouchers || 0),
@@ -46,7 +71,7 @@ const FeeStatistics = () => {
       unpaid_vouchers: parseInt(data.unpaid_vouchers || 0),
       total_fee_amount,
       total_collected,
-      total_due: parseFloat(data.total_pending || 0),
+      total_due,
       collection_percentage,
       total_students: parseInt(data.total_students || 0),
     }
@@ -244,7 +269,7 @@ const FeeStatistics = () => {
             <div className="progress-bar-container">
               <div 
                 className="progress-bar progress-success"
-                style={{ width: `${stats.collection_percentage}%` }}
+                style={{ width: `${Math.min(stats.collection_percentage, 100)}%` }}
               >
                 {stats.collection_percentage?.toFixed(1)}%
               </div>
