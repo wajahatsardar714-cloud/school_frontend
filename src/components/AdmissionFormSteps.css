@@ -5,7 +5,7 @@
     margin-bottom: 2rem;
     padding: 1.5rem;
     background: #f8fafc;
-    border-radius: 8px;
+    border-radius: 12px;
     position: relative;
 }
 
@@ -83,7 +83,7 @@
 .review-section {
     background: #f8fafc;
     border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 1.5rem;
     margin-bottom: 1.5rem;
 }
@@ -130,7 +130,7 @@
 /* Fee Summary Styles */
 .fee-summary {
     background: white;
-    border-radius: 6px;
+    border-radius: 10px;
     padding: 1rem;
 }
 
@@ -147,7 +147,7 @@
 
 .fee-summary-item.total {
     background: #f8fafc;
-    border-radius: 6px;
+    border-radius: 10px;
     margin-top: 0.5rem;
     font-size: 1.125rem;
 }
@@ -156,7 +156,7 @@
     background: #d1fae5;
     color: #065f46;
     padding: 1rem;
-    border-radius: 6px;
+    border-radius: 10px;
     text-align: center;
     font-weight: 600;
     font-size: 1rem;

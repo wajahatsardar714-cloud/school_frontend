@@ -109,12 +109,12 @@
     gap: 0.5rem;
     background: #f7fafc;
     padding: 0.25rem;
-    border-radius: 8px;
+    border-radius: 12px;
 }
 
 .section-tab {
     padding: 0.5rem 1.25rem;
-    border-radius: 6px;
+    border-radius: 10px;
     cursor: pointer;
     font-size: 0.875rem;
     font-weight: 600;

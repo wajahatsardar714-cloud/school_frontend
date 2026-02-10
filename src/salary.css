@@ -80,7 +80,7 @@
   color: #64748b;
   cursor: pointer;
   padding: 4px 10px;
-  border-radius: 8px;
+  border-radius: 12px;
   transition: all 0.2s;
   line-height: 1;
 }
@@ -217,7 +217,7 @@
 .info-box {
   background: #eff6ff;
   border: 1px solid #bfdbfe;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 16px;
   margin-bottom: 20px;
 }
@@ -259,7 +259,7 @@
 .salary-structure-management .faculty-card {
   padding: 16px;
   border: 2px solid #e5e7eb;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -398,7 +398,7 @@
 .salary-voucher-management .voucher-card {
   padding: 16px;
   border: 2px solid #e5e7eb;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -465,7 +465,7 @@
 .salary-voucher-management .details-card {
   background: #f9fafb;
   padding: 20px;
-  border-radius: 8px;
+  border-radius: 12px;
   margin-bottom: 24px;
 }
 
@@ -584,7 +584,7 @@
   border-left: 4px solid #3b82f6;
   padding: 16px;
   margin-bottom: 20px;
-  border-radius: 4px;
+  border-radius: 12px;
 }
 
 .salary-voucher-management .info-box p {
@@ -738,7 +738,7 @@
   max-height: 300px;
   overflow-y: auto;
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 12px;
 }
 
@@ -747,7 +747,7 @@
   align-items: center;
   gap: 12px;
   padding: 8px 12px;
-  border-radius: 6px;
+  border-radius: 10px;
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -771,7 +771,7 @@
   background: #e0f2fe;
   color: #0369a1;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: 12px;
   font-weight: 500;
 }
 
