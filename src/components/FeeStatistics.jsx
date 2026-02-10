@@ -63,6 +63,21 @@ const FeeStatistics = () => {
       calculated_due: total_due,
       collection_percentage
     })
+    
+    // Warning: Check for data integrity issues
+    if (total_collected > total_fee_amount && total_fee_amount > 0) {
+      console.warn('⚠️ DATA INTEGRITY ISSUE: Total collected exceeds total fee amount!', {
+        total_fee_amount,
+        total_collected,
+        difference: total_collected - total_fee_amount,
+        possible_causes: [
+          'Duplicate payments in database',
+          'Incorrect SQL query with JOIN causing duplicate rows',
+          'Advance payments not reflected in vouchers',
+          'Payment records not properly linked to vouchers'
+        ]
+      })
+    }
 
     return {
       total_vouchers: parseInt(data.total_vouchers || 0),
@@ -169,6 +184,17 @@ const FeeStatistics = () => {
         <div className="loading">Loading statistics...</div>
       ) : (
         <>
+          {/* Data Integrity Warning */}
+          {stats.total_collected > stats.total_fee_amount && stats.total_fee_amount > 0 && (
+            <div className="alert alert-warning" style={{ marginBottom: '1.5rem' }}>
+              <strong>⚠️ Data Integrity Issue Detected!</strong>
+              <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem' }}>
+                Total collected (Rs. {stats.total_collected?.toLocaleString()}) exceeds total fee amount (Rs. {stats.total_fee_amount?.toLocaleString()}).
+                This indicates duplicate payments or incorrect backend calculations. Please check the backend database.
+              </p>
+            </div>
+          )}
+          
           {/* Summary Cards */}
           <div className="stats-grid">
             <div className="stat-card stat-primary">
