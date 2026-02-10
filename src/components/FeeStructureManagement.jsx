@@ -16,7 +16,8 @@ const FeeStructureManagement = () => {
     effective_from: new Date().toISOString().split('T')[0],
     admission_fee: '',
     monthly_fee: '',
-    paper_fund: ''
+    paper_fund: '',
+    promotion_fee: ''
   })
 
   useEffect(() => {
@@ -56,7 +57,8 @@ const FeeStructureManagement = () => {
         effective_from: new Date().toISOString().split('T')[0],
         admission_fee: '',
         monthly_fee: '',
-        paper_fund: ''
+        paper_fund: '',
+        promotion_fee: ''
       })
       setTimeout(() => setSuccess(false), 3000)
     } catch (err) {
@@ -70,7 +72,8 @@ const FeeStructureManagement = () => {
     const admission = parseFloat(formData.admission_fee) || 0
     const monthly = parseFloat(formData.monthly_fee) || 0
     const paper = parseFloat(formData.paper_fund) || 0
-    return admission + monthly + paper
+    const promotion = parseFloat(formData.promotion_fee) || 0
+    return admission + monthly + paper + promotion
   }
 
   if (loading) {
@@ -95,7 +98,7 @@ const FeeStructureManagement = () => {
       <div className="page-header">
         <div>
           <h2>Fee Structure: {classInfo?.name}</h2>
-          <p className="text-muted">Define admission, monthly, and paper fund fees</p>
+          <p className="text-muted">Define admission, monthly, paper fund, and promotion fees</p>
         </div>
         <button onClick={() => navigate('/classes')} className="btn-secondary">
           ← Back to Classes
@@ -164,6 +167,20 @@ const FeeStructureManagement = () => {
                 />
               </div>
 
+              <div className="form-group">
+                <label>Promotion Fee (Rs.) *</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={formData.promotion_fee}
+                  onChange={(e) => setFormData({ ...formData, promotion_fee: e.target.value })}
+                  disabled={submitting}
+                  required
+                />
+              </div>
+
               <div className="fee-total">
                 <strong>Total Fee:</strong>
                 <span className="total-amount">Rs. {calculateTotal().toFixed(2)}</span>
@@ -202,9 +219,13 @@ const FeeStructureManagement = () => {
                         <span>Paper Fund:</span>
                         <span>Rs. {parseFloat(fee.paper_fund).toFixed(2)}</span>
                       </div>
+                      <div className="fee-row">
+                        <span>Promotion Fee:</span>
+                        <span>Rs. {parseFloat(fee.promotion_fee || 0).toFixed(2)}</span>
+                      </div>
                       <div className="fee-row fee-total-row">
                         <strong>Total:</strong>
-                        <strong>Rs. {(parseFloat(fee.admission_fee) + parseFloat(fee.monthly_fee) + parseFloat(fee.paper_fund)).toFixed(2)}</strong>
+                        <strong>Rs. {(parseFloat(fee.admission_fee) + parseFloat(fee.monthly_fee) + parseFloat(fee.paper_fund) + parseFloat(fee.promotion_fee || 0)).toFixed(2)}</strong>
                       </div>
                     </div>
                   </div>

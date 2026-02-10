@@ -38,9 +38,15 @@ const StudentDetail = () => {
     )
 
     const student = studentResponse?.data || {}
-    const feeHistory = feeHistoryResponse?.data?.vouchers || []
+    const feeHistory = feeHistoryResponse?.data?.history || feeHistoryResponse?.history || []
     const dueInfo = dueResponse?.data || { total_due: 0 }
     const documents = docsResponse?.data?.documents || student.documents || []
+
+    // Debug logging
+    console.log('Student Data:', student)
+    console.log('Fee History Response:', feeHistoryResponse)
+    console.log('Fee History Array:', feeHistory)
+    console.log('Due Info:', dueInfo)
 
     const handleViewDocument = async (doc) => {
         try {
@@ -192,37 +198,98 @@ const StudentDetail = () => {
 
                     {activeTab === 'financial' && (
                         <div className="profile-card">
-                            <h4>💰 Recent Fee History</h4>
+                            <h4>💰 Payment History</h4>
                             <div className="student-table-container">
                                 <table className="student-table">
                                     <thead>
                                         <tr>
-                                            <th>Month/Year</th>
-                                            <th>Items</th>
-                                            <th>Total</th>
+                                            <th>Month</th>
+                                            <th>Class</th>
+                                            <th>Total Amount</th>
+                                            <th>Discount</th>
+                                            <th>Net Amount</th>
+                                            <th>Paid</th>
+                                            <th>Due</th>
                                             <th>Status</th>
+                                            <th>Due Date</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {feeHistory.length === 0 ? (
-                                            <tr><td colSpan="5" className="empty-state">No payment history found.</td></tr>
+                                            <tr><td colSpan="10" className="empty-state">No fee history found for this student</td></tr>
                                         ) : (
-                                            feeHistory.map(v => (
-                                                <tr key={v.id}>
-                                                    <td><strong>{v.month} {v.year}</strong></td>
-                                                    <td>{v.items?.length || 0} items</td>
-                                                    <td>Rs. {v.total_amount?.toLocaleString()}</td>
-                                                    <td>
-                                                        <span className={`badge-status ${v.status === 'PAID' ? 'badge-active' : 'badge-inactive'}`}>
-                                                            {v.status}
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <button className="btn-secondary" style={{ fontSize: '0.7rem' }}>Receipt</button>
-                                                    </td>
-                                                </tr>
-                                            ))
+                                            feeHistory.map(record => {
+                                                const isOverdue = record.status !== 'PAID' &&
+                                                    record.due_date &&
+                                                    new Date(record.due_date) < new Date()
+
+                                                return (
+                                                    <tr key={record.voucher_id} className={isOverdue ? 'row-overdue' : ''}>
+                                                        <td>
+                                                            <strong>
+                                                                {new Date(record.month).toLocaleDateString('en-US', {
+                                                                    month: 'short',
+                                                                    year: 'numeric'
+                                                                })}
+                                                            </strong>
+                                                        </td>
+                                                        <td>{record.class_name}</td>
+                                                        <td>Rs. {record.total_fee?.toLocaleString()}</td>
+                                                        <td>
+                                                            {record.discount_amount > 0 ? (
+                                                                <span style={{ color: '#38a169', fontWeight: 600 }}>
+                                                                    -Rs. {record.discount_amount?.toLocaleString()}
+                                                                </span>
+                                                            ) : '-'}
+                                                        </td>
+                                                        <td>
+                                                            <strong>Rs. {record.net_amount?.toLocaleString()}</strong>
+                                                        </td>
+                                                        <td>Rs. {record.paid_amount?.toLocaleString()}</td>
+                                                        <td>
+                                                            <span style={{ color: record.due_amount > 0 ? '#e53e3e' : '#38a169', fontWeight: 600 }}>
+                                                                Rs. {record.due_amount?.toLocaleString()}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <span className={`badge-status ${record.status === 'PAID' ? 'badge-active' : 'badge-inactive'}`}>
+                                                                {record.status}
+                                                                {isOverdue && ' (Overdue)'}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            {record.due_date ? (
+                                                                <span style={{ color: isOverdue ? '#e53e3e' : 'inherit' }}>
+                                                                    {new Date(record.due_date).toLocaleDateString()}
+                                                                </span>
+                                                            ) : '-'}
+                                                        </td>
+                                                        <td>
+                                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                                <button 
+                                                                    className="btn-secondary" 
+                                                                    style={{ fontSize: '0.7rem', padding: '0.3rem 0.6rem' }}
+                                                                    onClick={() => window.open(`/fees/vouchers?id=${record.voucher_id}`, '_blank')}
+                                                                    title="View Voucher"
+                                                                >
+                                                                    👁️ View
+                                                                </button>
+                                                                {record.status !== 'PAID' && (
+                                                                    <button 
+                                                                        className="btn-primary" 
+                                                                        style={{ fontSize: '0.7rem', padding: '0.3rem 0.6rem' }}
+                                                                        onClick={() => window.location.href = `/fees/payments?voucher_id=${record.voucher_id}`}
+                                                                        title="Make Payment"
+                                                                    >
+                                                                        💳 Pay
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )
+                                            })
                                         )}
                                     </tbody>
                                 </table>

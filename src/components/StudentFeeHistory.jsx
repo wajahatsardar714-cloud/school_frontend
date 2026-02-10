@@ -19,12 +19,24 @@ const StudentFeeHistory = () => {
   const {
     data: historyData,
     loading: historyLoading,
+    error: historyError,
     refetch: refreshHistory
   } = useFetch(
-    () => feePaymentService.getStudentHistory(studentId),
+    () => {
+      console.log('Fetching history for student ID:', studentId)
+      return feePaymentService.getStudentHistory(studentId)
+    },
     [studentId],
     { enabled: !!studentId }
   )
+
+  // Log the response immediately when it changes
+  console.log('>>> HISTORY DATA UPDATED:', historyData)
+
+  // Log any errors
+  if (historyError) {
+    console.error('Fee History Error:', historyError)
+  }
 
   // Fetch student due
   const { data: dueData } = useFetch(
@@ -34,7 +46,31 @@ const StudentFeeHistory = () => {
   )
 
   const history = useMemo(() => {
-    return historyData?.data?.history || historyData?.history || []
+    console.log('=== FEE HISTORY DEBUG ===')
+    console.log('Raw historyData:', historyData)
+    console.log('Type:', typeof historyData)
+    console.log('Keys:', historyData ? Object.keys(historyData) : 'null')
+    console.log('historyData.data:', historyData?.data)
+    console.log('historyData.data keys:', historyData?.data ? Object.keys(historyData.data) : 'null')
+    
+    // Use same structure as FeePaymentManagement: data is wrapped in { data: [...] }
+    let historyArray = historyData?.data || []
+    
+    // If data is an object with nested arrays, try common patterns
+    if (historyArray && typeof historyArray === 'object' && !Array.isArray(historyArray)) {
+      console.log('Data is object, checking nested properties...')
+      historyArray = historyArray.history || historyArray.payments || historyArray.vouchers || []
+    }
+    
+    console.log('Final historyArray:', historyArray)
+    console.log('Array length:', Array.isArray(historyArray) ? historyArray.length : 'not an array')
+    console.log('First item:', historyArray[0])
+    if (historyArray[0]) {
+      console.log('First item keys:', Object.keys(historyArray[0]))
+      console.log('First item values:', Object.entries(historyArray[0]))
+    }
+    
+    return Array.isArray(historyArray) ? historyArray : []
   }, [historyData])
 
   const due = useMemo(() => {
@@ -44,8 +80,24 @@ const StudentFeeHistory = () => {
   const selectedStudent = useMemo(() => {
     if (!studentId) return null
     const students = studentsData?.data || []
-    return students.find(s => String(s.id) === String(studentId))
-  }, [studentId, studentsData])
+    const student = students.find(s => String(s.id) === String(studentId))
+    console.log('Selected Student:', student)
+    console.log('Selected Student Keys:', student ? Object.keys(student) : 'null')
+    console.log('All Students:', students)
+    
+    // If student doesn't have class info, try to get it from the first history record
+    if (student && history.length > 0 && !student.class_name) {
+      const firstRecord = history[0]
+      return {
+        ...student,
+        class_name: firstRecord.class_name,
+        section_name: firstRecord.section_name,
+        roll_no: student.roll_no || student.roll_number || firstRecord.roll_no || 'N/A'
+      }
+    }
+    
+    return student
+  }, [studentId, studentsData, history])
 
   const filteredStudents = useMemo(() => {
     const students = studentsData?.data || []
@@ -57,8 +109,24 @@ const StudentFeeHistory = () => {
     )
   }, [studentsData, searchTerm])
 
-  // Calculate summary statistics
+  // Calculate summary statistics - use backend summary if available
   const summary = useMemo(() => {
+    // First, try to use the summary from the backend response
+    const backendSummary = historyData?.data?.summary
+    
+    if (backendSummary) {
+      console.log('Using backend summary:', backendSummary)
+      return {
+        total_vouchers: backendSummary.total_vouchers || history.length,
+        paid_vouchers: backendSummary.paid_vouchers || 0,
+        partial_vouchers: backendSummary.partial_vouchers || 0,
+        unpaid_vouchers: backendSummary.unpaid_vouchers || 0,
+        total_amount: backendSummary.total_amount || 0,
+        total_paid: backendSummary.total_paid || 0,
+      }
+    }
+    
+    // Fallback: calculate from history array
     if (!history.length) {
       return {
         total_vouchers: 0,
@@ -78,7 +146,7 @@ const StudentFeeHistory = () => {
       total_amount: history.reduce((sum, h) => sum + (h.total_fee || 0), 0),
       total_paid: history.reduce((sum, h) => sum + (h.paid_amount || 0), 0),
     }
-  }, [history])
+  }, [history, historyData])
 
   return (
     <div className="fee-management">
@@ -90,6 +158,13 @@ const StudentFeeHistory = () => {
           </button>
         )}
       </div>
+
+      {/* Error Display */}
+      {historyError && (
+        <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
+          <strong>Error loading fee history:</strong> {historyError.message || 'Unknown error'}
+        </div>
+      )}
 
       {/* Student Selection */}
       <div className="filters-section">
@@ -134,10 +209,10 @@ const StudentFeeHistory = () => {
                 <h2>{selectedStudent.name}</h2>
                 <div className="student-meta">
                   <span className="meta-item">
-                    <strong>Roll No:</strong> {selectedStudent.roll_no}
+                    <strong>Roll No:</strong> {selectedStudent.roll_no || 'N/A'}
                   </span>
                   <span className="meta-item">
-                    <strong>Class:</strong> {selectedStudent.class_name}
+                    <strong>Class:</strong> {selectedStudent.class_name || 'N/A'}
                   </span>
                   {selectedStudent.section_name && (
                     <span className="meta-item">
@@ -212,89 +287,68 @@ const StudentFeeHistory = () => {
                 <table className="data-table">
                   <thead>
                     <tr>
+                      <th>Voucher ID</th>
                       <th>Month</th>
-                      <th>Class</th>
-                      <th>Total Amount</th>
-                      <th>Discount</th>
-                      <th>Net Amount</th>
-                      <th>Paid</th>
-                      <th>Due</th>
+                      <th>Class/Section</th>
+                      <th>Total Fee</th>
+                      <th>Paid Amount</th>
+                      <th>Due Amount</th>
                       <th>Status</th>
-                      <th>Due Date</th>
-                      <th>Actions</th>
+                      <th>Created Date</th>
                     </tr>
                   </thead>
                   <tbody>
                     {history.length === 0 ? (
                       <tr>
-                        <td colSpan="10" style={{ textAlign: 'center', padding: '2rem' }}>
+                        <td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>
                           No fee history found for this student
                         </td>
                       </tr>
                     ) : (
                       history.map(record => {
-                        const isOverdue = record.status !== 'PAID' &&
-                          record.due_date &&
-                          new Date(record.due_date) < new Date()
+                        const totalFee = parseFloat(record.total_fee) || 0
+                        const paidAmount = parseFloat(record.paid_amount) || 0
+                        const dueAmount = parseFloat(record.due_amount) || 0
 
                         return (
-                          <tr key={record.voucher_id} className={isOverdue ? 'row-overdue' : ''}>
+                          <tr key={record.voucher_id}>
+                            <td>
+                              <strong>#{record.voucher_id}</strong>
+                            </td>
                             <td>
                               {new Date(record.month).toLocaleDateString('en-US', {
                                 month: 'long',
                                 year: 'numeric'
                               })}
                             </td>
-                            <td>{record.class_name}</td>
-                            <td>Rs. {record.total_fee?.toLocaleString()}</td>
                             <td>
-                              {record.discount_amount > 0 ? (
-                                <span className="badge badge-success">
-                                  -Rs. {record.discount_amount?.toLocaleString()}
-                                </span>
-                              ) : '-'}
+                              {record.class_name}
+                              {record.section_name && ` - ${record.section_name}`}
                             </td>
                             <td>
-                              <strong>Rs. {record.net_amount?.toLocaleString()}</strong>
+                              <strong>Rs. {totalFee.toLocaleString()}</strong>
                             </td>
-                            <td>Rs. {record.paid_amount?.toLocaleString()}</td>
                             <td>
-                              <span className={record.due_amount > 0 ? 'amount-due' : ''}>
-                                Rs. {record.due_amount?.toLocaleString()}
+                              <span style={{ color: '#28a745' }}>
+                                Rs. {paidAmount.toLocaleString()}
+                              </span>
+                            </td>
+                            <td>
+                              <span style={{ color: dueAmount > 0 ? '#dc3545' : '#6c757d' }}>
+                                Rs. {dueAmount.toLocaleString()}
                               </span>
                             </td>
                             <td>
                               <span className={`status-badge status-${record.status.toLowerCase()}`}>
                                 {record.status}
-                                {isOverdue && ' (Overdue)'}
                               </span>
                             </td>
                             <td>
-                              {record.due_date ? (
-                                <span className={isOverdue ? 'overdue-date' : ''}>
-                                  {new Date(record.due_date).toLocaleDateString()}
-                                </span>
-                              ) : '-'}
-                            </td>
-                            <td>
-                              <div className="action-buttons">
-                                <button
-                                  className="btn-small btn-view"
-                                  onClick={() => window.open(`/fees/vouchers?id=${record.voucher_id}`, '_blank')}
-                                  title="View Voucher"
-                                >
-                                  👁️
-                                </button>
-                                {record.status !== 'PAID' && (
-                                  <button
-                                    className="btn-small btn-pay"
-                                    onClick={() => window.location.href = `/fees/payments?voucher_id=${record.voucher_id}`}
-                                    title="Make Payment"
-                                  >
-                                    💳
-                                  </button>
-                                )}
-                              </div>
+                              {new Date(record.created_at).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                              })}
                             </td>
                           </tr>
                         )
