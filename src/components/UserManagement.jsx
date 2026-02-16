@@ -10,7 +10,7 @@ const UserManagement = () => {
   const [success, setSuccess] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -61,7 +61,7 @@ const UserManagement = () => {
     setSuccess(false)
 
     try {
-      await authService.register(formData)
+      await authService.register(formData.email, formData.password, formData.role)
       setSuccess(true)
       await loadUsers()
       closeModal()
@@ -142,8 +142,8 @@ const UserManagement = () => {
                 <td>{new Date(user.created_at).toLocaleDateString()}</td>
                 <td>
                   {user.id !== currentUser?.id ? (
-                    <button 
-                      onClick={() => handleDelete(user.id, user.email)} 
+                    <button
+                      onClick={() => handleDelete(user.id, user.email)}
                       className="btn-danger btn-sm"
                     >
                       Delete
@@ -165,7 +165,7 @@ const UserManagement = () => {
               <h3>Create New User</h3>
               <button onClick={closeModal} className="modal-close">×</button>
             </div>
-            
+
             <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label>Email *</label>
