@@ -7637,3 +7637,213 @@ h6 {
     margin-left: 0;
   }
 }
+/* ============================================
+   PROFESSIONAL UI ENHANCEMENTS
+   ============================================ */
+
+/* Enhanced Card Shadows and Depth */
+.card, .stat-card, .user-card, .student-card, .section-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover, .stat-card:hover, .user-card:hover, .student-card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+/* Professional Button Styles */
+button, .btn, .submit-btn, .cancel-btn, .btn-primary, .btn-secondary {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+button:hover, .btn:hover {
+  transform: translateY(-1px);
+}
+
+button:active, .btn:active {
+  transform: translateY(0);
+}
+
+/* Enhanced Input Fields */
+input, select, textarea {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 15px;
+  transition: all 0.2s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+  transform: scale(1.01);
+}
+
+/* Professional Table Styling */
+.data-table {
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table th {
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+.data-table td {
+  font-size: 14px;
+}
+
+/* Sidebar Icon Styling */
+.nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+}
+
+.nav-icon svg {
+  stroke-width: 2.5;
+}
+
+/* Dashboard Actions Grid - Better Responsive */
+@media (max-width: 1200px) {
+  .dashboard-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-actions {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .dashboard-btn {
+    padding: 20px;
+  }
+}
+
+/* Enhanced Mobile Typography */
+@media (max-width: 640px) {
+  h1 {
+    font-size: 24px;
+  }
+  
+  h2 {
+    font-size: 20px;
+  }
+  
+  h3 {
+    font-size: 18px;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Improve Table Responsiveness */
+@media (max-width: 768px) {
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .data-table {
+    min-width: 600px;
+  }
+}
+
+/* Better Modal Responsiveness */
+@media (max-width: 640px) {
+  .modal-content {
+    margin: 10px;
+    width: calc(100% - 20px);
+    max-height: calc(100vh - 20px);
+  }
+}
+
+/* Enhanced Focus States for Accessibility */
+button:focus-visible, 
+input:focus-visible, 
+select:focus-visible, 
+a:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Smooth Page Transitions */
+.page-content {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Loading States */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  color: #6b7280;
+  padding: 40px;
+}
+
+/* Better Stats Grid Responsive */
+@media (max-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Professional Scroll Bars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Print Styles */
+@media print {
+  .sidebar, .header-actions, .btn, button {
+    display: none !important;
+  }
+  
+  .main-content {
+    margin-left: 0 !important;
+  }
+  
+  .page-content {
+    padding: 0 !important;
+  }
+}

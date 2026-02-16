@@ -28,6 +28,7 @@ import StudentDetail from './components/students/StudentDetail'
 import Header from './components/layout/Header'
 import Footer from './components/layout/Footer'
 import './App.css'
+import './responsive.css'
 
 function App() {
   return (
