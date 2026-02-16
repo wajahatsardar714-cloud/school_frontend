@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   const hasRole = (role) => {
-    return user && user.role === role
+    return user && user.role && user.role.toUpperCase() === role.toUpperCase()
   }
 
   const isAdmin = () => {

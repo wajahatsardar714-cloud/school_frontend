@@ -3,15 +3,15 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export const ProtectedRoute = ({ children, requireAdmin = false }) => {
-  const { user, loading } = useAuth()
+  const { user, loading, isAdmin } = useAuth()
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh' 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh'
       }}>
         <div>Loading...</div>
       </div>
@@ -22,11 +22,11 @@ export const ProtectedRoute = ({ children, requireAdmin = false }) => {
     return <Navigate to="/" replace />
   }
 
-  if (requireAdmin && user.role !== 'admin') {
+  if (requireAdmin && !isAdmin()) {
     return (
-      <div style={{ 
-        padding: '20px', 
-        textAlign: 'center' 
+      <div style={{
+        padding: '20px',
+        textAlign: 'center'
       }}>
         <h2>Access Denied</h2>
         <p>You do not have permission to access this page.</p>
