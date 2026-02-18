@@ -28,6 +28,7 @@ import StudentDetail from './components/students/StudentDetail'
 import Header from './components/layout/Header'
 import Footer from './components/layout/Footer'
 import './App.css'
+import './responsive.css'
 
 function App() {
   return (
@@ -67,14 +68,38 @@ function AppLayout() {
             <Route path="/students/:studentId" element={<StudentDetail />} />
 
             {/* Class Management Routes */}
-            <Route path="/classes" element={<ClassManagement />} />
-            <Route path="/classes/:classId/sections" element={<SectionManagement />} />
-            <Route path="/classes/:classId/fee-structure" element={<FeeStructureManagement />} />
+            <Route path="/classes" element={
+              <ProtectedRoute requireAdmin={true}>
+                <ClassManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="/classes/:classId/sections" element={
+              <ProtectedRoute requireAdmin={true}>
+                <SectionManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="/classes/:classId/fee-structure" element={
+              <ProtectedRoute requireAdmin={true}>
+                <FeeStructureManagement />
+              </ProtectedRoute>
+            } />
 
             {/* Faculty Routes */}
-            <Route path="/faculty" element={<FacultyManagement />} />
-            <Route path="/faculty/salary-structure" element={<SalaryStructureManagement />} />
-            <Route path="/faculty/salary-vouchers" element={<SalaryVoucherManagement />} />
+            <Route path="/faculty" element={
+              <ProtectedRoute requireAdmin={true}>
+                <FacultyManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="/faculty/salary-structure" element={
+              <ProtectedRoute requireAdmin={true}>
+                <SalaryStructureManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="/faculty/salary-vouchers" element={
+              <ProtectedRoute requireAdmin={true}>
+                <SalaryVoucherManagement />
+              </ProtectedRoute>
+            } />
 
             {/* Fee Management Routes */}
             <Route path="/fees/vouchers" element={<FeeVoucherManagement />} />
@@ -88,13 +113,21 @@ function AppLayout() {
             <Route path="/guardians" element={<GuardianManagement />} />
 
             {/* Analytics */}
-            <Route path="/analytics" element={<AnalyticsDashboard />} />
+            <Route path="/analytics" element={
+              <ProtectedRoute requireAdmin={true}>
+                <AnalyticsDashboard />
+              </ProtectedRoute>
+            } />
 
             {/* Expense Routes */}
             <Route path="/expenses" element={<ExpenseManagement />} />
 
             {/* User Management Routes */}
-            <Route path="/users" element={<UserManagement />} />
+            <Route path="/users" element={
+              <ProtectedRoute requireAdmin={true}>
+                <UserManagement />
+              </ProtectedRoute>
+            } />
           </Routes>
         </main>
         <Footer />
