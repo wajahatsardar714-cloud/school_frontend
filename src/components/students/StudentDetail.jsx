@@ -91,6 +91,30 @@ const StudentDetail = () => {
         }
     }
 
+    const handleDownloadDocument = async (doc, e) => {
+        e.stopPropagation() // Prevent triggering the view action
+        try {
+            const docId = doc.id
+            const fileName = doc.file_name
+
+            // Fetch the document blob
+            const blob = await studentService.downloadDocument(docId)
+            const objectUrl = window.URL.createObjectURL(blob)
+
+            // Force download
+            const link = document.createElement('a')
+            link.href = objectUrl
+            link.setAttribute('download', fileName)
+            document.body.appendChild(link)
+            link.click()
+            link.remove()
+            window.URL.revokeObjectURL(objectUrl)
+        } catch (error) {
+            console.error('Error downloading document:', error)
+            alert('Failed to download document. Please try again.')
+        }
+    }
+
     if (studentLoading) {
         return (
             <div className="students-container">
@@ -308,12 +332,34 @@ const StudentDetail = () => {
                                         <div
                                             key={doc.id}
                                             className="class-card"
-                                            style={{ minHeight: 'auto', padding: '1rem', cursor: 'pointer' }}
-                                            onClick={() => handleViewDocument(doc)}
+                                            style={{ minHeight: 'auto', padding: '1rem', cursor: 'pointer', position: 'relative' }}
                                         >
-                                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📄</div>
-                                            <p style={{ fontWeight: 600, fontSize: '0.8rem', margin: 0 }}>{doc.file_name}</p>
-                                            <span className="student-sub-info">{doc.document_type}</span>
+                                            <div 
+                                                onClick={() => handleViewDocument(doc)}
+                                                style={{ paddingBottom: '0.5rem' }}
+                                            >
+                                                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📄</div>
+                                                <p style={{ fontWeight: 600, fontSize: '0.8rem', margin: 0 }}>{doc.file_name}</p>
+                                                <span className="student-sub-info">{doc.document_type}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+                                                <button 
+                                                    className="btn-primary" 
+                                                    style={{ fontSize: '0.7rem', padding: '0.4rem 0.8rem', flex: 1 }}
+                                                    onClick={() => handleViewDocument(doc)}
+                                                    title="View Document"
+                                                >
+                                                    👁️ View
+                                                </button>
+                                                <button 
+                                                    className="btn-secondary" 
+                                                    style={{ fontSize: '0.7rem', padding: '0.4rem 0.8rem', flex: 1 }}
+                                                    onClick={(e) => handleDownloadDocument(doc, e)}
+                                                    title="Download Document"
+                                                >
+                                                    ⬇️ Download
+                                                </button>
+                                            </div>
                                         </div>
                                     ))
                                 )}
