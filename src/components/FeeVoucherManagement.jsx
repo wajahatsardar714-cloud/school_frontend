@@ -90,6 +90,11 @@ const FeeVoucherManagement = () => {
     due_date: '',
     fee_types: ['MONTHLY'], // Default to monthly fee only
   })
+  
+  // Preview State (NEW - Issue #3)
+  const [previewData, setPreviewData] = useState(null)
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
 
   // Payment Form State
   const [paymentForm, setPaymentForm] = useState({
@@ -377,6 +382,73 @@ const FeeVoucherManagement = () => {
     await generateMutation.mutate(generateForm)
   }, [generateForm, generateMutation])
 
+  // Handle preview bulk vouchers (NEW - Issue #3)
+  const handlePreviewBulk = useCallback(async () => {
+    if (generateForm.type !== 'bulk' || !generateForm.class_id) {
+      alert('Please select a class for bulk preview')
+      return
+    }
+    
+    setIsPreviewLoading(true)
+    try {
+      const monthStr = `${generateForm.year}-${String(generateForm.month).padStart(2, '0')}-01`
+      const result = await feeVoucherService.previewBulk({
+        class_id: parseInt(generateForm.class_id),
+        section_id: generateForm.section_id ? parseInt(generateForm.section_id) : undefined,
+        month: monthStr,
+        due_date: generateForm.due_date || undefined,
+        fee_types: generateForm.fee_types?.length > 0 ? generateForm.fee_types : undefined,
+      })
+      
+      setPreviewData(result?.data || result)
+      setShowPreview(true)
+    } catch (error) {
+      console.error('Failed to preview vouchers:', error)
+      alert('Failed to preview vouchers: ' + (error.message || 'Unknown error'))
+    } finally {
+      setIsPreviewLoading(false)
+    }
+  }, [generateForm])
+
+  // Handle generate and save from preview (NEW - Issue #3)
+  const handleGenerateAndSave = useCallback(async () => {
+    setShowPreview(false)
+    await generateMutation.mutate(generateForm)
+  }, [generateForm, generateMutation])
+
+  // Handle print without saving (NEW - Issue #3)
+  const handlePrintWithoutSaving = useCallback(async () => {
+    if (generateForm.type !== 'bulk' || !generateForm.class_id) {
+      return
+    }
+    
+    try {
+      const monthStr = `${generateForm.year}-${String(generateForm.month).padStart(2, '0')}-01`
+      const blob = await feeVoucherService.generateBulkPDF({
+        class_id: parseInt(generateForm.class_id),
+        section_id: generateForm.section_id ? parseInt(generateForm.section_id) : undefined,
+        month: monthStr,
+        due_date: generateForm.due_date || undefined,
+        fee_types: generateForm.fee_types?.length > 0 ? generateForm.fee_types : undefined,
+      })
+      
+      const url = window.URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      setTimeout(() => window.URL.revokeObjectURL(url), 100)
+      
+      setShowPreview(false)
+    } catch (error) {
+      console.error('Failed to generate PDF:', error)
+      alert('Failed to generate PDF: ' + (error.message || 'Unknown error'))
+    }
+  }, [generateForm])
+
+  // Cancel preview (NEW - Issue #3)
+  const handleCancelPreview = useCallback(() => {
+    setShowPreview(false)
+    setPreviewData(null)
+  }, [])
+
   const openPaymentModal = useCallback((voucher) => {
     setSelectedVoucher(voucher)
     setPaymentForm({
@@ -410,6 +482,16 @@ const FeeVoucherManagement = () => {
       await feeVoucherService.downloadPDF(voucher.id)
     } catch (error) {
       console.error('Download failed:', error)
+    }
+  }, [])
+
+  // Handle print voucher (NEW - Issue #3)
+  const handlePrintVoucher = useCallback((voucher) => {
+    try {
+      feeVoucherService.printVoucher(voucher.id)
+    } catch (error) {
+      console.error('Failed to print voucher:', error)
+      alert('Failed to print voucher')
     }
   }, [])
 
@@ -576,6 +658,13 @@ const FeeVoucherManagement = () => {
                               💰
                             </button>
                           )}
+                          <button 
+                            className="btn-action btn-print"
+                            onClick={() => handlePrintVoucher(voucher)}
+                            title="Print Voucher"
+                          >
+                            🖨️
+                          </button>
                           <button 
                             className="btn-action btn-download"
                             onClick={() => handleDownloadPDF(voucher)}
@@ -751,17 +840,147 @@ const FeeVoucherManagement = () => {
               </div>
             </div>
 
+            {/* Action Buttons */}
             <div className="form-actions">
+              {generateForm.type === 'bulk' && (
+                <button 
+                  type="button" 
+                  className="btn-secondary"
+                  onClick={handlePreviewBulk}
+                  disabled={isPreviewLoading || !generateForm.class_id || !generateForm.fee_types?.length}
+                >
+                  {isPreviewLoading ? 'Loading Preview...' : '👁️ Preview Vouchers'}
+                </button>
+              )}
               <button 
                 type="submit" 
                 className="btn-primary"
                 disabled={generateMutation.loading || !generateForm.fee_types?.length}
               >
                 {generateMutation.loading ? 'Generating...' : 
-                  generateForm.type === 'bulk' ? 'Generate Bulk Vouchers' : 'Generate Voucher'}
+                  generateForm.type === 'bulk' ? 'Generate & Save to Database' : 'Generate Voucher'}
               </button>
             </div>
           </form>
+
+          {/* Preview Section (NEW - Issue #3) */}
+          {showPreview && previewData && (
+            <div className="preview-section" style={{
+              marginTop: '2rem',
+              padding: '1.5rem',
+              backgroundColor: '#f9fafb',
+              borderRadius: '8px',
+              border: '2px solid #3b82f6'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 style={{ margin: 0 }}>📋 Voucher Preview</h3>
+                <button 
+                  onClick={handleCancelPreview}
+                  style={{ 
+                    background: 'none', 
+                    border: 'none', 
+                    fontSize: '24px', 
+                    cursor: 'pointer',
+                    color: '#6b7280'
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div style={{ 
+                backgroundColor: '#eff6ff', 
+                padding: '1rem', 
+                borderRadius: '6px', 
+                marginBottom: '1rem',
+                border: '1px solid #bfdbfe'
+              }}>
+                <p style={{ margin: '0.25rem 0', fontSize: '14px' }}>
+                  <strong>Total Vouchers:</strong> {previewData.summary?.total_students || 0}
+                </p>
+                <p style={{ margin: '0.25rem 0', fontSize: '14px' }}>
+                  <strong>Total Amount:</strong> Rs. {(previewData.summary?.total_amount || 0).toLocaleString()}
+                </p>
+                {previewData.summary?.students_with_custom_fees > 0 && (
+                  <p style={{ margin: '0.25rem 0', fontSize: '14px', color: '#059669' }}>
+                    ℹ️ <strong>{previewData.summary.students_with_custom_fees}</strong> student(s) with custom fees
+                  </p>
+                )}
+              </div>
+
+              <div style={{ maxHeight: '400px', overflowY: 'auto', marginBottom: '1rem' }}>
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Student</th>
+                      <th>Roll No</th>
+                      <th>Fee Items</th>
+                      <th>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(previewData.vouchers || []).map((voucher, index) => (
+                      <tr key={index}>
+                        <td>
+                          {voucher.student_name}
+                          {voucher.has_custom_fees && (
+                            <span style={{ 
+                              marginLeft: '0.5rem', 
+                              fontSize: '12px', 
+                              color: '#059669',
+                              fontWeight: 'bold'
+                            }}>
+                              *
+                            </span>
+                          )}
+                        </td>
+                        <td>{voucher.roll_no}</td>
+                        <td>
+                          {(voucher.items || []).map((item, idx) => (
+                            <div key={idx} style={{ fontSize: '12px' }}>
+                              {item.item_type}: Rs. {item.amount}
+                            </div>
+                          ))}
+                        </td>
+                        <td><strong>Rs. {voucher.total_amount.toLocaleString()}</strong></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {previewData.summary?.students_with_custom_fees > 0 && (
+                <p style={{ fontSize: '12px', color: '#6b7280', fontStyle: 'italic', marginBottom: '1rem' }}>
+                  * Students with custom fees (different from class defaults)
+                </p>
+              )}
+
+              <div className="form-actions" style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                <button 
+                  type="button"
+                  onClick={handleCancelPreview}
+                  className="btn-cancel"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button"
+                  onClick={handlePrintWithoutSaving}
+                  className="btn-secondary"
+                >
+                  🖨️ Print Without Saving
+                </button>
+                <button 
+                  type="button"
+                  onClick={handleGenerateAndSave}
+                  className="btn-primary"
+                  disabled={generateMutation.loading}
+                >
+                  {generateMutation.loading ? 'Saving...' : '💾 Generate & Save to Database'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

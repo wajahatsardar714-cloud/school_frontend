@@ -45,8 +45,15 @@ export const API_ENDPOINTS = {
   FEE_VOUCHER_DETAIL: (id) => `/api/vouchers/${id}`,
   FEE_VOUCHER_GENERATE: '/api/vouchers/generate',
   FEE_VOUCHER_BULK_GENERATE: '/api/vouchers/generate-bulk',
+  FEE_VOUCHER_PREVIEW_BULK: '/api/vouchers/preview-bulk',
+  FEE_VOUCHER_GENERATE_BULK_PDF: '/api/vouchers/generate-bulk-pdf',
   FEE_VOUCHER_PDF: (id) => `/api/vouchers/${id}/pdf`,
+  FEE_VOUCHER_PRINT: (id) => `/api/vouchers/${id}/print`,
   FEE_VOUCHER_ITEMS: (id) => `/api/vouchers/${id}/items`,
+  
+  // Student Fee Overrides (NEW - Issue #4)
+  STUDENT_FEE_OVERRIDES: '/api/student-fee-overrides',
+  STUDENT_FEE_OVERRIDE_DETAIL: (studentId, classId) => `/api/student-fee-overrides/${studentId}/class/${classId}`,
 
   // Fee Payments (Backend: /api/fees)
   FEE_PAYMENTS: '/api/fees/payments',

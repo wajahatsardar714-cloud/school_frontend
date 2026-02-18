@@ -25,6 +25,40 @@ export const feeVoucherService = {
   },
 
   /**
+   * Preview bulk vouchers WITHOUT creating them
+   * POST /api/vouchers/preview-bulk
+   * Body: { class_id, section_id?, month, due_date? }
+   */
+  async previewBulk(bulkData) {
+    return await apiClient.post(API_ENDPOINTS.FEE_VOUCHER_PREVIEW_BULK, bulkData)
+  },
+
+  /**
+   * Generate bulk PDF WITHOUT saving to database
+   * POST /api/vouchers/generate-bulk-pdf
+   * Body: { class_id, section_id?, month, due_date? }
+   */
+  async generateBulkPDF(bulkData) {
+    const token = apiClient.getToken()
+    const url = `${apiClient.baseURL}${API_ENDPOINTS.FEE_VOUCHER_GENERATE_BULK_PDF}`
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(bulkData),
+    })
+    
+    if (!response.ok) {
+      throw new Error('Failed to generate PDF')
+    }
+    
+    return response.blob()
+  },
+
+  /**
    * List vouchers with filters
    * GET /api/vouchers?student_id=&class_id=&section_id=&month=&year=&status=&from_date=&to_date=&page=&limit=
    */
@@ -97,6 +131,80 @@ export const feeVoucherService = {
     a.click()
     window.URL.revokeObjectURL(urlBlob)
     document.body.removeChild(a)
+  },
+
+  /**
+   * Print voucher inline (opens in new tab for printing)
+   * GET /api/vouchers/:id/print
+   */
+  printVoucher(id) {
+    const token = apiClient.getToken()
+    const url = `${apiClient.baseURL}${API_ENDPOINTS.FEE_VOUCHER_PRINT(id)}`
+    
+    // Open in new tab with authorization
+    const printWindow = window.open('', '_blank')
+    
+    fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    })
+    .then(response => response.blob())
+    .then(blob => {
+      const blobUrl = window.URL.createObjectURL(blob)
+      printWindow.location.href = blobUrl
+    })
+    .catch(error => {
+      console.error('Failed to print voucher:', error)
+      printWindow.close()
+    })
+  },
+}
+
+/**
+ * Student Fee Override Service (NEW - Issue #4)
+ * Backend: /api/student-fee-overrides
+ */
+export const feeOverrideService = {
+  /**
+   * Set or update fee override for a student
+   * POST /api/student-fee-overrides
+   * Body: { student_id, class_id, admission_fee?, monthly_fee?, paper_fund?, reason }
+   */
+  async create(overrideData) {
+    return await apiClient.post(API_ENDPOINTS.STUDENT_FEE_OVERRIDES, overrideData)
+  },
+
+  /**
+   * Get fee override for specific student and class
+   * GET /api/student-fee-overrides/:student_id/class/:class_id
+   */
+  async getByStudentAndClass(studentId, classId) {
+    return await apiClient.get(API_ENDPOINTS.STUDENT_FEE_OVERRIDE_DETAIL(studentId, classId))
+  },
+
+  /**
+   * List all fee overrides with filters
+   * GET /api/student-fee-overrides?student_id=&class_id=&page=&limit=
+   */
+  async list(filters = {}) {
+    const params = new URLSearchParams()
+    
+    if (filters.student_id) params.append('student_id', filters.student_id)
+    if (filters.class_id) params.append('class_id', filters.class_id)
+    if (filters.page) params.append('page', filters.page)
+    if (filters.limit) params.append('limit', filters.limit)
+    
+    const query = params.toString() ? `?${params.toString()}` : ''
+    return await apiClient.get(`${API_ENDPOINTS.STUDENT_FEE_OVERRIDES}${query}`)
+  },
+
+  /**
+   * Remove fee override (student will use class defaults)
+   * DELETE /api/student-fee-overrides/:student_id/class/:class_id
+   */
+  async delete(studentId, classId) {
+    return await apiClient.delete(API_ENDPOINTS.STUDENT_FEE_OVERRIDE_DETAIL(studentId, classId))
   },
 }
 

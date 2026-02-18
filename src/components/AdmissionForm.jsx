@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { studentService } from '../services/studentService'
 import { guardianService } from '../services/guardianService'
 import { classService, sectionService } from '../services/classService'
+import { feeOverrideService } from '../services/feeService'
 import DocumentUpload from './DocumentUpload'
 import DocumentList from './DocumentList'
 import { DOCUMENT_TYPES } from '../utils/documentUtils'
@@ -46,9 +47,16 @@ const AdmissionForm = () => {
     paperFund: 0,
     total: 0
   })
+  const [classFeeDefaults, setClassFeeDefaults] = useState({
+    admissionFee: 0,
+    monthlyFee: 0,
+    paperFund: 0,
+  })
   const [customFees, setCustomFees] = useState([])
   const [isFreeStudent, setIsFreeStudent] = useState(false)
   const [showFeeSchedule, setShowFeeSchedule] = useState(false)
+  const [hasCustomFees, setHasCustomFees] = useState(false)
+  const [feeOverrideReason, setFeeOverrideReason] = useState('')
 
   useEffect(() => {
     loadClasses()
@@ -95,13 +103,16 @@ const AdmissionForm = () => {
         // Get fee structure from the class object (it's already loaded)
         const feeStruct = selectedClass.current_fee_structure
         if (feeStruct) {
-          setFeeSchedule({
+          const defaults = {
             admissionFee: parseFloat(feeStruct.admission_fee) || 0,
             monthlyFee: parseFloat(feeStruct.monthly_fee) || 0,
             paperFund: parseFloat(feeStruct.paper_fund) || 0,
-            total: (parseFloat(feeStruct.admission_fee) || 0) +
-              (parseFloat(feeStruct.monthly_fee) || 0) +
-              (parseFloat(feeStruct.paper_fund) || 0)
+          }
+          
+          setClassFeeDefaults(defaults)
+          setFeeSchedule({
+            ...defaults,
+            total: defaults.admissionFee + defaults.monthlyFee + defaults.paperFund
           })
           setShowFeeSchedule(true)
         }
@@ -244,6 +255,33 @@ const AdmissionForm = () => {
           parseInt(selectedSectionId),
           formData.admission_date
         )
+      }
+
+      // Save fee override if custom fees are set
+      if (createdStudentId && selectedClassId && hasCustomFees && !isFreeStudent) {
+        const hasAnyCustomFee = 
+          feeSchedule.admissionFee !== classFeeDefaults.admissionFee ||
+          feeSchedule.monthlyFee !== classFeeDefaults.monthlyFee ||
+          feeSchedule.paperFund !== classFeeDefaults.paperFund
+
+        if (hasAnyCustomFee) {
+          const overrideData = {
+            student_id: createdStudentId,
+            class_id: parseInt(selectedClassId),
+            admission_fee: feeSchedule.admissionFee !== classFeeDefaults.admissionFee ? feeSchedule.admissionFee : null,
+            monthly_fee: feeSchedule.monthlyFee !== classFeeDefaults.monthlyFee ? feeSchedule.monthlyFee : null,
+            paper_fund: feeSchedule.paperFund !== classFeeDefaults.paperFund ? feeSchedule.paperFund : null,
+            reason: feeOverrideReason || 'Custom fees set during admission'
+          }
+
+          try {
+            await feeOverrideService.create(overrideData)
+            console.log('Fee override saved successfully')
+          } catch (feeErr) {
+            console.error('Failed to save fee override:', feeErr)
+            // Don't fail the whole admission, just log the error
+          }
+        }
       }
 
       setSuccess(true)
@@ -679,96 +717,175 @@ const AdmissionForm = () => {
                   </div>
 
                   {!isFreeStudent && (
-                    <div className="fee-schedule-box">
-                      <div className="fee-table">
-                        <div className="fee-table-header">
-                          <div className="fee-column">Fee Type</div>
-                          <div className="fee-column">Amount (Rs.)</div>
+                    <>
+                      {/* Class Default Fees Display */}
+                      <div className="class-defaults-box" style={{ 
+                        backgroundColor: '#f3f4f6', 
+                        padding: '1rem', 
+                        borderRadius: '6px', 
+                        marginBottom: '1rem' 
+                      }}>
+                        <h4 style={{ fontSize: '14px', marginBottom: '0.5rem', color: '#374151' }}>
+                          Class Default Fees:
+                        </h4>
+                        <div style={{ display: 'flex', gap: '1.5rem', fontSize: '13px' }}>
+                          <span>Admission: <strong>Rs. {classFeeDefaults.admissionFee}</strong></span>
+                          <span>Monthly: <strong>Rs. {classFeeDefaults.monthlyFee}</strong></span>
+                          <span>Paper Fund: <strong>Rs. {classFeeDefaults.paperFund}</strong></span>
                         </div>
+                      </div>
 
-                        <div className="fee-row">
-                          <label>Admission Fee</label>
+                      {/* Custom Fees Toggle */}
+                      <div style={{ marginBottom: '1rem' }}>
+                        <label className="free-student-toggle">
                           <input
-                            type="number"
-                            value={feeSchedule.admissionFee}
-                            onChange={(e) => handleFeeChange('admissionFee', e.target.value)}
-                            min="0"
+                            type="checkbox"
+                            checked={hasCustomFees}
+                            onChange={(e) => {
+                              setHasCustomFees(e.target.checked)
+                              if (!e.target.checked) {
+                                // Reset to defaults
+                                setFeeSchedule({
+                                  ...classFeeDefaults,
+                                  total: classFeeDefaults.admissionFee + classFeeDefaults.monthlyFee + classFeeDefaults.paperFund
+                                })
+                                setFeeOverrideReason('')
+                              }
+                            }}
                             disabled={submitting}
                           />
-                        </div>
+                          Set Custom Fees for this Student
+                        </label>
+                      </div>
 
-                        <div className="fee-row">
-                          <label>Monthly Fee</label>
-                          <input
-                            type="number"
-                            value={feeSchedule.monthlyFee}
-                            onChange={(e) => handleFeeChange('monthlyFee', e.target.value)}
-                            min="0"
-                            disabled={submitting}
-                          />
-                        </div>
+                      <div className="fee-schedule-box">
+                        <div className="fee-table">
+                          <div className="fee-table-header">
+                            <div className="fee-column">Fee Type</div>
+                            <div className="fee-column">Amount (Rs.)</div>
+                          </div>
 
-                        <div className="fee-row">
-                          <label>Paper Fund</label>
-                          <input
-                            type="number"
-                            value={feeSchedule.paperFund}
-                            onChange={(e) => handleFeeChange('paperFund', e.target.value)}
-                            min="0"
-                            disabled={submitting}
-                          />
-                        </div>
-
-                        {customFees.map(fee => (
-                          <div key={fee.id} className="fee-row custom-fee-row">
+                          <div className="fee-row">
+                            <label>Admission Fee</label>
                             <input
-                              type="text"
-                              placeholder="Fee name"
-                              value={fee.name}
-                              onChange={(e) => updateCustomFee(fee.id, 'name', e.target.value)}
-                              className="fee-name-input"
-                              disabled={submitting}
+                              type="number"
+                              value={feeSchedule.admissionFee}
+                              onChange={(e) => handleFeeChange('admissionFee', e.target.value)}
+                              min="0"
+                              disabled={submitting || !hasCustomFees}
+                              style={{ 
+                                backgroundColor: hasCustomFees ? 'white' : '#f3f4f6',
+                                fontWeight: feeSchedule.admissionFee !== classFeeDefaults.admissionFee ? 'bold' : 'normal',
+                                color: feeSchedule.admissionFee !== classFeeDefaults.admissionFee ? '#059669' : 'inherit'
+                              }}
                             />
-                            <div className="custom-fee-amount">
+                          </div>
+
+                          <div className="fee-row">
+                            <label>Monthly Fee</label>
+                            <input
+                              type="number"
+                              value={feeSchedule.monthlyFee}
+                              onChange={(e) => handleFeeChange('monthlyFee', e.target.value)}
+                              min="0"
+                              disabled={submitting || !hasCustomFees}
+                              style={{ 
+                                backgroundColor: hasCustomFees ? 'white' : '#f3f4f6',
+                                fontWeight: feeSchedule.monthlyFee !== classFeeDefaults.monthlyFee ? 'bold' : 'normal',
+                                color: feeSchedule.monthlyFee !== classFeeDefaults.monthlyFee ? '#059669' : 'inherit'
+                              }}
+                            />
+                          </div>
+
+                          <div className="fee-row">
+                            <label>Paper Fund</label>
+                            <input
+                              type="number"
+                              value={feeSchedule.paperFund}
+                              onChange={(e) => handleFeeChange('paperFund', e.target.value)}
+                              min="0"
+                              disabled={submitting || !hasCustomFees}
+                              style={{ 
+                                backgroundColor: hasCustomFees ? 'white' : '#f3f4f6',
+                                fontWeight: feeSchedule.paperFund !== classFeeDefaults.paperFund ? 'bold' : 'normal',
+                                color: feeSchedule.paperFund !== classFeeDefaults.paperFund ? '#059669' : 'inherit'
+                              }}
+                            />
+                          </div>
+
+                          {/* Reason for custom fees */}
+                          {hasCustomFees && (
+                            <div className="fee-row" style={{ gridTemplateColumns: '1fr' }}>
+                              <label style={{ marginBottom: '0.5rem' }}>Reason for Custom Fees *</label>
+                              <textarea
+                                value={feeOverrideReason}
+                                onChange={(e) => setFeeOverrideReason(e.target.value)}
+                                placeholder="e.g., Scholarship, Sibling discount, Special agreement"
+                                rows="2"
+                                required={hasCustomFees}
+                                disabled={submitting}
+                                style={{ 
+                                  width: '100%', 
+                                  padding: '0.5rem', 
+                                  border: '1px solid #d1d5db', 
+                                  borderRadius: '4px',
+                                  resize: 'vertical'
+                                }}
+                              />
+                            </div>
+                          )}
+
+                          {customFees.map(fee => (
+                            <div key={fee.id} className="fee-row custom-fee-row">
                               <input
-                                type="number"
-                                value={fee.amount}
-                                onChange={(e) => updateCustomFee(fee.id, 'amount', e.target.value)}
-                                min="0"
-                                placeholder="Amount"
+                                type="text"
+                                placeholder="Fee name"
+                                value={fee.name}
+                                onChange={(e) => updateCustomFee(fee.id, 'name', e.target.value)}
+                                className="fee-name-input"
                                 disabled={submitting}
                               />
-                              <button
-                                type="button"
-                                onClick={() => removeCustomFee(fee.id)}
-                                className="remove-fee-btn"
-                                disabled={submitting}
-                              >
-                                ×
-                              </button>
+                              <div className="custom-fee-amount">
+                                <input
+                                  type="number"
+                                  value={fee.amount}
+                                  onChange={(e) => updateCustomFee(fee.id, 'amount', e.target.value)}
+                                  min="0"
+                                  placeholder="Amount"
+                                  disabled={submitting}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeCustomFee(fee.id)}
+                                  className="remove-fee-btn"
+                                  disabled={submitting}
+                                >
+                                  ×
+                                </button>
+                              </div>
                             </div>
+                          ))}
+
+                          <div className="fee-actions">
+                            <button
+                              type="button"
+                              onClick={addCustomFee}
+                              className="add-fee-btn"
+                              disabled={submitting}
+                            >
+                              + Add Custom Fee
+                            </button>
                           </div>
-                        ))}
 
-                        <div className="fee-actions">
-                          <button
-                            type="button"
-                            onClick={addCustomFee}
-                            className="add-fee-btn"
-                            disabled={submitting}
-                          >
-                            + Add Custom Fee
-                          </button>
-                        </div>
-
-                        <div className="fee-row total-row">
-                          <label><strong>Total Amount</strong></label>
-                          <div className="total-amount">
-                            <strong>Rs. {getTotalFees().toLocaleString()}/-</strong>
+                          <div className="fee-row total-row">
+                            <label><strong>Total Amount</strong></label>
+                            <div className="total-amount">
+                              <strong>Rs. {getTotalFees().toLocaleString()}/-</strong>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </>
                   )}
 
                   {isFreeStudent && (
