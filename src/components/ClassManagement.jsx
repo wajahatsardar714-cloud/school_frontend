@@ -11,7 +11,7 @@ const ClassManagement = () => {
   const [expandedClassId, setExpandedClassId] = useState(null)
   const [sections, setSections] = useState({})
   const [feeStructures, setFeeStructures] = useState({})
-  
+
   const [formData, setFormData] = useState({
     name: '',
     class_type: 'SCHOOL'
@@ -169,9 +169,28 @@ const ClassManagement = () => {
                     {cls.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </div>
+                <div style={{ marginTop: '0.5rem', width: '200px' }}>
+                  {(() => {
+                    const estimatedCapacity = (parseInt(cls.section_count) || 1) * 40
+                    const studentCount = parseInt(cls.student_count) || 0
+                    const occupancyPercent = Math.min(Math.round((studentCount / estimatedCapacity) * 100), 100)
+                    const statusColor = occupancyPercent > 90 ? '#e53e3e' : occupancyPercent > 70 ? '#ecc94b' : '#38a169'
+                    return (
+                      <div className="capacity-indicator">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', marginBottom: '0.2rem' }}>
+                          <span>{studentCount}/{estimatedCapacity} Pupils</span>
+                          <span>{occupancyPercent}% Occupancy</span>
+                        </div>
+                        <div style={{ width: '100%', height: '4px', background: '#edf2f7', borderRadius: '2px', overflow: 'hidden' }}>
+                          <div style={{ width: `${occupancyPercent}%`, height: '100%', background: statusColor }}></div>
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </div>
                 <div className="class-actions">
-                  <button 
-                    onClick={() => toggleExpand(cls.id)} 
+                  <button
+                    onClick={() => toggleExpand(cls.id)}
                     className="btn-secondary"
                   >
                     {expandedClassId === cls.id ? '▲ Hide Details' : '▼ Show Details'}
@@ -247,7 +266,7 @@ const ClassManagement = () => {
               <h3>{editingClass ? 'Edit Class' : 'Add New Class'}</h3>
               <button onClick={closeModal} className="modal-close">×</button>
             </div>
-            
+
             <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label>Class Name *</label>

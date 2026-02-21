@@ -25,6 +25,7 @@ import Sidebar from './components/layout/Sidebar'
 import StudentDashboard from './components/students/StudentDashboard'
 import ClassStudentList from './components/students/ClassStudentList'
 import StudentDetail from './components/students/StudentDetail'
+import Profile from './components/Profile'
 import Header from './components/layout/Header'
 import Footer from './components/layout/Footer'
 import './App.css'
@@ -128,6 +129,8 @@ function AppLayout() {
                 <UserManagement />
               </ProtectedRoute>
             } />
+
+            <Route path="/profile" element={<Profile />} />
           </Routes>
         </main>
         <Footer />

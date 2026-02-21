@@ -1,5 +1,6 @@
 import { useAuth } from '../../context/AuthContext'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import logo from '../../assets/logo.png'
 
 const Header = () => {
@@ -40,7 +41,11 @@ const Header = () => {
             </svg>
             <div className="user-details">
               <span className="user-email">{user?.email}</span>
-              <span className="user-role">{user?.role}</span>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <span className="user-role">{user?.role}</span>
+                <span>•</span>
+                <Link to="/profile" className="profile-link" style={{ fontSize: '0.75rem', color: 'var(--primary-color)', textDecoration: 'none' }}>View Profile</Link>
+              </div>
             </div>
           </div>
           <button

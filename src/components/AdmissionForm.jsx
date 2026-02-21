@@ -108,7 +108,7 @@ const AdmissionForm = () => {
             monthlyFee: parseFloat(feeStruct.monthly_fee) || 0,
             paperFund: parseFloat(feeStruct.paper_fund) || 0,
           }
-          
+
           setClassFeeDefaults(defaults)
           setFeeSchedule({
             ...defaults,
@@ -259,7 +259,7 @@ const AdmissionForm = () => {
 
       // Save fee override if custom fees are set
       if (createdStudentId && selectedClassId && hasCustomFees && !isFreeStudent) {
-        const hasAnyCustomFee = 
+        const hasAnyCustomFee =
           feeSchedule.admissionFee !== classFeeDefaults.admissionFee ||
           feeSchedule.monthlyFee !== classFeeDefaults.monthlyFee ||
           feeSchedule.paperFund !== classFeeDefaults.paperFund
@@ -660,6 +660,25 @@ const AdmissionForm = () => {
                         </option>
                       ))}
                     </select>
+                    {selectedSectionId && (() => {
+                      const selectedSection = sections.find(s => s.id === parseInt(selectedSectionId))
+                      if (selectedSection) {
+                        const studentCount = parseInt(selectedSection.student_count) || 0
+                        const capacity = 40
+                        const isFull = studentCount >= capacity
+                        const isNearFull = studentCount >= (capacity * 0.9)
+
+                        return (
+                          <div style={{ marginTop: '0.4rem', fontSize: '12px' }}>
+                            <span style={{ color: isFull ? '#ef4444' : isNearFull ? '#f59e0b' : '#10b981' }}>
+                              {isFull ? '⚠️ Section is FULL' : isNearFull ? '⚠️ Section is near capacity' : '✓ Space available'}
+                              ({studentCount}/{capacity} students)
+                            </span>
+                          </div>
+                        )
+                      }
+                      return null
+                    })()}
                     {!selectedClassId && (
                       <small style={{ color: '#666', fontSize: '12px' }}>Select a class first</small>
                     )}
@@ -719,11 +738,11 @@ const AdmissionForm = () => {
                   {!isFreeStudent && (
                     <>
                       {/* Class Default Fees Display */}
-                      <div className="class-defaults-box" style={{ 
-                        backgroundColor: '#f3f4f6', 
-                        padding: '1rem', 
-                        borderRadius: '6px', 
-                        marginBottom: '1rem' 
+                      <div className="class-defaults-box" style={{
+                        backgroundColor: '#f3f4f6',
+                        padding: '1rem',
+                        borderRadius: '6px',
+                        marginBottom: '1rem'
                       }}>
                         <h4 style={{ fontSize: '14px', marginBottom: '0.5rem', color: '#374151' }}>
                           Class Default Fees:
@@ -773,7 +792,7 @@ const AdmissionForm = () => {
                               onChange={(e) => handleFeeChange('admissionFee', e.target.value)}
                               min="0"
                               disabled={submitting || !hasCustomFees}
-                              style={{ 
+                              style={{
                                 backgroundColor: hasCustomFees ? 'white' : '#f3f4f6',
                                 fontWeight: feeSchedule.admissionFee !== classFeeDefaults.admissionFee ? 'bold' : 'normal',
                                 color: feeSchedule.admissionFee !== classFeeDefaults.admissionFee ? '#059669' : 'inherit'
@@ -789,7 +808,7 @@ const AdmissionForm = () => {
                               onChange={(e) => handleFeeChange('monthlyFee', e.target.value)}
                               min="0"
                               disabled={submitting || !hasCustomFees}
-                              style={{ 
+                              style={{
                                 backgroundColor: hasCustomFees ? 'white' : '#f3f4f6',
                                 fontWeight: feeSchedule.monthlyFee !== classFeeDefaults.monthlyFee ? 'bold' : 'normal',
                                 color: feeSchedule.monthlyFee !== classFeeDefaults.monthlyFee ? '#059669' : 'inherit'
@@ -805,7 +824,7 @@ const AdmissionForm = () => {
                               onChange={(e) => handleFeeChange('paperFund', e.target.value)}
                               min="0"
                               disabled={submitting || !hasCustomFees}
-                              style={{ 
+                              style={{
                                 backgroundColor: hasCustomFees ? 'white' : '#f3f4f6',
                                 fontWeight: feeSchedule.paperFund !== classFeeDefaults.paperFund ? 'bold' : 'normal',
                                 color: feeSchedule.paperFund !== classFeeDefaults.paperFund ? '#059669' : 'inherit'
@@ -824,10 +843,10 @@ const AdmissionForm = () => {
                                 rows="2"
                                 required={hasCustomFees}
                                 disabled={submitting}
-                                style={{ 
-                                  width: '100%', 
-                                  padding: '0.5rem', 
-                                  border: '1px solid #d1d5db', 
+                                style={{
+                                  width: '100%',
+                                  padding: '0.5rem',
+                                  border: '1px solid #d1d5db',
                                   borderRadius: '4px',
                                   resize: 'vertical'
                                 }}

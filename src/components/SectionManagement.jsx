@@ -12,7 +12,7 @@ const SectionManagement = () => {
   const [showModal, setShowModal] = useState(false)
   const [editingSection, setEditingSection] = useState(null)
   const [submitting, setSubmitting] = useState(false)
-  
+
   const [formData, setFormData] = useState({
     name: ''
   })
@@ -142,6 +142,25 @@ const SectionManagement = () => {
             <div key={section.id} className="section-card">
               <div className="section-name">
                 <h3>Section {section.name}</h3>
+                <div className="capacity-indicator" style={{ marginTop: '0.8rem', width: '100%' }}>
+                  {(() => {
+                    const studentCount = parseInt(section.student_count) || 0
+                    const capacity = 40
+                    const occupancyPercent = Math.min(Math.round((studentCount / capacity) * 100), 100)
+                    const statusColor = occupancyPercent > 90 ? '#e53e3e' : occupancyPercent > 70 ? '#ecc94b' : '#38a169'
+                    return (
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', marginBottom: '0.2rem' }}>
+                          <span>{studentCount}/{capacity} Students</span>
+                          <span>{occupancyPercent}%</span>
+                        </div>
+                        <div style={{ width: '100%', height: '4px', background: '#edf2f7', borderRadius: '2px', overflow: 'hidden' }}>
+                          <div style={{ width: `${occupancyPercent}%`, height: '100%', background: statusColor }}></div>
+                        </div>
+                      </>
+                    )
+                  })()}
+                </div>
               </div>
               <div className="section-actions">
                 <button onClick={() => openModal(section)} className="btn-secondary btn-sm">
@@ -163,7 +182,7 @@ const SectionManagement = () => {
               <h3>{editingSection ? 'Edit Section' : 'Add New Section'}</h3>
               <button onClick={closeModal} className="modal-close">×</button>
             </div>
-            
+
             <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label>Section Name *</label>

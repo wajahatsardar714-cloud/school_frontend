@@ -76,11 +76,22 @@ export const studentService = {
   },
 
   async promote(id, promotionData) {
+    // promotionData can include { class_id, section_id, force }
     return await apiClient.post(API_ENDPOINTS.STUDENT_PROMOTE(id), promotionData)
   },
 
   async getDocuments(id) {
     return await apiClient.get(API_ENDPOINTS.STUDENT_DOCUMENTS(id))
+  },
+
+  async updateDocument(docId, data) {
+    const response = await apiClient.put(`/students/documents/${docId}`, data)
+    return response.data
+  },
+
+  async deleteDocument(docId) {
+    const response = await apiClient.delete(`/students/documents/${docId}`)
+    return response.data
   },
 
   async getDocumentUrl(docId) {

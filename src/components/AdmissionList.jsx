@@ -4,34 +4,57 @@ import { studentService } from '../services/studentService'
 
 const AdmissionList = () => {
   const [students, setStudents] = useState([])
+  const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterClass, setFilterClass] = useState('')
+  const [filterStatus, setFilterStatus] = useState('active') // active, inactive, expelled, all
 
   useEffect(() => {
-    loadStudents()
+    loadInitialData()
   }, [])
 
-  const loadStudents = async () => {
+  const loadInitialData = async () => {
     try {
       setLoading(true)
-      const response = await studentService.list({
-        is_active: true
-      })
-      setStudents(response.data || [])
+      const [studentsRes, classesRes] = await Promise.all([
+        studentService.list({ status: filterStatus }),
+        classService.list()
+      ])
+      setStudents(studentsRes.data || [])
+      setClasses(classesRes.data || [])
       setError(null)
     } catch (err) {
-      setError(err.message || 'Failed to load students')
+      setError(err.message || 'Failed to load data')
     } finally {
       setLoading(false)
     }
   }
 
+  useEffect(() => {
+    loadStudents()
+  }, [filterStatus])
+
+  const loadStudents = async () => {
+    try {
+      const response = await studentService.list({
+        status: filterStatus === 'all' ? undefined : filterStatus
+      })
+      setStudents(response.data || [])
+    } catch (err) {
+      console.error('Failed to load students:', err)
+    }
+  }
+
   const filteredStudents = students.filter(student => {
-    const matchesSearch = student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         student.roll_no?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesClass = !filterClass || student.class_name === filterClass
+    const matchesSearch = !searchTerm ||
+      student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.roll_no?.toLowerCase().includes(searchTerm.toLowerCase())
+
+    const studentClassId = student.current_enrollment?.class_id || student.class_id
+    const matchesClass = !filterClass || String(studentClassId) === String(filterClass)
+
     return matchesSearch && matchesClass
   })
 
@@ -63,36 +86,43 @@ const AdmissionList = () => {
         </div>
       )}
 
-      <div className="filters-section">
-        <input
-          type="text"
-          placeholder="Search by name or roll number..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="search-input"
-        />
-        <select
-          value={filterClass}
-          onChange={(e) => setFilterClass(e.target.value)}
-          className="filter-select"
-        >
-          <option value="">All Classes</option>
-          <option value="PG">PG</option>
-          <option value="Nursery">Nursery</option>
-          <option value="Prep">Prep</option>
-          <option value="Class 1">Class 1</option>
-          <option value="Class 2">Class 2</option>
-          <option value="Class 3">Class 3</option>
-          <option value="Class 4">Class 4</option>
-          <option value="Class 5">Class 5</option>
-          <option value="Class 6">Class 6</option>
-          <option value="Class 7">Class 7</option>
-          <option value="Class 8">Class 8</option>
-          <option value="Class 9">Class 9</option>
-          <option value="Class 10">Class 10</option>
-          <option value="1st Year">1st Year</option>
-          <option value="2nd Year">2nd Year</option>
-        </select>
+      <div className="filters-section" style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+        <div className="form-group" style={{ flex: 1 }}>
+          <input
+            type="text"
+            placeholder="Search by name or roll number..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+            style={{ width: '100%', padding: '0.6rem', border: '1px solid #cbd5e0', borderRadius: '4px' }}
+          />
+        </div>
+        <div className="form-group" style={{ width: '200px' }}>
+          <select
+            value={filterClass}
+            onChange={(e) => setFilterClass(e.target.value)}
+            className="filter-select"
+            style={{ width: '100%', padding: '0.6rem', border: '1px solid #cbd5e0', borderRadius: '4px' }}
+          >
+            <option value="">All Classes</option>
+            {classes.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="form-group" style={{ width: '150px' }}>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="filter-select"
+            style={{ width: '100%', padding: '0.6rem', border: '1px solid #cbd5e0', borderRadius: '4px' }}
+          >
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="expelled">Expelled</option>
+            <option value="all">All Statuses</option>
+          </select>
+        </div>
       </div>
 
       {filteredStudents.length === 0 ? (
