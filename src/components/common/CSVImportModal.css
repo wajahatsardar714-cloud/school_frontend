@@ -1,0 +1,662 @@
+/* Professional CSV Import Modal - SaaS Style Design */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 1rem;
+  backdrop-filter: blur(3px);
+}
+
+.csv-modal {
+  background: #ffffff;
+  width: 100%;
+  max-width: 1000px;
+  max-height: 92vh;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+/* Header */
+.modal-header {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fafbfc;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.modal-header p {
+  margin: 0.25rem 0 0 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #9ca3af;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+/* Body */
+.modal-body {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.step-content {
+  padding: 1.5rem;
+  flex: 1;
+  overflow: auto;
+}
+
+/* Cards */
+.info-card, .form-card, .upload-card, .preview-card, .results-card, .target-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+}
+
+.info-card {
+  background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+  border: 1px solid #bfdbfe;
+}
+
+.info-card h3 {
+  margin: 0 0 0.75rem 0;
+  color: #1e40af;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.info-card p {
+  margin: 0;
+  color: #1e40af;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.target-card {
+  background: linear-gradient(135deg, #f0fdf4 0%, #f7fee7 100%);
+  border: 1px solid #bbf7d0;
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.badge {
+  background: #059669;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  position: absolute;
+  top: -0.5rem;
+  left: 1rem;
+}
+
+.target-card p {
+  margin: 0.75rem 0 0 0;
+  color: #065f46;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Form */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+.form-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Grid Layout for Step 2 */
+.modal-body-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 1.5rem;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Upload Card */
+.upload-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 1.25rem;
+  border: 1px solid #e5e7eb;
+}
+
+.upload-card h3 {
+  margin: 0 0 1rem 0;
+  color: #1f2937;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+/* Drag & Drop Zone */
+.drop-zone {
+  border: 2px dashed #cbd5e1;
+  padding: 2rem 1rem;
+  text-align: center;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #ffffff;
+  margin-bottom: 1rem;
+}
+
+.drop-zone.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  transform: scale(1.02);
+}
+
+.drop-zone:hover:not(.active) {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.drop-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.upload-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.drop-zone p {
+  margin: 0;
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.95rem;
+}
+
+.drop-zone span {
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+.file-name {
+  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: #dcfce7;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #166534;
+  font-weight: 500;
+}
+
+/* Buttons */
+.secondary-btn {
+  width: 100%;
+  background: white;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.secondary-btn:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+/* Preview Card */
+.preview-card {
+  display: flex;
+  flex-direction: column;
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 0;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.preview-header h3 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.student-count {
+  background: #eff6ff;
+  color: #2563eb;
+  padding: 0.375rem 0.875rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.detected-fields {
+  background: #f9fafb;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.85rem;
+  color: #4b5563;
+}
+
+.detected-fields strong {
+  color: #374151;
+}
+
+/* Validation */
+.validation-banner {
+  background: #fef3c7;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+  color: #92400e;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Column Management */
+.column-management {
+  background: #f8fafc;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.column-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.column-controls label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.column-controls select {
+  padding: 0.375rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: white;
+}
+
+.column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.remove-column-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.remove-column-btn:hover {
+  background: #dc2626;
+}
+
+/* Empty Preview */
+.empty-preview {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* Table */
+.table-wrapper {
+  flex: 1;
+  overflow: auto;
+  border-top: 1px solid #e5e7eb;
+  background: white;
+  max-height: 400px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
+}
+
+thead th {
+  background: #f3f4f6;
+  position: sticky;
+  top: 0;
+  padding: 0.75rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  z-index: 2;
+}
+
+tbody td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #f1f1f1;
+  vertical-align: middle;
+}
+
+.row-number {
+  background: #f9fafb;
+  font-weight: 600;
+  text-align: center;
+  color: #6b7280;
+  width: 60px;
+}
+
+tbody td input {
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+tbody td input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+tbody td input.error {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+tbody td input.auto-generate {
+  background: #fef3c7;
+  font-style: italic;
+}
+
+.row-error {
+  background: #fef2f2;
+}
+
+/* Results */
+.results-card {
+  text-align: center;
+}
+
+.success-header h3 {
+  margin: 0 0 0.5rem 0;
+  color: #059669;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.success-header p {
+  margin: 0;
+  color: #065f46;
+  font-size: 1rem;
+}
+
+.import-summary {
+  background: #f0fdf4;
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  text-align: left;
+}
+
+.import-summary p {
+  margin: 0.25rem 0;
+  color: #065f46;
+}
+
+.warning-summary {
+  background: #fffbeb;
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  text-align: left;
+}
+
+.warning-summary strong {
+  color: #92400e;
+}
+
+/* Footer */
+.modal-footer {
+  padding: 1.5rem 2rem;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  background: #fafbfc;
+}
+
+.primary-btn, .cancel-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.primary-btn {
+  background: #2563eb;
+  color: white;
+}
+
+.primary-btn:hover:not(:disabled) {
+  background: #1e40af;
+  transform: translateY(-1px);
+}
+
+.primary-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.cancel-btn {
+  background: white;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+/* Error Overlay */
+.error-overlay {
+  position: absolute;
+  bottom: 2rem;
+  left: 2rem;
+  right: 2rem;
+  z-index: 10;
+}
+
+.error-card {
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-left: 4px solid #dc2626;
+  padding: 1rem;
+  border-radius: 8px;
+  color: #dc2626;
+}
+
+.error-card strong {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .csv-modal {
+    max-height: 95vh;
+    margin: 0.5rem;
+  }
+
+  .modal-header {
+    padding: 1rem 1.5rem;
+  }
+
+  .modal-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .step-content {
+    padding: 1rem;
+  }
+
+  .modal-body-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .upload-card {
+    order: 1;
+  }
+
+  .preview-card {
+    order: 2;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .secondary-btn, .primary-btn, .cancel-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .modal-footer {
+    padding: 1rem 1.5rem;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .table-wrapper {
+    max-height: 300px;
+  }
+
+  table {
+    min-width: 600px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-header h2 {
+    font-size: 1.125rem;
+  }
+
+  .modal-header p {
+    font-size: 0.85rem;
+  }
+
+  .info-card, .form-card, .upload-card, .preview-card, .results-card, .target-card {
+    padding: 1rem;
+  }
+
+  .target-card {
+    margin-bottom: 0.75rem;
+  }
+}

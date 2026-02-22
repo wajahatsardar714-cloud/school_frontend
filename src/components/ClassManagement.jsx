@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { classService, sectionService } from '../services/classService'
+import { useClassFilter } from '../hooks/useClassFilter'
+import FilterBar from './common/FilterBar'
+import CompactClassCard from './common/CompactClassCard'
 
 const ClassManagement = () => {
   const [classes, setClasses] = useState([])
@@ -11,7 +14,10 @@ const ClassManagement = () => {
   const [expandedClassId, setExpandedClassId] = useState(null)
   const [sections, setSections] = useState({})
   const [feeStructures, setFeeStructures] = useState({})
-
+  
+  // Use custom hook for filtering
+  const { filteredClasses, classTypeFilter, setClassTypeFilter } = useClassFilter(classes)
+  
   const [formData, setFormData] = useState({
     name: '',
     class_type: 'SCHOOL'
@@ -122,6 +128,57 @@ const ClassManagement = () => {
     }
   }
 
+  const renderExpandedContent = (cls) => (
+    <>
+      <div className="detail-section">
+        <h4>Sections</h4>
+        {sections[cls.id]?.length > 0 ? (
+          <div className="sections-grid">
+            {sections[cls.id].map(section => (
+              <div key={section.id} className="section-chip">
+                {section.name}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted">No sections created yet</p>
+        )}
+        <Link to={`/classes/${cls.id}/sections`} className="btn-link">
+          Manage Sections →
+        </Link>
+      </div>
+
+      <div className="detail-section">
+        <h4>Fee Structure</h4>
+        {feeStructures[cls.id] ? (
+          <div className="fee-grid">
+            <div className="fee-item">
+              <span>Admission Fee:</span>
+              <strong>Rs. {feeStructures[cls.id].admission_fee}</strong>
+            </div>
+            <div className="fee-item">
+              <span>Monthly Fee:</span>
+              <strong>Rs. {feeStructures[cls.id].monthly_fee}</strong>
+            </div>
+            <div className="fee-item">
+              <span>Paper Fund:</span>
+              <strong>Rs. {feeStructures[cls.id].paper_fund}</strong>
+            </div>
+            <div className="fee-item">
+              <span>Effective From:</span>
+              <strong>{new Date(feeStructures[cls.id].effective_from).toLocaleDateString()}</strong>
+            </div>
+          </div>
+        ) : (
+          <p className="text-muted">No fee structure defined</p>
+        )}
+        <Link to={`/classes/${cls.id}/fee-structure`} className="btn-link">
+          Manage Fee Structure →
+        </Link>
+      </div>
+    </>
+  )
+
   if (loading) {
     return (
       <div className="page-content">
@@ -137,10 +194,20 @@ const ClassManagement = () => {
     <div className="page-content">
       <div className="page-header">
         <h2>Class Management</h2>
-        <button onClick={() => openModal()} className="btn-primary">
-          + Add New Class
-        </button>
+        <div className="page-actions">
+          <Link to="/students/bulk-import" className="btn-secondary" style={{ marginRight: '10px' }}>
+            📊 Bulk Import Students
+          </Link>
+          <button onClick={() => openModal()} className="btn-primary">
+            + Add New Class
+          </button>
+        </div>
       </div>
+
+      <FilterBar 
+        activeFilter={classTypeFilter}
+        onFilterChange={setClassTypeFilter}
+      />
 
       {error && (
         <div className="alert alert-error">
@@ -148,113 +215,26 @@ const ClassManagement = () => {
         </div>
       )}
 
-      {classes.length === 0 ? (
+      {filteredClasses.length === 0 ? (
         <div className="empty-state">
-          <p>No classes found</p>
+          <p>{classTypeFilter === 'ALL' ? 'No classes found' : `No ${classTypeFilter.toLowerCase()} classes found`}</p>
           <button onClick={() => openModal()} className="btn-primary">
             Add First Class
           </button>
         </div>
       ) : (
-        <div className="classes-list">
-          {classes.map(cls => (
-            <div key={cls.id} className="class-card">
-              <div className="class-header">
-                <div className="class-info">
-                  <h3>{cls.name}</h3>
-                  <span className={`badge ${cls.class_type === 'SCHOOL' ? 'badge-primary' : 'badge-secondary'}`}>
-                    {cls.class_type}
-                  </span>
-                  <span className={`badge ${cls.is_active ? 'badge-success' : 'badge-inactive'}`}>
-                    {cls.is_active ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-                <div style={{ marginTop: '0.5rem', width: '200px' }}>
-                  {(() => {
-                    const estimatedCapacity = (parseInt(cls.section_count) || 1) * 40
-                    const studentCount = parseInt(cls.student_count) || 0
-                    const occupancyPercent = Math.min(Math.round((studentCount / estimatedCapacity) * 100), 100)
-                    const statusColor = occupancyPercent > 90 ? '#e53e3e' : occupancyPercent > 70 ? '#ecc94b' : '#38a169'
-                    return (
-                      <div className="capacity-indicator">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', marginBottom: '0.2rem' }}>
-                          <span>{studentCount}/{estimatedCapacity} Pupils</span>
-                          <span>{occupancyPercent}% Occupancy</span>
-                        </div>
-                        <div style={{ width: '100%', height: '4px', background: '#edf2f7', borderRadius: '2px', overflow: 'hidden' }}>
-                          <div style={{ width: `${occupancyPercent}%`, height: '100%', background: statusColor }}></div>
-                        </div>
-                      </div>
-                    )
-                  })()}
-                </div>
-                <div className="class-actions">
-                  <button
-                    onClick={() => toggleExpand(cls.id)}
-                    className="btn-secondary"
-                  >
-                    {expandedClassId === cls.id ? '▲ Hide Details' : '▼ Show Details'}
-                  </button>
-                  <button onClick={() => openModal(cls)} className="btn-secondary">
-                    Edit
-                  </button>
-                  <button onClick={() => handleDelete(cls.id)} className="btn-danger">
-                    Delete
-                  </button>
-                </div>
-              </div>
-
-              {expandedClassId === cls.id && (
-                <div className="class-details">
-                  <div className="detail-section">
-                    <h4>Sections</h4>
-                    {sections[cls.id]?.length > 0 ? (
-                      <div className="sections-grid">
-                        {sections[cls.id].map(section => (
-                          <div key={section.id} className="section-chip">
-                            {section.name}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-muted">No sections created yet</p>
-                    )}
-                    <Link to={`/classes/${cls.id}/sections`} className="btn-link">
-                      Manage Sections →
-                    </Link>
-                  </div>
-
-                  <div className="detail-section">
-                    <h4>Fee Structure</h4>
-                    {feeStructures[cls.id] ? (
-                      <div className="fee-grid">
-                        <div className="fee-item">
-                          <span>Admission Fee:</span>
-                          <strong>Rs. {feeStructures[cls.id].admission_fee}</strong>
-                        </div>
-                        <div className="fee-item">
-                          <span>Monthly Fee:</span>
-                          <strong>Rs. {feeStructures[cls.id].monthly_fee}</strong>
-                        </div>
-                        <div className="fee-item">
-                          <span>Paper Fund:</span>
-                          <strong>Rs. {feeStructures[cls.id].paper_fund}</strong>
-                        </div>
-                        <div className="fee-item">
-                          <span>Effective From:</span>
-                          <strong>{new Date(feeStructures[cls.id].effective_from).toLocaleDateString()}</strong>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-muted">No fee structure defined</p>
-                    )}
-                    <Link to={`/classes/${cls.id}/fee-structure`} className="btn-link">
-                      Manage Fee Structure →
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
+        <div className="compact-classes-list">
+          {filteredClasses.map(cls => (
+            <CompactClassCard
+              key={cls.id}
+              classData={cls}
+              variant="management"
+              onEdit={openModal}
+              onDelete={handleDelete}
+              onToggleExpand={toggleExpand}
+              isExpanded={expandedClassId === cls.id}
+              expandedContent={expandedClassId === cls.id ? renderExpandedContent(cls) : null}
+            />
           ))}
         </div>
       )}

@@ -5,7 +5,8 @@
  * Uses robust hooks for race condition prevention and optimized performance.
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useFetch, useMutation, useDebounce } from '../hooks/useApi';
 import { feeService } from '../services/feeService';
 import '../fee.css';
@@ -16,12 +17,27 @@ export default function FeePaymentManagement() {
   // Tab state
   const [activeTab, setActiveTab] = useState('history');
   
+  // URL search params for handling direct navigation with filters
+  const [searchParams] = useSearchParams();
+  
   // Filters state
   const [filters, setFilters] = useState({
     search: '',
     dateFrom: '',
     dateTo: '',
   });
+  
+  // Set filters from URL params on component mount
+  useEffect(() => {
+    const dateParam = searchParams.get('date');
+    if (dateParam) {
+      setFilters(prev => ({
+        ...prev,
+        dateFrom: dateParam,
+        dateTo: dateParam
+      }));
+    }
+  }, [searchParams]);
   
   // Debounce search for performance
   const debouncedSearch = useDebounce(filters.search, 300);

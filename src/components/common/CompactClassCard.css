@@ -1,0 +1,250 @@
+/* ============================================
+   COMPACT CLASS CARD COMPONENT
+   ============================================ */
+
+.compact-class-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1.5px solid var(--color-gray-200);
+  transition: all var(--transition-fast);
+  text-decoration: none;
+  color: inherit;
+}
+
+.compact-class-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary-400);
+}
+
+/* Management Variant */
+.compact-class-card.management-variant {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: var(--spacing-sm);
+}
+
+.compact-card-header.management {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.compact-card-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex: 1;
+}
+
+.compact-card-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}
+
+.compact-badges {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.compact-badge {
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.compact-badge.primary {
+  background: var(--color-primary-100);
+  color: var(--color-primary-700);
+}
+
+.compact-badge.secondary {
+  background: var(--color-gray-100);
+  color: var(--color-gray-700);
+}
+
+.compact-badge.success {
+  background: var(--color-success-bg);
+  color: var(--color-success-dark);
+}
+
+.compact-badge.inactive {
+  background: var(--color-error-bg);
+  color: var(--color-error-dark);
+}
+
+.compact-card-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.compact-btn-icon {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-gray-100);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  font-size: var(--font-size-sm);
+}
+
+.compact-btn-icon:hover {
+  background: var(--color-gray-200);
+  color: var(--color-text-primary);
+  transform: scale(1.05);
+}
+
+.compact-btn-icon.danger:hover {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.compact-card-expanded {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-gray-200);
+}
+
+/* Student Variant */
+.compact-class-card.student-variant {
+  display: flex;
+  flex-direction: column;
+  min-height: 120px;
+}
+
+.compact-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-sm);
+}
+
+.compact-card-icon {
+  width: 36px;
+  height: 36px;
+  background: var(--color-primary-50);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-lg);
+  color: var(--color-primary-600);
+}
+
+.compact-type-badge {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-semibold);
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-gray-100);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.compact-type-badge.school {
+  background: var(--color-primary-100);
+  color: var(--color-primary-700);
+}
+
+.compact-type-badge.college {
+  background: var(--color-success-bg);
+  color: var(--color-success-dark);
+}
+
+.compact-card-body {
+  flex: 1;
+  margin-bottom: var(--spacing-sm);
+}
+
+.compact-card-subtitle {
+  margin: 0.25rem 0 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.compact-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+}
+
+.compact-status-badge {
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+}
+
+.compact-status-badge.active {
+  background: var(--color-success-bg);
+  color: var(--color-success-dark);
+}
+
+.compact-view-link {
+  color: var(--color-primary-600);
+  font-weight: var(--font-medium);
+  margin-left: auto;
+}
+
+/* Grid Layout */
+.compact-classes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-sm);
+}
+
+.compact-classes-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .compact-card-header.management {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+  
+  .compact-card-info {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .compact-card-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  .compact-classes-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .compact-class-card {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+  
+  .compact-card-icon {
+    width: 32px;
+    height: 32px;
+    font-size: var(--font-size-base);
+  }
+}

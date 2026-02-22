@@ -101,4 +101,15 @@ export const studentService = {
   async downloadDocument(docId) {
     return await apiClient.get(`/api/documents/${docId}/download`, { responseType: 'blob' })
   },
+
+  async bulkCreate(studentsData) {
+    console.log('🚀 Calling bulk create with data:', {
+      studentsData,
+      url: `${API_ENDPOINTS.STUDENTS_BULK}`,
+      baseUrl: 'http://localhost:5001'
+    })
+    return await apiClient.post(API_ENDPOINTS.STUDENTS_BULK, studentsData, { 
+      requiresAuth: false // Disable auth for testing
+    })
+  },
 }

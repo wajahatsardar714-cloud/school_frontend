@@ -26,6 +26,7 @@ import StudentDashboard from './components/students/StudentDashboard'
 import ClassStudentList from './components/students/ClassStudentList'
 import StudentDetail from './components/students/StudentDetail'
 import Profile from './components/Profile'
+import BulkStudentImport from './components/students/BulkStudentImport'
 import Header from './components/layout/Header'
 import Footer from './components/layout/Footer'
 import './App.css'
@@ -65,6 +66,11 @@ function AppLayout() {
 
             {/* New Students Routes */}
             <Route path="/students" element={<StudentDashboard />} />
+            <Route path="/students/bulk-import" element={
+              <ProtectedRoute requireAdmin={true}>
+                <BulkStudentImport />
+              </ProtectedRoute>
+            } />
             <Route path="/students/class/:classId" element={<ClassStudentList />} />
             <Route path="/students/:studentId" element={<StudentDetail />} />
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { expenseService } from '../services/expenseService'
 
 const ExpenseManagement = () => {
@@ -8,6 +9,10 @@ const ExpenseManagement = () => {
   const [showModal, setShowModal] = useState(false)
   const [editingExpense, setEditingExpense] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  
+  // URL search params for handling direct navigation with filters
+  const [searchParams] = useSearchParams();
+  
   const [dateFilter, setDateFilter] = useState({
     start_date: '',
     end_date: ''
@@ -20,8 +25,19 @@ const ExpenseManagement = () => {
   })
 
   useEffect(() => {
-    loadExpenses()
-  }, [])
+    // Check for date parameter from URL for "Today's Expenses"
+    const dateParam = searchParams.get('date');
+    if (dateParam) {
+      const filters = {
+        start_date: dateParam,
+        end_date: dateParam
+      };
+      setDateFilter(filters);
+      loadExpenses(filters);
+    } else {
+      loadExpenses();
+    }
+  }, [searchParams])
 
   const loadExpenses = async (filters = {}) => {
     try {

@@ -262,6 +262,57 @@
   color: white;
 }
 
+.dashboard-btn.gradient-indigo {
+  border-color: #c7d2fe;
+}
+
+.dashboard-btn.gradient-indigo::before {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+}
+
+.dashboard-btn.gradient-indigo:hover .btn-icon-wrapper {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.dashboard-btn.gradient-indigo:hover .btn-content {
+  color: white;
+}
+
+.dashboard-btn.gradient-yellow {
+  border-color: #fde68a;
+}
+
+.dashboard-btn.gradient-yellow::before {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.dashboard-btn.gradient-yellow:hover .btn-icon-wrapper {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.dashboard-btn.gradient-yellow:hover .btn-content {
+  color: white;
+}
+
+.dashboard-btn.gradient-rose {
+  border-color: #fecdd3;
+}
+
+.dashboard-btn.gradient-rose::before {
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+}
+
+.dashboard-btn.gradient-rose:hover .btn-icon-wrapper {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.dashboard-btn.gradient-rose:hover .btn-content {
+  color: white;
+}
+
 /* Button Elements */
 .btn-icon-wrapper {
   width: 64px;
@@ -274,6 +325,21 @@
   transition: all var(--transition-base);
   position: relative;
   z-index: 1;
+}
+
+.dashboard-btn.gradient-indigo .btn-icon-wrapper {
+  background: #e0e7ff;
+  color: #6366f1;
+}
+
+.dashboard-btn.gradient-yellow .btn-icon-wrapper {
+  background: #fef3c7;
+  color: #f59e0b;
+}
+
+.dashboard-btn.gradient-rose .btn-icon-wrapper {
+  background: #fce7f3;
+  color: #f43f5e;
 }
 
 .dashboard-btn.gradient-blue .btn-icon-wrapper {

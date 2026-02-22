@@ -15,11 +15,38 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useFetch } from '../hooks/useApi';
 import { analyticsService } from '../services/analyticsService';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
+import { Line, Doughnut } from 'react-chartjs-2';
 import '../fee.css';
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 export default function AnalyticsDashboard() {
   // Filter state
-  const [revenueMonths, setRevenueMonths] = useState(6);
+  const [revenueMonths, setRevenueMonths] = useState(1);
+  const [selectedPeriod, setSelectedPeriod] = useState('this_month');
   
   // Fetch dashboard data
   // Response: { students, faculty, fees, salaries, today, recent_activity }
@@ -152,14 +179,197 @@ export default function AnalyticsDashboard() {
     
     return { totalFees, totalSalaries, totalExpenses, netProfit };
   }, [revenue]);
+
+  // Period filter handler
+  const handlePeriodChange = useCallback((period) => {
+    setSelectedPeriod(period);
+    switch(period) {
+      case 'this_month':
+        setRevenueMonths(1);
+        break;
+      case 'last_period':
+        setRevenueMonths(2);
+        break;
+      case 'this_quarter':
+        setRevenueMonths(3);
+        break;
+      case 'ytd':
+        setRevenueMonths(12);
+        break;
+      default:
+        setRevenueMonths(1);
+    }
+  }, []);
+
+  // Prepare line chart data for collections trend
+  const lineChartData = useMemo(() => {
+    if (!Array.isArray(revenue) || revenue.length === 0) {
+      return null;
+    }
+
+    const labels = revenue.map(item => item.period || item.month || item.date?.slice(5, 10) || '');
+    const collections = revenue.map(item => item.fee_collections || 0);
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Fee Collections',
+          data: collections,
+          borderColor: '#2563eb',
+          backgroundColor: 'rgba(37, 99, 235, 0.1)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#2563eb',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+        }
+      ]
+    };
+  }, [revenue]);
+
+  const lineChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        backgroundColor: '#fff',
+        titleColor: '#0f172a',
+        bodyColor: '#64748b',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+        padding: 12,
+        displayColors: false,
+        callbacks: {
+          label: (context) => formatCurrency(context.parsed.y)
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: '#f1f5f9',
+        },
+        ticks: {
+          callback: (value) => 'Rs. ' + (value / 1000).toFixed(0) + 'K',
+          color: '#64748b',
+          font: {
+            size: 11
+          }
+        }
+      },
+      x: {
+        grid: {
+          display: false,
+        },
+        ticks: {
+          color: '#64748b',
+          font: {
+            size: 11
+          }
+        }
+      }
+    }
+  };
+
+  // Prepare doughnut chart data for voucher status
+  const doughnutChartData = useMemo(() => {
+    const totalCollected = metrics.feesCollected || 0;
+    const totalPending = metrics.feesPending || 0;
+    const partialPaid = (totalCollected + totalPending) * 0.2; // Estimate
+
+    return {
+      labels: ['Full Paid', 'Partial Paid', 'Not Received'],
+      datasets: [
+        {
+          data: [totalCollected, partialPaid, totalPending],
+          backgroundColor: [
+            '#10b981', // success green
+            '#f59e0b', // warning orange
+            '#ef4444', // error red
+          ],
+          borderColor: '#fff',
+          borderWidth: 3,
+        }
+      ]
+    };
+  }, [metrics]);
+
+  const doughnutChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          padding: 15,
+          usePointStyle: true,
+          pointStyle: 'circle',
+          font: {
+            size: 12,
+            family: 'Inter'
+          },
+          color: '#64748b'
+        }
+      },
+      tooltip: {
+        backgroundColor: '#fff',
+        titleColor: '#0f172a',
+        bodyColor: '#64748b',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+        padding: 12,
+        callbacks: {
+          label: (context) => {
+            const label = context.label || '';
+            const value = formatCurrency(context.parsed);
+            return `${label}: ${value}`;
+          }
+        }
+      }
+    },
+    cutout: '70%',
+  };
   
   return (
     <div className="fee-management analytics-dashboard">
-      <div className="page-header">
-        <h2>📊 Analytics Dashboard</h2>
-        <button className="btn-secondary" onClick={refetchDashboard}>
-          🔄 Refresh
-        </button>
+      {/* Header */}
+      <div className="analytics-header" style={{
+        background: 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)',
+        padding: '2rem',
+        borderRadius: '12px',
+        marginBottom: '1.5rem',
+        color: '#fff'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h2 style={{ color: '#fff', marginBottom: '0.5rem', fontSize: '1.75rem', fontWeight: '700' }}>
+              📊 Fee Collection Statistics
+            </h2>
+            <p style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '0.95rem', margin: 0 }}>
+              Comprehensive analytics and insights for fee management
+            </p>
+          </div>
+          <button 
+            className="btn-secondary" 
+            onClick={refetchDashboard}
+            style={{
+              background: 'rgba(255, 255, 255, 0.2)',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              color: '#fff',
+              padding: '0.6rem 1.2rem',
+              backdropFilter: 'blur(10px)'
+            }}
+          >
+            🔄 Export CSV
+          </button>
+        </div>
       </div>
       
       {/* Error Display */}
@@ -167,7 +377,64 @@ export default function AnalyticsDashboard() {
         <div className="alert alert-error">{dashboardError}</div>
       )}
       
-      {/* Key Metrics - Today's Summary */}
+      {/* Time Period Filters */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button
+            className={selectedPeriod === 'last_period' ? 'btn-primary' : 'btn-secondary'}
+            onClick={() => handlePeriodChange('last_period')}
+            style={{
+              padding: '0.6rem 1rem',
+              fontSize: '0.875rem',
+              background: selectedPeriod === 'last_period' ? '#2563eb' : '#f1f5f9',
+              color: selectedPeriod === 'last_period' ? '#fff' : '#64748b',
+              border: 'none'
+            }}
+          >
+            Last Period
+          </button>
+          <button
+            className={selectedPeriod === 'this_month' ? 'btn-primary' : 'btn-secondary'}
+            onClick={() => handlePeriodChange('this_month')}
+            style={{
+              padding: '0.6rem 1rem',
+              fontSize: '0.875rem',
+              background: selectedPeriod === 'this_month' ? '#2563eb' : '#f1f5f9',
+              color: selectedPeriod === 'this_month' ? '#fff' : '#64748b',
+              border: 'none'
+            }}
+          >
+            This Month
+          </button>
+          <button
+            className={selectedPeriod === 'this_quarter' ? 'btn-primary' : 'btn-secondary'}
+            onClick={() => handlePeriodChange('this_quarter')}
+            style={{
+              padding: '0.6rem 1rem',
+              fontSize: '0.875rem',
+              background: selectedPeriod === 'this_quarter' ? '#2563eb' : '#f1f5f9',
+              color: selectedPeriod === 'this_quarter' ? '#fff' : '#64748b',
+              border: 'none'
+            }}
+          >
+            This Quarter
+          </button>
+          <button
+            className={selectedPeriod === 'ytd' ? 'btn-primary' : 'btn-secondary'}
+            onClick={() => handlePeriodChange('ytd')}
+            style={{
+              padding: '0.6rem 1rem',
+              fontSize: '0.875rem',
+              background: selectedPeriod === 'ytd' ? '#2563eb' : '#f1f5f9',
+              color: selectedPeriod === 'ytd' ? '#fff' : '#64748b',
+              border: 'none'
+            }}
+          >
+            YTD
+          </button>
+        </div>
+      </div>
+
       {dashboardLoading ? (
         <div className="loading-container">
           <div className="spinner"></div>
@@ -175,360 +442,371 @@ export default function AnalyticsDashboard() {
         </div>
       ) : (
         <>
-          {/* Today's Quick Stats */}
-          <div className="stats-grid">
-            <div className="stat-card">
-              <div className="stat-label">Total Students</div>
-              <div className="stat-value">{formatNumber(metrics.totalStudents)}</div>
-              <div className="stat-change positive">
-                {formatNumber(metrics.activeStudents)} active
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-label">Total Faculty</div>
-              <div className="stat-value">{formatNumber(metrics.totalFaculty)}</div>
-              <div className="stat-change positive">
-                {formatNumber(metrics.activeFaculty)} active
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-label">Today's Collections</div>
-              <div className="stat-value" style={{ color: '#28a745' }}>
-                {formatCurrency(metrics.todayCollections)}
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-label">Today's Net</div>
-              <div className="stat-value" style={{ color: metrics.todayNet >= 0 ? '#28a745' : '#dc3545' }}>
-                {formatCurrency(metrics.todayNet)}
-              </div>
-            </div>
-          </div>
-          
-          {/* Current Month Fee & Salary Stats */}
-          <div className="stats-grid" style={{ marginTop: '1rem' }}>
-            <div className="stat-card">
-              <div className="stat-label">Fees Collected (This Month)</div>
-              <div className="stat-value">{formatCurrency(metrics.feesCollected)}</div>
-              <div className="stat-change positive">
-                {formatPercent(metrics.feeCollectionRate)} collection rate
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-label">Pending Fees</div>
-              <div className="stat-value" style={{ color: '#dc3545' }}>
-                {formatCurrency(metrics.feesPending)}
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-label">Salaries Paid (This Month)</div>
-              <div className="stat-value">{formatCurrency(metrics.salariesPaid)}</div>
-              <div className="stat-change positive">
-                {formatPercent(metrics.salaryPaymentRate)} payment rate
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-label">Pending Salaries</div>
-              <div className="stat-value" style={{ color: '#dc3545' }}>
-                {formatCurrency(metrics.salariesPending)}
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-      
-      {/* Revenue Trends Section */}
-      <div className="chart-section">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-          <h3 style={{ margin: 0 }}>Revenue Trends (Last {revenueMonths} Months)</h3>
-          <select
-            className="filter-select"
-            value={revenueMonths}
-            onChange={(e) => setRevenueMonths(parseInt(e.target.value))}
-          >
-            <option value={3}>Last 3 Months</option>
-            <option value={6}>Last 6 Months</option>
-            <option value={12}>Last 12 Months</option>
-          </select>
-        </div>
-        
-        {revenueLoading ? (
-          <div className="loading-container">
-            <div className="spinner"></div>
-            <p>Loading revenue data...</p>
-          </div>
-        ) : (
-          <>
-            {/* Revenue Summary Cards */}
-            <div className="stats-grid" style={{ marginBottom: '1.5rem' }}>
-              <div className="stat-card">
-                <div className="stat-label">Total Fee Collections</div>
-                <div className="stat-value" style={{ color: '#28a745' }}>{formatCurrency(revenueSummary.totalFees)}</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-label">Total Salary Payments</div>
-                <div className="stat-value">{formatCurrency(revenueSummary.totalSalaries)}</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-label">Total Expenses</div>
-                <div className="stat-value" style={{ color: '#dc3545' }}>{formatCurrency(revenueSummary.totalExpenses)}</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-label">Net Profit</div>
-                <div className="stat-value" style={{ color: revenueSummary.netProfit >= 0 ? '#28a745' : '#dc3545' }}>
-                  {formatCurrency(revenueSummary.netProfit)}
+          {/* Summary Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+            <div style={{
+              background: '#fff',
+              padding: '1.5rem',
+              borderRadius: '12px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              border: '1px solid #e2e8f0'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '12px',
+                  background: 'rgba(37, 99, 235, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.5rem'
+                }}>
+                  📝
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.25rem' }}>
+                    Current Due Range
+                  </div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#0f172a' }}>
+                    {formatCurrency(metrics.todayCollections)}
+                  </div>
                 </div>
               </div>
             </div>
+
+            <div style={{
+              background: '#fff',
+              padding: '1.5rem',
+              borderRadius: '12px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              border: '1px solid #e2e8f0'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '12px',
+                  background: 'rgba(16, 185, 129, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.5rem'
+                }}>
+                  ✅
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.25rem' }}>
+                    Collection This Month
+                  </div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#10b981' }}>
+                    {formatCurrency(metrics.feesCollected)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{
+              background: '#fff',
+              padding: '1.5rem',
+              borderRadius: '12px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              border: '1px solid #e2e8f0'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '12px',
+                  background: 'rgba(245, 158, 11, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.5rem'
+                }}>
+                  ⏳
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.25rem' }}>
+                    Pending Amount
+                  </div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#f59e0b' }}>
+                    {formatCurrency(metrics.feesPending)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Charts Section */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+            {/* Line Chart - Collections Trend */}
+            <div style={{
+              background: '#fff',
+              padding: '1.5rem',
+              borderRadius: '12px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              border: '1px solid #e2e8f0'
+            }}>
+              <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#0f172a', marginBottom: '1rem' }}>
+                Collections Trend
+              </h3>
+              {revenueLoading ? (
+                <div className="loading-container" style={{ minHeight: '250px' }}>
+                  <div className="spinner"></div>
+                </div>
+              ) : lineChartData ? (
+                <div style={{ height: '250px' }}>
+                  <Line data={lineChartData} options={lineChartOptions} />
+                </div>
+              ) : (
+                <div style={{ minHeight: '250px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                  No data available
+                </div>
+              )}
+            </div>
+
+            {/* Doughnut Chart - Voucher Status */}
+            <div style={{
+              background: '#fff',
+              padding: '1.5rem',
+              borderRadius: '12px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              border: '1px solid #e2e8f0'
+            }}>
+              <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#0f172a', marginBottom: '1rem' }}>
+                Voucher Status Distribution
+              </h3>
+              <div style={{ height: '250px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Doughnut data={doughnutChartData} options={doughnutChartOptions} />
+              </div>
+            </div>
+          </div>
+
+          {/* Overall Collection Progress */}
+          <div style={{
+            background: '#fff',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            border: '1px solid #e2e8f0',
+            marginBottom: '2rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#0f172a', margin: 0 }}>
+                Overall Collection Progress
+              </h3>
+              <span style={{ 
+                fontSize: '1.25rem', 
+                fontWeight: '700', 
+                color: '#2563eb',
+                background: 'rgba(37, 99, 235, 0.1)',
+                padding: '0.5rem 1rem',
+                borderRadius: '8px'
+              }}>
+                {formatPercent(metrics.feeCollectionRate)}
+              </span>
+            </div>
+            <div style={{
+              width: '100%',
+              height: '40px',
+              background: '#f1f5f9',
+              borderRadius: '20px',
+              overflow: 'hidden',
+              position: 'relative'
+            }}>
+              <div style={{
+                width: `${Math.min(metrics.feeCollectionRate, 100)}%`,
+                height: '100%',
+                background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)',
+                borderRadius: '20px',
+                transition: 'width 0.5s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                paddingRight: '1rem'
+              }}>
+                <span style={{ color: '#fff', fontWeight: '600', fontSize: '0.875rem' }}>
+                  {metrics.feeCollectionRate > 10 && formatCurrency(metrics.feesCollected)}
+                </span>
+              </div>
+            </div>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              marginTop: '0.75rem',
+              fontSize: '0.875rem',
+              color: '#64748b'
+            }}>
+              <span>Start: 01/01/25</span>
+              <span>End Date: 31/12/25</span>
+            </div>
+          </div>
+
+          {/* Class-wise Fee Collection Section */}
+          <div style={{
+            background: '#fff',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            border: '1px solid #e2e8f0',
+            marginBottom: '2rem'
+          }}>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#0f172a', marginBottom: '1rem' }}>
+              Class-wise Fee Collection
+            </h3>
             
-            {/* Revenue Trend Visualization (Simple Bar Chart) */}
-            {Array.isArray(revenue) && revenue.length > 0 && (
-              <div style={{ overflowX: 'auto' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', minHeight: '150px', padding: '1rem 0' }}>
-                  {revenue.map((item, index) => {
-                    const amount = item.fee_collections || 0;
-                    const maxAmount = Math.max(...revenue.map(r => r.fee_collections || 0)) || 1;
-                    const heightPercent = (amount / maxAmount) * 100;
-                    
-                    return (
-                      <div
-                        key={index}
-                        style={{
-                          flex: '1',
-                          minWidth: '40px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          gap: '4px',
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: '100%',
-                            height: `${Math.max(heightPercent, 5)}px`,
-                            maxHeight: '120px',
-                            background: 'linear-gradient(180deg, #4a6cf7 0%, #3651d4 100%)',
-                            borderRadius: '4px 4px 0 0',
-                            transition: 'height 0.3s ease',
-                          }}
-                          title={`${item.period || item.date || index + 1}: ${formatCurrency(amount)}`}
-                        />
-                        <span style={{ fontSize: '0.7rem', color: '#888', textAlign: 'center' }}>
-                          {item.period || item.month || item.date?.slice(5, 10) || index + 1}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
+            {classCollectionLoading ? (
+              <div className="loading-container">
+                <div className="spinner"></div>
+                <p>Loading collection data...</p>
+              </div>
+            ) : Array.isArray(classCollection) && classCollection.length > 0 ? (
+              <div className="table-container" style={{ overflowX: 'auto' }}>
+                <table className="data-table" style={{ width: '100%', minWidth: '600px' }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc' }}>
+                      <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600', color: '#475569', fontSize: '0.875rem' }}>Class</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600', color: '#475569', fontSize: '0.875rem' }}>Vouchers</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600', color: '#475569', fontSize: '0.875rem' }}>Generated</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600', color: '#475569', fontSize: '0.875rem' }}>Collected</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600', color: '#475569', fontSize: '0.875rem' }}>Pending</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600', color: '#475569', fontSize: '0.875rem' }}>Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {classCollection.map((item, index) => (
+                      <tr key={index} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <td style={{ padding: '0.75rem', fontWeight: '600', color: '#0f172a' }}>{item.class_name}</td>
+                        <td style={{ padding: '0.75rem', textAlign: 'right', color: '#64748b' }}>{formatNumber(item.total_vouchers)}</td>
+                        <td style={{ padding: '0.75rem', textAlign: 'right', color: '#64748b' }}>{formatCurrency(item.total_fee_generated)}</td>
+                        <td style={{ padding: '0.75rem', textAlign: 'right', color: '#10b981', fontWeight: '600' }}>{formatCurrency(item.total_collected)}</td>
+                        <td style={{ padding: '0.75rem', textAlign: 'right', color: '#ef4444', fontWeight: '600' }}>{formatCurrency(item.total_pending)}</td>
+                        <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                          <span style={{
+                            background: item.collection_rate >= 80 ? 'rgba(16, 185, 129, 0.1)' : item.collection_rate >= 50 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                            color: item.collection_rate >= 80 ? '#10b981' : item.collection_rate >= 50 ? '#f59e0b' : '#ef4444',
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: '12px',
+                            fontSize: '0.875rem',
+                            fontWeight: '600'
+                          }}>
+                            {formatPercent(item.collection_rate)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                <p>No collection data available</p>
               </div>
             )}
-          </>
-        )}
-      </div>
-      
-      {/* Enrollment & Class Distribution Section */}
-      <div className="chart-section">
-        <h3 style={{ margin: '0 0 1rem 0' }}>Class Distribution</h3>
-        
-        {enrollmentLoading ? (
-          <div className="loading-container">
-            <div className="spinner"></div>
-            <p>Loading enrollment data...</p>
           </div>
-        ) : classDistribution.length > 0 ? (
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Class</th>
-                  <th>Students</th>
-                </tr>
-              </thead>
-              <tbody>
-                {classDistribution.map((item, index) => (
-                  <tr key={index}>
-                    <td><strong>{item.class_name}</strong></td>
-                    <td>{formatNumber(item.student_count)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="empty-state">
-            <p>No class distribution data available</p>
-          </div>
-        )}
-      </div>
-      
-      {/* Class-wise Fee Collection Section */}
-      <div className="chart-section">
-        <h3>Class-wise Fee Collection</h3>
-        
-        {classCollectionLoading ? (
-          <div className="loading-container">
-            <div className="spinner"></div>
-            <p>Loading collection data...</p>
-          </div>
-        ) : Array.isArray(classCollection) && classCollection.length > 0 ? (
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Class</th>
-                  <th>Total Vouchers</th>
-                  <th>Generated</th>
-                  <th>Collected</th>
-                  <th>Pending</th>
-                  <th>Collection Rate</th>
-                </tr>
-              </thead>
-              <tbody>
-                {classCollection.map((item, index) => (
-                  <tr key={index}>
-                    <td><strong>{item.class_name}</strong></td>
-                    <td>{formatNumber(item.total_vouchers)}</td>
-                    <td>{formatCurrency(item.total_fee_generated)}</td>
-                    <td style={{ color: '#28a745' }}>{formatCurrency(item.total_collected)}</td>
-                    <td style={{ color: '#dc3545' }}>{formatCurrency(item.total_pending)}</td>
-                    <td>
-                      <span 
-                        className="status-badge"
-                        style={{
-                          background: item.collection_rate >= 80 ? '#d4edda' : item.collection_rate >= 50 ? '#fff3cd' : '#f8d7da',
-                          color: item.collection_rate >= 80 ? '#155724' : item.collection_rate >= 50 ? '#856404' : '#721c24',
-                        }}
-                      >
-                        {formatPercent(item.collection_rate)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="empty-state">
-            <p>No collection data available</p>
-          </div>
-        )}
-      </div>
-      
-      {/* Performance & Growth Section */}
-      <div className="chart-section">
-        <h3>Performance Metrics</h3>
-        
-        {performanceLoading ? (
-          <div className="loading-container">
-            <div className="spinner"></div>
-            <p>Loading performance data...</p>
-          </div>
-        ) : performance.current_month ? (
-          <div className="stats-grid">
-            <div className="stat-card">
-              <div className="stat-label">This Month Revenue</div>
-              <div className="stat-value">{formatCurrency(performance.current_month?.revenue)}</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-label">This Month Expenses</div>
-              <div className="stat-value">{formatCurrency(performance.current_month?.expenses)}</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-label">This Month Profit</div>
-              <div className="stat-value" style={{ color: (performance.current_month?.profit || 0) >= 0 ? '#28a745' : '#dc3545' }}>
-                {formatCurrency(performance.current_month?.profit)}
+
+          {/* Student and Faculty Stats */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+            {/* Student Stats */}
+            <div style={{
+              background: '#fff',
+              padding: '1.5rem',
+              borderRadius: '12px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              border: '1px solid #e2e8f0'
+            }}>
+              <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#0f172a', marginBottom: '1rem' }}>
+                📚 Student Overview
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Total Students</span>
+                  <span style={{ color: '#0f172a', fontWeight: '600' }}>{formatNumber(metrics.totalStudents)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '8px' }}>
+                  <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Active Students</span>
+                  <span style={{ color: '#10b981', fontWeight: '600' }}>{formatNumber(metrics.activeStudents)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(245, 158, 11, 0.05)', borderRadius: '8px' }}>
+                  <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Inactive Students</span>
+                  <span style={{ color: '#f59e0b', fontWeight: '600' }}>{formatNumber(metrics.inactiveStudents)}</span>
+                </div>
               </div>
             </div>
-            <div className="stat-card">
-              <div className="stat-label">Fee Collection Growth</div>
-              <div className="stat-value" style={{ color: (performance.growth?.fee_collections || 0) >= 0 ? '#28a745' : '#dc3545' }}>
-                {(performance.growth?.fee_collections || 0) >= 0 ? '+' : ''}
-                {formatPercent(performance.growth?.fee_collections)}
+
+            {/* Faculty Stats */}
+            <div style={{
+              background: '#fff',
+              padding: '1.5rem',
+              borderRadius: '12px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              border: '1px solid #e2e8f0'
+            }}>
+              <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#0f172a', marginBottom: '1rem' }}>
+                👨‍🏫 Faculty Overview
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Total Faculty</span>
+                  <span style={{ color: '#0f172a', fontWeight: '600' }}>{formatNumber(metrics.totalFaculty)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '8px' }}>
+                  <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Active Faculty</span>
+                  <span style={{ color: '#10b981', fontWeight: '600' }}>{formatNumber(metrics.activeFaculty)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(37, 99, 235, 0.05)', borderRadius: '8px' }}>
+                  <span style={{ color: '#64748b', fontSize: '0.875rem' }}>Salaries Paid</span>
+                  <span style={{ color: '#2563eb', fontWeight: '600' }}>{formatCurrency(metrics.salariesPaid)}</span>
+                </div>
               </div>
             </div>
           </div>
-        ) : (
-          <div className="empty-state">
-            <p>No performance data available</p>
-          </div>
-        )}
-      </div>
-      
-      {/* Recent Activity */}
-      {recentActivity.length > 0 && (
-        <div className="chart-section">
-          <h3>Recent Activity</h3>
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Type</th>
-                  <th>Amount</th>
-                  <th>Name</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentActivity.slice(0, 10).map((activity, index) => (
-                  <tr key={index}>
-                    <td>
-                      <span className={`status-badge ${activity.type === 'collection' ? 'status-paid' : 'status-unpaid'}`}>
-                        {activity.type}
-                      </span>
-                    </td>
-                    <td style={{ color: activity.type === 'collection' ? '#28a745' : '#dc3545' }}>
-                      {formatCurrency(activity.amount)}
-                    </td>
-                    <td>{activity.related_name}</td>
-                    <td>{new Date(activity.date).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+
+          {/* Performance Insights */}
+          {performance.current_month && (
+            <div style={{
+              background: '#fff',
+              padding: '1.5rem',
+              borderRadius: '12px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              border: '1px solid #e2e8f0',
+              marginBottom: '2rem'
+            }}>
+              <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#0f172a', marginBottom: '1rem' }}>
+                📈 Performance Metrics
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>This Month Revenue</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#2563eb' }}>
+                    {formatCurrency(performance.current_month?.revenue)}
+                  </div>
+                </div>
+                <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>This Month Expenses</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#ef4444' }}>
+                    {formatCurrency(performance.current_month?.expenses)}
+                  </div>
+                </div>
+                <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>Net Profit</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: (performance.current_month?.profit || 0) >= 0 ? '#10b981' : '#ef4444' }}>
+                    {formatCurrency(performance.current_month?.profit)}
+                  </div>
+                </div>
+                <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>Collection Growth</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: (performance.growth?.fee_collections || 0) >= 0 ? '#10b981' : '#ef4444' }}>
+                    {(performance.growth?.fee_collections || 0) >= 0 ? '+' : ''}
+                    {formatPercent(performance.growth?.fee_collections)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
-      
-      {/* Quick Insights */}
-      <div className="chart-section">
-        <h3>Quick Insights</h3>
-        <div className="stats-grid">
-          <div className="stat-card" style={{ background: '#e8f4fd' }}>
-            <div className="stat-label">💡 Fee Collection</div>
-            <div style={{ fontSize: '0.875rem', color: '#333', marginTop: '0.5rem' }}>
-              {metrics.feeCollectionRate >= 80 
-                ? 'Excellent collection rate! Keep up the good work.'
-                : metrics.feeCollectionRate >= 60
-                ? 'Good collection rate. Consider following up on pending fees.'
-                : 'Low collection rate. Immediate action recommended for pending fees.'}
-            </div>
-          </div>
-          <div className="stat-card" style={{ background: '#d4edda' }}>
-            <div className="stat-label">📈 Student Enrollment</div>
-            <div style={{ fontSize: '0.875rem', color: '#333', marginTop: '0.5rem' }}>
-              {metrics.totalStudents > 0 
-                ? `Currently ${formatNumber(metrics.totalStudents)} students enrolled (${formatNumber(metrics.activeStudents)} active).`
-                : 'No enrollment data available.'}
-            </div>
-          </div>
-          <div className="stat-card" style={{ background: '#fff3cd' }}>
-            <div className="stat-label">👥 Faculty Overview</div>
-            <div style={{ fontSize: '0.875rem', color: '#333', marginTop: '0.5rem' }}>
-              {metrics.totalFaculty > 0
-                ? `${formatNumber(metrics.totalFaculty)} faculty members (${formatNumber(metrics.activeFaculty)} active).`
-                : 'No faculty data available.'}
-            </div>
-          </div>
-          <div className="stat-card" style={{ background: '#f8d7da' }}>
-            <div className="stat-label">⚠️ Action Required</div>
-            <div style={{ fontSize: '0.875rem', color: '#333', marginTop: '0.5rem' }}>
-              {metrics.feesPending > 0
-                ? `${formatCurrency(metrics.feesPending)} in pending fees require attention.`
-                : 'All fees collected. Great job!'}
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

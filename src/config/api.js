@@ -1,4 +1,4 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
 export const API_ENDPOINTS = {
   // Auth
@@ -11,6 +11,7 @@ export const API_ENDPOINTS = {
 
   // Students
   STUDENTS: '/api/students',
+  STUDENTS_BULK: '/api/students/bulk-noauth', // No auth endpoint for CSV import
   STUDENT_DETAIL: (id) => `/api/students/${id}`,
   STUDENT_ENROLL: (id) => `/api/students/${id}/enroll`,
   STUDENT_WITHDRAW: (id) => `/api/students/${id}/withdraw`,

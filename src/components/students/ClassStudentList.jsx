@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { studentService } from '../../services/studentService'
 import { classService, sectionService } from '../../services/classService'
 import { useFetch } from '../../hooks/useApi'
+import CSVImportModal from '../common/CSVImportModal'
 import './Students.css'
 
 const ClassStudentList = () => {
@@ -11,6 +12,7 @@ const ClassStudentList = () => {
     const [activeSection, setActiveSection] = useState(null)
     const [searchTerm, setSearchTerm] = useState('')
     const [statusFilter, setStatusFilter] = useState('ALL')
+    const [showImportModal, setShowImportModal] = useState(false)
 
     // Fetch class details
     const { data: classData } = useFetch(
@@ -85,6 +87,15 @@ const ClassStudentList = () => {
                     <p className="student-sub-info">Viewing students for {classData?.data?.name}. Total: {students.length}</p>
                 </div>
                 <div className="header-actions">
+                    {activeSection && (
+                        <button 
+                            className="btn-secondary"
+                            onClick={() => setShowImportModal(true)}
+                            style={{ marginRight: '0.5rem' }}
+                        >
+                            📁 Import CSV
+                        </button>
+                    )}
                     <Link to="/admission/new-form" className="btn-primary">
                         + Quick Add
                     </Link>
@@ -197,6 +208,13 @@ const ClassStudentList = () => {
                     </table>
                 )}
             </div>
+
+            <CSVImportModal
+                isOpen={showImportModal}
+                onClose={() => setShowImportModal(false)}
+                preselectedClassId={classId}
+                preselectedSectionId={activeSection}
+            />
         </div>
     )
 }
