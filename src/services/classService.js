@@ -18,8 +18,11 @@ export const classService = {
     return await apiClient.put(API_ENDPOINTS.CLASS_DETAIL(id), classData)
   },
 
-  async delete(id) {
-    return await apiClient.delete(API_ENDPOINTS.CLASS_DETAIL(id))
+  async delete(id, force = false) {
+    const url = force 
+      ? `${API_ENDPOINTS.CLASS_DETAIL(id)}?force=true` 
+      : API_ENDPOINTS.CLASS_DETAIL(id)
+    return await apiClient.delete(url)
   },
 
   async getFeeStructure(id) {

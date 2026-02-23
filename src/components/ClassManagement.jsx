@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { classService, sectionService } from '../services/classService'
+import { studentService } from '../services/studentService'
 import { useClassFilter } from '../hooks/useClassFilter'
 import FilterBar from './common/FilterBar'
 import CompactClassCard from './common/CompactClassCard'
@@ -115,11 +116,49 @@ const ClassManagement = () => {
   }
 
   const handleDelete = async (classId) => {
-    if (!confirm('Are you sure you want to delete this class? This action cannot be undone.')) {
-      return
-    }
-
     try {
+      // Find the class name for better user experience
+      const currentClass = classes.find(cls => cls.id === classId)
+      const className = currentClass?.name || 'this class'
+
+      // Check if class has students
+      const studentsResponse = await studentService.list({ class_id: classId })
+      const studentCount = studentsResponse.data?.length || 0
+      
+      let confirmed = false
+      if (studentCount > 0) {
+        confirmed = confirm(
+          `⚠️ Warning: The class "${className}" contains ${studentCount} student(s).\n\n` +
+          `To delete this class, all students will be deactivated first.\n` +
+          `This action cannot be undone. Are you sure you want to proceed?`
+        )
+      } else {
+        confirmed = confirm(
+          `Are you sure you want to delete the class "${className}"?\n\n` +
+          `This action cannot be undone.`
+        )
+      }
+      
+      if (!confirmed) {
+        return
+      }
+
+      // If class has students, deactivate them first
+      if (studentCount > 0) {
+        const students = studentsResponse.data
+        setError(`Deactivating ${studentCount} students before deletion...`)
+        
+        // Deactivate all students in the class
+        for (const student of students) {
+          try {
+            await studentService.deactivate(student.id)
+          } catch (err) {
+            console.warn(`Failed to deactivate student ${student.id}:`, err)
+          }
+        }
+      }
+
+      // Now delete the class
       await classService.delete(classId)
       await loadClasses()
       setError(null)

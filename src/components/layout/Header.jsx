@@ -1,15 +1,33 @@
 import { useAuth } from '../../context/AuthContext'
-import { useState } from 'react'
+import { useState, useCallback, memo } from 'react'
 import { Link } from 'react-router-dom'
+import PropTypes from 'prop-types'
 import logo from '../../assets/logo.png'
 
-const Header = () => {
+const Header = memo(function Header({ onMenuClick }) {
   const { user, logout } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  
+  const toggleMobileMenu = useCallback(() => {
+    setMobileMenuOpen(prev => !prev)
+  }, [])
 
   return (
     <header className="app-header">
       <div className="header-container">
+        {/* Mobile Menu Toggle - Opens Sidebar */}
+        <button
+          className="mobile-menu-toggle show-mobile-only"
+          onClick={onMenuClick}
+          aria-label="Open navigation menu"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+        
         {/* Logo & School Info */}
         <div className="header-brand">
           <img src={logo} alt="School Logo" className="header-logo" />
@@ -19,50 +37,19 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Mobile Menu Toggle */}
-        <button
-          className="mobile-menu-toggle"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle menu"
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <line x1="3" y1="18" x2="21" y2="18" />
-          </svg>
-        </button>
-
-        {/* User Actions */}
-        <div className={`header-actions ${mobileMenuOpen ? 'mobile-open' : ''}`}>
-          <div className="user-info">
-            <svg className="user-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-            <div className="user-details">
-              <span className="user-email">{user?.email}</span>
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <span className="user-role">{user?.role}</span>
-                <span>•</span>
-                <Link to="/profile" className="profile-link" style={{ fontSize: '0.75rem', color: 'var(--primary-color)', textDecoration: 'none' }}>View Profile</Link>
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={logout}
-            className="logout-btn"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-            <span>Logout</span>
-          </button>
-        </div>
+        {/* Empty div to maintain header layout */}
+        <div className="header-spacer"></div>
       </div>
     </header>
   )
+})
+
+Header.propTypes = {
+  onMenuClick: PropTypes.func
+}
+
+Header.defaultProps = {
+  onMenuClick: () => {}
 }
 
 export default Header

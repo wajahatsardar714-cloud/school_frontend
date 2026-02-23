@@ -316,7 +316,8 @@ const CSVImportModal = ({
       
       console.log('✅ Import successful:', result)
       
-      setImportResults(result)
+      // API returns { success: true, data: {...} } - extract the data part
+      setImportResults(result.data || result)
       setStep(3)
       
       // Call success callback if provided
