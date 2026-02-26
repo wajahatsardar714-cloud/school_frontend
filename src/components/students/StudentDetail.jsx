@@ -1,10 +1,101 @@
-import { useState } from 'react'
+import React, { useState, useEffect, useCallback, memo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { studentService } from '../../services/studentService'
 import { feePaymentService } from '../../services/feeService'
 import { classService, sectionService } from '../../services/classService'
 import { useFetch, useMutation } from '../../hooks/useApi'
+import DocumentUpload from '../DocumentUpload'
+import { DOCUMENT_TYPES, DOCUMENT_TYPE_LABELS } from '../../utils/documentUtils'
 import './Students.css'
+
+// Image Preview Component - Memoized to prevent infinite re-renders
+const ImagePreview = memo(({ doc }) => {
+    const [imageSrc, setImageSrc] = useState(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(false)
+
+    useEffect(() => {
+        let isMounted = true
+        let objectUrl = null
+
+        const loadImage = async () => {
+            if (!doc?.id) {
+                setError(true)
+                setLoading(false)
+                return
+            }
+
+            try {
+                setLoading(true)
+                const blob = await studentService.downloadDocument(doc.id)
+                
+                if (isMounted) {
+                    objectUrl = URL.createObjectURL(blob)
+                    setImageSrc(objectUrl)
+                    setError(false)
+                }
+            } catch (err) {
+                console.error('Failed to load image preview:', err)
+                if (isMounted) {
+                    setError(true)
+                }
+            } finally {
+                if (isMounted) {
+                    setLoading(false)
+                }
+            }
+        }
+
+        loadImage()
+
+        // Cleanup function
+        return () => {
+            isMounted = false
+            if (objectUrl) {
+                URL.revokeObjectURL(objectUrl)
+            }
+        }
+    }, [doc?.id]) // Only depend on doc.id
+
+    if (loading) {
+        return (
+            <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                height: '100%',
+                color: '#64748b'
+            }}>
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>⏳</div>
+                    <span style={{ fontSize: '0.7rem' }}>Loading...</span>
+                </div>
+            </div>
+        )
+    }
+
+    if (error || !imageSrc) {
+        return (
+            <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>🖼️</div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Image Preview</span>
+            </div>
+        )
+    }
+
+    return (
+        <img 
+            src={imageSrc}
+            alt={doc.file_name}
+            style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover'
+            }}
+            onError={() => setError(true)}
+        />
+    )
+})
 
 const StudentDetail = () => {
     const { studentId } = useParams()
@@ -18,6 +109,16 @@ const StudentDetail = () => {
     const [enrollmentAction, setEnrollmentAction] = useState(null) // 'promote' | 'transfer' | 'withdraw'
 
     const [showEditModal, setShowEditModal] = useState(false)
+    const [showDocumentUploadModal, setShowDocumentUploadModal] = useState(false)
+    const [selectedDocumentType, setSelectedDocumentType] = useState(DOCUMENT_TYPES.CUSTOM)
+
+    // Additional states for document modals (placeholder implementations)
+    const [showDocEditModal, setShowDocEditModal] = useState(false)  
+    const [showDocDeleteModal, setShowDocDeleteModal] = useState(false)
+    const [selectedDoc, setSelectedDoc] = useState(null)
+    const [docEditType, setDocEditType] = useState('')
+    const [updatingDoc, setUpdatingDoc] = useState(false)
+    const [deletingDoc, setDeletingDoc] = useState(false)
     const [editFormData, setEditFormData] = useState({
         name: '',
         phone: '',
@@ -26,11 +127,6 @@ const StudentDetail = () => {
         previous_school: '',
         bay_form: ''
     })
-
-    const [showDocEditModal, setShowDocEditModal] = useState(false)
-    const [showDocDeleteModal, setShowDocDeleteModal] = useState(false)
-    const [selectedDoc, setSelectedDoc] = useState(null)
-    const [docEditType, setDocEditType] = useState('')
 
     // Fetch student details
     const { data: studentResponse, loading: studentLoading, error: studentError, refetch: refetchStudent } = useFetch(
@@ -178,8 +274,8 @@ const StudentDetail = () => {
         { enabled: !!studentId }
     )
 
-    // Fetch documents
-    const { data: docsResponse } = useFetch(
+    // Fetch documents — expose refetch so upload success can refresh the list
+    const { data: docsResponse, refetch: refetchDocs } = useFetch(
         () => studentService.getDocuments(studentId),
         [studentId],
         { enabled: !!studentId }
@@ -188,12 +284,27 @@ const StudentDetail = () => {
     const student = studentResponse?.data || {}
     const feeHistory = feeHistoryResponse?.data?.history || feeHistoryResponse?.history || []
     const dueInfo = dueResponse?.data || { total_due: 0 }
-    const documents = docsResponse?.data?.documents || student.documents || []
 
-    const handleViewDocument = async (doc) => {
+    // Derive documents safely — depend on the raw response value, not the derived `student` object
+    // (which recreates `{}` every render and makes the dep unstable)
+    const docsArray = docsResponse?.data?.documents
+    const studentDocsArray = studentResponse?.data?.documents
+    const documents = React.useMemo(() => {
+        if (Array.isArray(docsArray)) return docsArray
+        if (Array.isArray(studentDocsArray)) return studentDocsArray
+        return []
+    }, [docsArray, studentDocsArray])
+
+    // Memoize document handlers to prevent re-renders
+    const handleViewDocument = useCallback(async (doc) => {
+        if (!doc?.id) {
+            alert('Invalid document')
+            return
+        }
+        
         try {
             const docId = doc.id
-            const fileName = doc.file_name
+            const fileName = doc.file_name || 'document'
 
             const blob = await studentService.downloadDocument(docId)
             const actualMimeType = blob.type
@@ -218,20 +329,47 @@ const StudentDetail = () => {
                 link.setAttribute('download', fileName)
                 document.body.appendChild(link)
                 link.click()
-                link.remove()
-                window.URL.revokeObjectURL(objectUrl)
+                document.body.removeChild(link)
+                setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000)
             }
         } catch (error) {
             console.error('Error viewing document:', error)
-            alert('Failed to process document. Please try again.')
+            alert('Failed to view document.')
         }
+    }, [])
+
+    // Handle document upload success — refetch docs list in-place, no full page reload
+    const handleDocumentUploadSuccess = useCallback(() => {
+        setShowDocumentUploadModal(false)
+        refetchDocs()
+    }, [refetchDocs])
+
+    const handleDocumentUploadError = useCallback((error) => {
+        console.error('Document upload failed:', error)
+        alert('Failed to upload document. Please try again.')
+    }, [])
+
+    // Placeholder functions to prevent crashes
+    const handleUpdateDoc = (e) => {
+        e.preventDefault()
+        alert('Document edit functionality is not yet implemented.')
     }
 
-    const handleDownloadDocument = async (doc, e) => {
-        e.stopPropagation()
+    const handleDeleteDoc = () => {
+        alert('Document delete functionality is not yet implemented.')
+    }
+
+    const handleDownloadDocument = useCallback(async (doc, e) => {
+        if (e) e.stopPropagation()
+        
+        if (!doc?.id) {
+            alert('Invalid document')
+            return
+        }
+        
         try {
             const docId = doc.id
-            const fileName = doc.file_name
+            const fileName = doc.file_name || 'document'
 
             const blob = await studentService.downloadDocument(docId)
             const objectUrl = window.URL.createObjectURL(blob)
@@ -247,7 +385,7 @@ const StudentDetail = () => {
             console.error('Error downloading document:', error)
             alert('Failed to download document. Please try again.')
         }
-    }
+    }, [])
 
     if (studentLoading) {
         return (
@@ -265,6 +403,31 @@ const StudentDetail = () => {
             <div className="students-container">
                 <div className="alert alert-error">
                     <p>Failed to load profile: {studentError.message}</p>
+                    <Link 
+                        to="/students" 
+                        className="btn-primary" 
+                        style={{ marginTop: '1rem', display: 'inline-block' }}
+                    >
+                        ← Back to Students
+                    </Link>
+                </div>
+            </div>
+        )
+    }
+
+    // Check if student data exists
+    if (!studentLoading && (!student || !student.id)) {
+        return (
+            <div className="students-container">
+                <div className="alert alert-error">
+                    <p>Student not found</p>
+                    <Link 
+                        to="/students" 
+                        className="btn-primary" 
+                        style={{ marginTop: '1rem', display: 'inline-block' }}
+                    >
+                        ← Back to Students
+                    </Link>
                 </div>
             </div>
         )
@@ -531,6 +694,48 @@ const StudentDetail = () => {
                 </div>
             )}
 
+            {/* Document Upload Modal */}
+            {showDocumentUploadModal && (
+                <div className="modal-overlay" onClick={() => setShowDocumentUploadModal(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+                        <div className="modal-header">
+                            <h3>Upload New Document</h3>
+                            <button className="modal-close" onClick={() => setShowDocumentUploadModal(false)}>×</button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="form-group" style={{ marginBottom: '1rem' }}>
+                                <label htmlFor="documentType" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                                    Document Type
+                                </label>
+                                <select
+                                    id="documentType"
+                                    value={selectedDocumentType}
+                                    onChange={(e) => setSelectedDocumentType(e.target.value)}
+                                    className="form-control"
+                                    style={{ 
+                                        width: '100%', 
+                                        padding: '0.5rem', 
+                                        borderRadius: '4px', 
+                                        border: '1px solid #cbd5e0',
+                                        backgroundColor: 'white'
+                                    }}
+                                >
+                                    {Object.entries(DOCUMENT_TYPE_LABELS).map(([type, label]) => (
+                                        <option key={type} value={type}>{label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <DocumentUpload
+                                studentId={studentId}
+                                documentType={selectedDocumentType}
+                                onUploadSuccess={handleDocumentUploadSuccess}
+                                onUploadError={handleDocumentUploadError}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="student-profile-header">
                 <div className="profile-avatar-large">
                     {student.name?.charAt(0)}
@@ -651,40 +856,150 @@ const StudentDetail = () => {
 
                     {activeTab === 'documents' && (
                         <div className="profile-card">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                                <h4>📄 Student Documents</h4>
-                                <button className="btn-primary" style={{ fontSize: '0.8rem' }}>+ Upload New</button>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                                <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span style={{ fontSize: '1.5rem' }}>📄</span>
+                                    Student Documents
+                                    <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 'normal' }}>({documents.length || 0})</span>
+                                </h4>
+                                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                    <button 
+                                        className="btn-primary" 
+                                        style={{ fontSize: '0.85rem', padding: '0.6rem 1.2rem', borderRadius: '6px' }}
+                                        onClick={() => setShowDocumentUploadModal(true)}
+                                    >
+                                        📤 Upload New
+                                    </button>
+                                </div>
                             </div>
-                            <div className="classes-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+                            
+                            <div style={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+                                gap: '1rem',
+                                marginTop: '1.5rem'
+                            }}>
                                 {documents.length === 0 ? (
-                                    <p className="empty-state">No documents found.</p>
+                                    <div style={{ 
+                                        gridColumn: '1 / -1',
+                                        textAlign: 'center', 
+                                        padding: '2rem',
+                                        background: '#f8fafc',
+                                        borderRadius: '8px',
+                                        border: '1px dashed #cbd5e0'
+                                    }}>
+                                        <div style={{ fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.5 }}>📄</div>
+                                        <p style={{ color: '#64748b', margin: 0 }}>No documents uploaded</p>
+                                    </div>
                                 ) : (
-                                    documents.map(doc => (
-                                        <div key={doc.id} className="class-card" style={{ minHeight: 'auto', padding: '1rem', position: 'relative' }}>
-                                            <div onClick={() => handleViewDocument(doc)} style={{ cursor: 'pointer' }}>
-                                                <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>📄</div>
-                                                <p style={{ fontWeight: 600, fontSize: '0.8rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.file_name}</p>
-                                                <span className="student-sub-info" style={{ fontSize: '0.75rem' }}>{doc.document_type}</span>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: '0.4rem', marginTop: '1rem' }}>
-                                                <button className="btn-secondary" style={{ fontSize: '0.7rem', padding: '0.3rem', flex: 1 }} onClick={() => handleViewDocument(doc)}>View</button>
-                                                <button
-                                                    className="btn-secondary"
-                                                    style={{ fontSize: '0.7rem', padding: '0.3rem', flex: 1 }}
-                                                    onClick={() => { setSelectedDoc(doc); setDocEditType(doc.document_type); setShowDocEditModal(true); }}
+                                    documents.map(doc => {
+                                        if (!doc || !doc.id) return null
+                                        
+                                        const isImage = doc.file_name?.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+                                        const isPDF = doc.file_name?.toLowerCase()?.includes('.pdf')
+                                        
+                                        return (
+                                            <div key={doc.id} style={{
+                                                background: 'white',
+                                                borderRadius: '8px',
+                                                border: '1px solid #e2e8f0',
+                                                overflow: 'hidden',
+                                                transition: 'box-shadow 0.2s ease',
+                                                cursor: 'pointer'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'}
+                                            onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}
+                                            >
+                                                {/* Document Preview */}
+                                                <div 
+                                                    onClick={() => handleViewDocument(doc)} 
+                                                    style={{
+                                                        height: '120px',
+                                                        background: '#f8fafc',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        position: 'relative',
+                                                        overflow: 'hidden'
+                                                    }}
                                                 >
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    className="btn-secondary"
-                                                    style={{ fontSize: '0.7rem', padding: '0.3rem', flex: 1, color: '#e53e3e' }}
-                                                    onClick={() => { setSelectedDoc(doc); setShowDocDeleteModal(true); }}
-                                                >
-                                                    Del
-                                                </button>
+                                                    {isImage ? (
+                                                        <ImagePreview doc={doc} />
+                                                    ) : (
+                                                        <div style={{ textAlign: 'center' }}>
+                                                            <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
+                                                                {isPDF ? '📄' : '📋'}
+                                                            </div>
+                                                            <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                                                                {isPDF ? 'PDF Document' : 'File'}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {/* Selection Checkbox */}
+
+                                                </div>
+                                                
+                                                {/* Document Info */}
+                                                <div style={{ padding: '1rem' }}>
+                                                    <h6 style={{ 
+                                                        margin: '0 0 0.25rem 0', 
+                                                        fontWeight: 600, 
+                                                        fontSize: '0.9rem',
+                                                        overflow: 'hidden', 
+                                                        textOverflow: 'ellipsis', 
+                                                        whiteSpace: 'nowrap'
+                                                    }}>
+                                                        {doc.file_name}
+                                                    </h6>
+                                                    <p style={{ 
+                                                        margin: '0 0 1rem 0', 
+                                                        fontSize: '0.75rem', 
+                                                        color: '#64748b'
+                                                    }}>
+                                                        {doc.document_type || 'Document'}
+                                                    </p>
+                                                    
+                                                    {/* Action Buttons */}
+                                                    <div style={{ 
+                                                        display: 'flex',
+                                                        gap: '0.5rem'
+                                                    }}>
+                                                        <button 
+                                                            className="btn-secondary" 
+                                                            style={{ 
+                                                                fontSize: '0.75rem', 
+                                                                padding: '0.4rem 0.8rem',
+                                                                flex: 1,
+                                                                border: '1px solid #e2e8f0'
+                                                            }} 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                handleViewDocument(doc)
+                                                            }}
+                                                        >
+                                                            👁️ View
+                                                        </button>
+                                                        <button 
+                                                            className="btn-secondary" 
+                                                            style={{ 
+                                                                fontSize: '0.75rem', 
+                                                                padding: '0.4rem 0.8rem',
+                                                                flex: 1,
+                                                                border: '1px solid #e2e8f0'
+                                                            }} 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                handleDownloadDocument(doc, e)
+                                                            }}
+                                                        >
+                                                            📥 Download
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))
+                                        )
+                                    })
                                 )}
                             </div>
                         </div>

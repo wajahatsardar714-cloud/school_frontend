@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import logo from '../../assets/logo.png'
+import PropTypes from 'prop-types'
 
 // Icon components
 const IconDashboard = () => (
@@ -76,8 +77,19 @@ const IconUsers = () => (
   </svg>
 )
 
+const IconAdmissions = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14,2 14,8 20,8" />
+    <line x1="16" y1="13" x2="8" y2="13" />
+    <line x1="16" y1="17" x2="8" y2="17" />
+    <polyline points="10,9 9,9 8,9" />
+  </svg>
+)
+
 const navigationItems = [
   { path: '/dashboard', label: 'Dashboard', icon: <IconDashboard />, roles: ['ADMIN', 'ACCOUNTANT'] },
+  { path: '/admissions', label: 'Admissions', icon: <IconAdmissions />, roles: ['ADMIN', 'ACCOUNTANT'] },
   { path: '/students', label: 'Students', icon: <IconStudents />, roles: ['ADMIN', 'ACCOUNTANT'] },
   { path: '/classes', label: 'Classes', icon: <IconClasses />, roles: ['ADMIN'] },
   { path: '/guardians', label: 'Guardians', icon: <IconGuardians />, roles: ['ADMIN', 'ACCOUNTANT'] },
@@ -103,9 +115,9 @@ const navigationItems = [
   { path: '/users', label: 'Users', icon: <IconUsers />, roles: ['ADMIN'] },
 ]
 
-const Sidebar = () => {
+const Sidebar = memo(function Sidebar({ isOpen, onClose }) {
   const location = useLocation()
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const [expandedItems, setExpandedItems] = useState({})
   const [isCollapsed, setIsCollapsed] = useState(false)
 
@@ -113,89 +125,197 @@ const Sidebar = () => {
     item.roles.includes(user?.role?.toUpperCase())
   )
 
-  const toggleExpand = (path) => {
-    setExpandedItems(prev => ({ ...prev, [path]: !prev[path] }))
-  }
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    if (isOpen && onClose) {
+      onClose()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname])
 
-  const toggleSidebar = () => {
+  // Close on escape key
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && isOpen && onClose) {
+        onClose()
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [isOpen, onClose])
+
+  // Prevent body scroll when sidebar is open on mobile
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isOpen])
+
+  const toggleExpand = useCallback((path) => {
+    setExpandedItems(prev => ({ ...prev, [path]: !prev[path] }))
+  }, [])
+
+  const toggleSidebar = useCallback(() => {
     setIsCollapsed(prev => !prev)
-  }
+  }, [])
+
+  const handleNavClick = useCallback((e, item) => {
+    if (item.subItems && !isCollapsed) {
+      e.preventDefault()
+      toggleExpand(item.path)
+    }
+  }, [isCollapsed, toggleExpand])
 
   return (
-    <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
-      <div className="sidebar-header">
-        <div className="logo">
-          <img src={logo} alt="MPHS Logo" className="sidebar-logo" />
-          {!isCollapsed && <span className="logo-text">MPHS</span>}
+    <>
+      {/* Mobile overlay */}
+      <div 
+        className={`sidebar-overlay ${isOpen ? 'active' : ''}`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      
+      <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isOpen ? 'mobile-open' : ''}`}>
+        <div className="sidebar-header">
+          <div className="logo">
+            <img src={logo} alt="MPHS Logo" className="sidebar-logo" />
+            {!isCollapsed && <span className="logo-text">MPHS</span>}
+          </div>
+          <button 
+            className="sidebar-toggle show-desktop-only" 
+            onClick={toggleSidebar} 
+            title={isCollapsed ? "Expand menu" : "Collapse menu"}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              {isCollapsed ? (
+                <>
+                  <line x1="17" y1="10" x2="3" y2="10" />
+                  <line x1="21" y1="6" x2="3" y2="6" />
+                  <line x1="21" y1="14" x2="3" y2="14" />
+                  <line x1="17" y1="18" x2="3" y2="18" />
+                </>
+              ) : (
+                <>
+                  <line x1="21" y1="10" x2="7" y2="10" />
+                  <line x1="21" y1="6" x2="3" y2="6" />
+                  <line x1="21" y1="14" x2="3" y2="14" />
+                  <line x1="21" y1="18" x2="7" y2="18" />
+                </>
+              )}
+            </svg>
+          </button>
+          {/* Mobile close button */}
+          <button 
+            className="sidebar-close show-mobile-only" 
+            onClick={onClose}
+            aria-label="Close menu"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
         </div>
-        <button className="sidebar-toggle" onClick={toggleSidebar} title={isCollapsed ? "Expand menu" : "Collapse menu"}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            {isCollapsed ? (
-              <>
-                <line x1="17" y1="10" x2="3" y2="10" />
-                <line x1="21" y1="6" x2="3" y2="6" />
-                <line x1="21" y1="14" x2="3" y2="14" />
-                <line x1="17" y1="18" x2="3" y2="18" />
-              </>
-            ) : (
-              <>
-                <line x1="21" y1="10" x2="7" y2="10" />
-                <line x1="21" y1="6" x2="3" y2="6" />
-                <line x1="21" y1="14" x2="3" y2="14" />
-                <line x1="21" y1="18" x2="7" y2="18" />
-              </>
-            )}
-          </svg>
-        </button>
-      </div>
 
-      <nav className="sidebar-nav">
-        {filteredItems.map((item) => (
-          <div key={item.path}>
-            {item.subItems ? (
-              <>
-                <div
-                  className={`nav-item ${location.pathname.startsWith(item.path) ? 'active' : ''}`}
-                  onClick={() => !isCollapsed && toggleExpand(item.path)}
+        <nav className="sidebar-nav">
+          {filteredItems.map((item) => (
+            <div key={item.path}>
+              {item.subItems ? (
+                <>
+                  <div
+                    className={`nav-item ${location.pathname.startsWith(item.path) ? 'active' : ''}`}
+                    onClick={(e) => handleNavClick(e, item)}
+                    title={isCollapsed ? item.label : ''}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && handleNavClick(e, item)}
+                  >
+                    <span className="nav-icon">{item.icon}</span>
+                    {!isCollapsed && (
+                      <>
+                        <span className="nav-label">{item.label}</span>
+                        <span className="nav-arrow">{expandedItems[item.path] ? '▼' : '▶'}</span>
+                      </>
+                    )}
+                  </div>
+                  {!isCollapsed && expandedItems[item.path] && (
+                    <div className="sub-nav">
+                      {item.subItems.map((subItem) => (
+                        <Link
+                          key={subItem.path}
+                          to={subItem.path}
+                          className={`sub-nav-item ${location.pathname === subItem.path ? 'active' : ''}`}
+                        >
+                          {subItem.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <Link
+                  to={item.path}
+                  className={`nav-item ${location.pathname === item.path || location.pathname.startsWith(item.path + '/') ? 'active' : ''}`}
                   title={isCollapsed ? item.label : ''}
                 >
                   <span className="nav-icon">{item.icon}</span>
-                  {!isCollapsed && (
-                    <>
-                      <span className="nav-label">{item.label}</span>
-                      <span className="nav-arrow">{expandedItems[item.path] ? '▼' : '▶'}</span>
-                    </>
-                  )}
+                  {!isCollapsed && <span className="nav-label">{item.label}</span>}
+                </Link>
+              )}
+            </div>
+          ))}
+        </nav>
+        
+        {/* User Info Section at Bottom */}
+        <div className="sidebar-footer">
+          <div className="sidebar-user-info">
+            <div className="user-avatar">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+            </div>
+            {!isCollapsed && (
+              <div className="user-details">
+                <div className="user-email">{user?.email}</div>
+                <div className="user-role-container">
+                  <span className="user-role">{user?.role}</span>
+                  <Link to="/profile" className="profile-link">Profile</Link>
                 </div>
-                {!isCollapsed && expandedItems[item.path] && (
-                  <div className="sub-nav">
-                    {item.subItems.map((subItem) => (
-                      <Link
-                        key={subItem.path}
-                        to={subItem.path}
-                        className={`sub-nav-item ${location.pathname === subItem.path ? 'active' : ''}`}
-                      >
-                        {subItem.label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : (
-              <Link
-                to={item.path}
-                className={`nav-item ${location.pathname === item.path || location.pathname.startsWith(item.path + '/') ? 'active' : ''}`}
-                title={isCollapsed ? item.label : ''}
-              >
-                <span className="nav-icon">{item.icon}</span>
-                {!isCollapsed && <span className="nav-label">{item.label}</span>}
-              </Link>
+              </div>
             )}
           </div>
-        ))}
-      </nav>
-    </aside>
+          <button 
+            className="sidebar-logout-btn"
+            onClick={logout}
+            title={isCollapsed ? "Logout" : ""}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            {!isCollapsed && <span>Logout</span>}
+          </button>
+        </div>
+      </aside>
+    </>
   )
+})
+
+Sidebar.propTypes = {
+  isOpen: PropTypes.bool,
+  onClose: PropTypes.func
+}
+
+Sidebar.defaultProps = {
+  isOpen: false,
+  onClose: () => {}
 }
 
 export default Sidebar

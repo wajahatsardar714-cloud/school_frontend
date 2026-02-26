@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { studentService } from '../services/studentService'
+import { classService } from '../services/classService'
 
 const AdmissionList = () => {
   const [students, setStudents] = useState([])
@@ -10,6 +11,7 @@ const AdmissionList = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterClass, setFilterClass] = useState('')
   const [filterStatus, setFilterStatus] = useState('active') // active, inactive, expelled, all
+  const [isClearing, setIsClearing] = useState(false)
 
   useEffect(() => {
     loadInitialData()
@@ -19,7 +21,7 @@ const AdmissionList = () => {
     try {
       setLoading(true)
       const [studentsRes, classesRes] = await Promise.all([
-        studentService.list({ status: filterStatus }),
+        studentService.list({ is_active: filterStatus === 'all' ? undefined : (filterStatus === 'active') }),
         classService.list()
       ])
       setStudents(studentsRes.data || [])
@@ -39,11 +41,35 @@ const AdmissionList = () => {
   const loadStudents = async () => {
     try {
       const response = await studentService.list({
-        status: filterStatus === 'all' ? undefined : filterStatus
+        is_active: filterStatus === 'all' ? undefined : (filterStatus === 'active')
       })
       setStudents(response.data || [])
     } catch (err) {
       console.error('Failed to load students:', err)
+    }
+  }
+
+  const handleClearAdmissionList = async () => {
+    if (!window.confirm('Are you sure you want to clear all students from the admission list? This will deactivate all active students but preserve their data in other modules.')) {
+      return
+    }
+
+    try {
+      setIsClearing(true)
+      const response = await studentService.bulkDeactivate()
+      
+      if (response.success) {
+        alert(`Successfully deactivated ${response.data.deactivatedCount} student(s) from admission list`)
+        // Reload the students list
+        await loadStudents()
+      } else {
+        alert('Failed to clear admission list: ' + (response.message || 'Unknown error'))
+      }
+    } catch (err) {
+      console.error('Failed to clear admission list:', err)
+      alert('Failed to clear admission list: ' + (err.message || 'Unknown error'))
+    } finally {
+      setIsClearing(false)
     }
   }
 
@@ -77,6 +103,14 @@ const AdmissionList = () => {
           <Link to="/admission/new-form" className="btn-primary">
             + New Admission
           </Link>
+          <button 
+            onClick={handleClearAdmissionList}
+            className="btn-danger"
+            disabled={isClearing || filteredStudents.filter(s => s.is_active).length === 0}
+            style={{ marginLeft: '10px' }}
+          >
+            {isClearing ? 'Clearing...' : 'Clear Admission List'}
+          </button>
         </div>
       </div>
 

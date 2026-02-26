@@ -145,7 +145,7 @@ const SectionManagement = () => {
                 <div className="capacity-indicator" style={{ marginTop: '0.8rem', width: '100%' }}>
                   {(() => {
                     const studentCount = parseInt(section.student_count) || 0
-                    const capacity = 40
+                    const capacity = 80
                     const occupancyPercent = Math.min(Math.round((studentCount / capacity) * 100), 100)
                     const statusColor = occupancyPercent > 90 ? '#e53e3e' : occupancyPercent > 70 ? '#ecc94b' : '#38a169'
                     return (

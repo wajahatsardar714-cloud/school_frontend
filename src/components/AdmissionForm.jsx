@@ -7,6 +7,7 @@ import { feeOverrideService } from '../services/feeService'
 import DocumentUpload from './DocumentUpload'
 import DocumentList from './DocumentList'
 import { DOCUMENT_TYPES } from '../utils/documentUtils'
+import { apiHealthCheck } from '../utils/apiHealthCheck'
 import './AdmissionFormSteps.css'
 
 const AdmissionForm = () => {
@@ -60,67 +61,153 @@ const AdmissionForm = () => {
 
   useEffect(() => {
     loadClasses()
+    // Auto-refresh classes and sections every 10 seconds for real-time updates
+    const interval = setInterval(() => {
+      loadClasses()
+      if (selectedClassId) {
+        loadSections(selectedClassId)
+      }
+    }, 10000) // Reduced to 10 seconds for faster updates
+
+    return () => clearInterval(interval)
   }, [])
+
+  // Refresh classes when component gains focus (user switches back to tab)
+  useEffect(() => {
+    const handleFocus = () => {
+      loadClasses()
+      if (selectedClassId) {
+        loadSections(selectedClassId)
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [selectedClassId])
+
+  // Auto-reload sections when selectedClassId changes
+  useEffect(() => {
+    if (selectedClassId) {
+      console.log('selectedClassId changed, reloading sections:', selectedClassId)
+      loadSections(selectedClassId)
+    } else {
+      setSections([])
+    }
+  }, [selectedClassId])
 
   const loadClasses = async () => {
     try {
+      console.log('Loading classes...')
       const response = await classService.list()
-      setClasses(response.data || [])
+      console.log('Classes response:', response)
+      
+      // Handle different response formats
+      let classesData = []
+      if (response?.data?.data) {
+        // Paginated response format
+        classesData = response.data.data
+      } else if (Array.isArray(response?.data)) {
+        // Direct array format
+        classesData = response.data
+      } else if (response?.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
+        // Check if data property contains array
+        classesData = response.data.data || response.data.classes || []
+      }
+      
+      setClasses(classesData)
+      console.log('Loaded classes:', classesData)
+      
+      if (classesData.length === 0) {
+        setError('No classes found. Please create classes first or check your connection.')
+      } else {
+        setError(null) // Clear error if classes loaded successfully
+      }
     } catch (err) {
       console.error('Failed to load classes:', err)
+      setError(`Failed to load classes: ${err.response?.data?.message || err.message}. Please check your connection and try again.`)
     }
   }
 
   const loadSections = async (classId) => {
+    if (!classId) {
+      setSections([])
+      return
+    }
+    
     try {
+      console.log('Loading sections for class:', classId)
       const response = await sectionService.list(classId)
-      // Handle both response formats
-      const sectionsData = Array.isArray(response.data) ? response.data : (response.data?.data || [])
+      console.log('Sections response:', response)
+      
+      // Handle different response formats
+      let sectionsData = []
+      if (response?.data?.data) {
+        // Paginated response format
+        sectionsData = response.data.data
+      } else if (Array.isArray(response?.data)) {
+        // Direct array format
+        sectionsData = response.data
+      } else if (response?.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
+        // Check if data property contains array
+        sectionsData = response.data.data || response.data.sections || []
+      }
+      
       setSections(sectionsData)
+      console.log('Loaded sections:', sectionsData)
+      
+      if (sectionsData.length === 0) {
+        console.warn(`No sections found for class ${classId}`)
+        // Don't set error for empty sections, just log it
+      } else {
+        // Clear any previous section-related errors
+        if (error && error.includes('sections')) {
+          setError(null)
+        }
+      }
     } catch (err) {
       console.error('Failed to load sections:', err)
       setSections([])
+      // Only set error if it's a real API failure, not just empty results
+      if (err.response?.status !== 404) {
+        setError(`Failed to load sections: ${err.response?.data?.message || err.message}`)
+      }
     }
   }
 
   const handleClassChange = async (e) => {
     const classId = e.target.value
     setSelectedClassId(classId)
-    setSelectedSectionId('')
-    setFeeSchedule({ admissionFee: 0, monthlyFee: 0, paperFund: 0, total: 0 })
-    setShowFeeSchedule(false)
+    setSelectedSectionId('') // Reset section when class changes
+    const selectedClass = classes.find(c => c.id === parseInt(classId))
+    
+    if (selectedClass) {
+      setSelectedClass(selectedClass.name)
+      setFormData({ ...formData, class: selectedClass.name, section: '' })
 
-    if (classId) {
-      const selectedClass = classes.find(c => c.id == classId)
-
-      if (selectedClass) {
-        setSelectedClass(selectedClass.name)
-        setFormData({ ...formData, class: selectedClass.name })
-
-        // Load sections
-        await loadSections(classId)
-
-        // Get fee structure from the class object (it's already loaded)
-        const feeStruct = selectedClass.current_fee_structure
-        if (feeStruct) {
-          const defaults = {
-            admissionFee: parseFloat(feeStruct.admission_fee) || 0,
-            monthlyFee: parseFloat(feeStruct.monthly_fee) || 0,
-            paperFund: parseFloat(feeStruct.paper_fund) || 0,
-          }
-
-          setClassFeeDefaults(defaults)
-          setFeeSchedule({
-            ...defaults,
-            total: defaults.admissionFee + defaults.monthlyFee + defaults.paperFund
-          })
-          setShowFeeSchedule(true)
+      // Load sections immediately and force refresh
+      console.log('Class selected, loading sections for class ID:', classId)
+      await loadSections(classId)
+      
+      // Get fee structure from the class object (it's already loaded)
+      const feeStruct = selectedClass.current_fee_structure
+      if (feeStruct) {
+        const defaults = {
+          admissionFee: parseFloat(feeStruct.admission_fee) || 0,
+          monthlyFee: parseFloat(feeStruct.monthly_fee) || 0,
+          paperFund: parseFloat(feeStruct.paper_fund) || 0,
         }
+        setClassFeeDefaults(defaults)
+        setFeeSchedule({
+          ...defaults,
+          total: defaults.admissionFee + defaults.monthlyFee + defaults.paperFund
+        })
+        setShowFeeSchedule(true)
       }
     } else {
       setSelectedClass('')
       setSections([])
-      setFormData({ ...formData, class: '' })
+      setFormData({ ...formData, class: '', section: '' })
+      setShowFeeSchedule(false)
     }
   }
 
@@ -221,7 +308,7 @@ const AdmissionForm = () => {
         bay_form: formData.bay_form,
         previous_school: formData.previous_school
       }
-
+      
       const studentResponse = await studentService.create(studentData)
       const studentId = studentResponse.data.id
       setCreatedStudentId(studentId)
@@ -634,13 +721,20 @@ const AdmissionForm = () => {
                       <option value="">Select Class</option>
                       {classes.map(cls => (
                         <option key={cls.id} value={cls.id}>
-                          {cls.name}
+                          {cls.name} ({cls.class_type}) - {cls.student_count || 0} students
                         </option>
                       ))}
                     </select>
                     {classes.length === 0 && (
                       <small style={{ color: '#ef4444', fontSize: '12px' }}>
                         ⚠️ No classes found. <Link to="/classes" style={{ color: '#3b82f6' }}>Create classes first</Link>
+                        <button 
+                          type="button" 
+                          onClick={loadClasses} 
+                          style={{ marginLeft: '10px', color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                        >
+                          Refresh
+                        </button>
                       </small>
                     )}
                   </div>
@@ -656,7 +750,7 @@ const AdmissionForm = () => {
                       <option value="">Select Section</option>
                       {sections.map(section => (
                         <option key={section.id} value={section.id}>
-                          {section.name}
+                          {section.name} - {section.student_count || 0} students
                         </option>
                       ))}
                     </select>
@@ -664,7 +758,7 @@ const AdmissionForm = () => {
                       const selectedSection = sections.find(s => s.id === parseInt(selectedSectionId))
                       if (selectedSection) {
                         const studentCount = parseInt(selectedSection.student_count) || 0
-                        const capacity = 40
+                        const capacity = 80
                         const isFull = studentCount >= capacity
                         const isNearFull = studentCount >= (capacity * 0.9)
 
@@ -684,7 +778,14 @@ const AdmissionForm = () => {
                     )}
                     {selectedClassId && sections.length === 0 && (
                       <small style={{ color: '#ef4444', fontSize: '12px' }}>
-                        ⚠️ No sections found for this class. <Link to={`/classes/${selectedClassId}/sections`} style={{ color: '#3b82f6' }}>Add sections here</Link>
+                        ⚠️ No sections found for this class. Contact administrator to add sections.
+                        <button 
+                          type="button" 
+                          onClick={() => loadSections(selectedClassId)} 
+                          style={{ marginLeft: '10px', color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                        >
+                          Refresh
+                        </button>
                       </small>
                     )}
                     {selectedClassId && sections.length > 0 && (

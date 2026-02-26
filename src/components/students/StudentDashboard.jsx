@@ -61,13 +61,9 @@ const StudentDashboard = () => {
                     <button 
                         className="btn-secondary"
                         onClick={() => setShowImportModal(true)}
-                        style={{ marginRight: '0.5rem' }}
                     >
                         📁 Import Students
                     </button>
-                    <Link to="/admission/new-form" className="btn-primary">
-                        + New Admission
-                    </Link>
                 </div>
             </header>
 

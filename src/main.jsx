@@ -7,6 +7,7 @@ import './dashboard.css'
 import './global-overrides.css'
 import './screens-styling.css'
 import './App.css'
+import './mobile-responsive.css'
 import App from './App.jsx'
 import './salary.css'
 

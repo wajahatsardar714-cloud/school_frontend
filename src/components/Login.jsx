@@ -106,7 +106,7 @@ const Login = () => {
               <input type="checkbox" />
               <span>Remember me</span>
             </label>
-            <span className="forgot-password">Forgot password?</span>
+            {/* Forgot password button removed as per requirements */}
           </div>
           
           <button type="submit" className="sign-in-btn" disabled={loading}>

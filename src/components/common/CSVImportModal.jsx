@@ -40,21 +40,26 @@ const CSVImportModal = ({
   const [fileName, setFileName] = useState('')
   const fileInputRef = useRef(null)
   
+  // Full screen edit mode
+  const [fullScreenEdit, setFullScreenEdit] = useState(false)
+  
   // Column management for preview
   const [availableColumns, setAvailableColumns] = useState([
-    { key: 'firstName', label: 'First Name', required: true },
+    { key: 'name', label: 'Student Name', required: true },
+    { key: 'fatherName', label: 'Father Name', required: true },
+    { key: 'firstName', label: 'First Name', required: false },
     { key: 'lastName', label: 'Last Name', required: false },
+    { key: 'phone', label: 'Contact/Phone', required: false },
+    { key: 'fee', label: 'Fee', required: false },
     { key: 'email', label: 'Email', required: false },
-    { key: 'phone', label: 'Phone', required: false },
-    { key: 'rollNumber', label: 'Roll Number', required: false },
+    { key: 'rollNumber', label: 'Roll/Sr Number', required: false },
     { key: 'address', label: 'Address', required: false },
     { key: 'dateOfBirth', label: 'Date of Birth', required: false },
-    { key: 'fatherName', label: 'Father Name', required: false },
     { key: 'motherName', label: 'Mother Name', required: false },
     { key: 'caste', label: 'Caste', required: false },
     { key: 'religion', label: 'Religion', required: false }
   ])
-  const [visibleColumns, setVisibleColumns] = useState(['firstName', 'lastName', 'email', 'phone', 'rollNumber'])
+  const [visibleColumns, setVisibleColumns] = useState(['name', 'fatherName', 'phone', 'fee', 'rollNumber'])
 
   // If class and section are preselected, skip to step 2
   useEffect(() => {
@@ -133,6 +138,13 @@ const CSVImportModal = ({
     'studentname': 'name',
     'fullname': 'name',
     
+    // Serial Number / Sr No
+    'srno': 'rollNumber',
+    'sr': 'rollNumber',
+    'sno': 'rollNumber',
+    'serialno': 'rollNumber',
+    'serialnumber': 'rollNumber',
+    
     // Contact fields
     'email': 'email',
     'emailaddress': 'email',
@@ -141,6 +153,8 @@ const CSVImportModal = ({
     'phonenumber': 'phone',
     'mobile': 'phone',
     'contact': 'phone',
+    'contactno': 'phone',
+    'contactnumber': 'phone',
     'cellphone': 'phone',
     
     // Identifier
@@ -150,6 +164,12 @@ const CSVImportModal = ({
     'studentid': 'rollNumber',
     'regno': 'rollNumber',
     'registrationnumber': 'rollNumber',
+    
+    // Fee
+    'fee': 'fee',
+    'fees': 'fee',
+    'monthlyfee': 'fee',
+    'amount': 'fee',
     
     // Address
     'address': 'address',
@@ -176,6 +196,11 @@ const CSVImportModal = ({
     'bloodgroup': 'bloodGroup',
     'religion': 'religion',
     'nationality': 'nationality',
+    
+    // Additional fields that shouldn't be ignored
+    'march': 'march',
+    'outstandingdues': 'outstandingDues',
+    'dues': 'outstandingDues',
   }
 
   // Drag & Drop handlers
@@ -218,18 +243,51 @@ const CSVImportModal = ({
         const sheetName = workbook.SheetNames[0]
         const worksheet = workbook.Sheets[sheetName]
         
-        // Convert to JSON with headers
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+        // Convert to JSON - get all rows as arrays first
+        const allRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' })
         
-        if (jsonData.length < 2) {
+        if (allRows.length < 2) {
           setError('File must contain at least a header row and one data row')
           return
         }
 
-        const headers = jsonData[0].map(h => String(h).toLowerCase().replace(/[^a-z0-9]/g, ''))
-        const rows = jsonData.slice(1)
+        console.log('All CSV rows:', allRows)
 
-        setCsvHeaders(jsonData[0]) // Original headers for display
+        // Smart header detection: Find the row with actual column names
+        const headerKeywords = ['name', 'father', 'sr', 'contact', 'fee', 'roll', 'phone', 'email', 'student']
+        let headerRowIndex = -1
+
+        for (let i = 0; i < Math.min(10, allRows.length); i++) {
+          const row = allRows[i]
+          if (!row || row.length === 0) continue
+          
+          // Check if this row contains header-like text
+          const rowText = row.map(cell => String(cell || '').toLowerCase()).join(' ')
+          const matchCount = headerKeywords.filter(keyword => rowText.includes(keyword)).length
+          
+          // If we find multiple keywords, this is likely the header row
+          if (matchCount >= 2) {
+            headerRowIndex = i
+            console.log(`📋 Detected header row at index ${i}:`, row)
+            break
+          }
+        }
+
+        // If no header detected, assume first row is header
+        if (headerRowIndex === -1) {
+          headerRowIndex = 0
+          console.log('⚠️ No header detected, using first row as header')
+        }
+
+        const originalHeaders = allRows[headerRowIndex]
+        const headers = originalHeaders.map(h => String(h).toLowerCase().replace(/[^a-z0-9]/g, ''))
+        const rows = allRows.slice(headerRowIndex + 1)
+
+        console.log('📄 Original headers:', originalHeaders)
+        console.log('🔤 Normalized headers:', headers)
+        console.log(`📊 Data rows: ${rows.length}, Skipped ${headerRowIndex} header row(s)`)
+
+        setCsvHeaders(originalHeaders) // Original headers for display
 
         // Map CSV data to our fields
         const mappedData = rows.map((row, index) => {
@@ -244,6 +302,11 @@ const CSVImportModal = ({
             }
           })
 
+          // If we have a full "name" field, and no firstName/lastName, use name as full name
+          if (student.name && !student.firstName && !student.lastName) {
+            // Keep as is - backend will handle it
+          }
+
           // Set class and section as numbers
           student.classId = parseInt(selectedClassId)
           student.sectionId = parseInt(selectedSectionId)
@@ -251,26 +314,42 @@ const CSVImportModal = ({
           return student
         })
 
-        // Validate data - Accept everything, only warn for completely empty rows
-        const warnings = []
-        mappedData.forEach((student, index) => {
-          // Only warn if the entire row is empty
-          const hasAnyData = Object.values(student).some(value => 
-            value && typeof value === 'string' && value.trim() !== ''
+        // Filter out completely empty rows
+        const validData = mappedData.filter(student => {
+          const hasData = Object.keys(student).some(key => 
+            key !== 'classId' && key !== 'sectionId' && 
+            student[key] && String(student[key]).trim() !== ''
           )
-          if (!hasAnyData) {
+          return hasData
+        })
+
+        console.log('✅ Mapped data - first student:', validData[0])
+        console.log(`📊 Total valid students: ${validData.length}`)
+
+        // Validate data - Accept everything, only warn for useful info
+        const warnings = []
+        validData.forEach((student, index) => {
+          // Warn if missing name or father name (soft requirement)
+          if (!student.name && !student.firstName) {
             warnings.push({
               row: index + 1,
-              message: 'Empty row - will be skipped during import'
+              message: 'Missing student name - please review'
+            })
+          }
+          if (!student.fatherName) {
+            warnings.push({
+              row: index + 1,
+              message: 'Missing father name - please review'
             })
           }
         })
 
-        setCsvData(mappedData)
-        setEditableCsvData(JSON.parse(JSON.stringify(mappedData))) // Deep copy for editing
+        setCsvData(validData)
+        setEditableCsvData(JSON.parse(JSON.stringify(validData))) // Deep copy for editing
         setValidationWarnings(warnings)
         setError('')
       } catch (err) {
+        console.error('CSV Processing error:', err)
         setError('Error processing file: ' + err.message)
       }
     }
@@ -316,7 +395,8 @@ const CSVImportModal = ({
       
       console.log('✅ Import successful:', result)
       
-      setImportResults(result)
+      // API returns { success: true, data: {...} } - extract the data part
+      setImportResults(result.data || result)
       setStep(3)
       
       // Call success callback if provided
@@ -354,8 +434,8 @@ const CSVImportModal = ({
   }
 
   const removeColumn = (columnKey) => {
-    // Don't allow removing firstName (required)
-    if (columnKey === 'firstName') return
+    // Don't allow removing name or fatherName (required)
+    if (columnKey === 'name' || columnKey === 'fatherName') return
     
     setVisibleColumns(visibleColumns.filter(col => col !== columnKey))
   }
@@ -377,11 +457,27 @@ const CSVImportModal = ({
     setEditableCsvData(updatedData)
   }
 
+  const deleteRow = (rowIndex) => {
+    if (window.confirm('Are you sure you want to delete this student row?')) {
+      const updatedData = editableCsvData.filter((_, index) => index !== rowIndex)
+      setEditableCsvData(updatedData)
+      setCsvData(updatedData) // Also update the original data
+      
+      // Show notification
+      const studentName = editableCsvData[rowIndex]?.name || editableCsvData[rowIndex]?.firstName || 'Student'
+      console.log(`🗑️ Deleted row ${rowIndex + 1}: ${studentName}`)
+    }
+  }
+
   const downloadTemplate = () => {
     const template = [
-      ['First Name', 'Last Name', 'Email', 'Phone', 'Roll Number', 'Address'],
-      ['John', 'Doe', 'john.doe@email.com', '123-456-7890', '001', '123 Main St'],
-      ['Jane', 'Smith', 'jane.smith@email.com', '098-765-4321', '002', '456 Oak Ave']
+      ['Muslim Public Higher Secondary School'], // Row 1
+      ['Fee Record 2026'], // Row 2  
+      ['Class Information'], // Row 3
+      ['Sr No', 'Name', 'Father Name', 'Contact No', 'Fee', 'March', 'Outstanding Dues'], // Headers Row 4
+      [1, 'Muhammad Ahmad Salar', 'Muhammad Ashraf', '0300-2673686', 1200, '', ''], // Data Row 5
+      [2, 'Ali Haider', 'Nasir Hussain', '0300-6774954', 1200, '', ''],
+      [3, 'Abdul Hadi Sabir', 'Muhammad Sabir', '0306-9458339', 1200, '', '']
     ]
     
     const ws = XLSX.utils.aoa_to_sheet(template)
@@ -510,9 +606,20 @@ const CSVImportModal = ({
                 <div className="preview-card">
                   <div className="preview-header">
                     <h3>Preview</h3>
-                    <span className="student-count">
-                      {editableCsvData.length} Students
-                    </span>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <span className="student-count">
+                        {editableCsvData.length} Students
+                      </span>
+                      {editableCsvData.length > 0 && (
+                        <button
+                          onClick={() => setFullScreenEdit(true)}
+                          className="secondary-btn"
+                          style={{ padding: '5px 12px', fontSize: '0.85rem' }}
+                        >
+                          🔍 Full Screen Edit
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {csvHeaders.length > 0 && (
@@ -552,6 +659,7 @@ const CSVImportModal = ({
                       <table>
                         <thead>
                           <tr>
+                            <th style={{ width: '40px' }}>❌</th>
                             <th>#</th>
                             {visibleColumns.map(colKey => {
                               const column = availableColumns.find(col => col.key === colKey)
@@ -580,6 +688,23 @@ const CSVImportModal = ({
 
                             return (
                               <tr key={index} className={hasError ? 'row-error' : ''}>
+                                <td className="delete-cell" style={{ textAlign: 'center', padding: '4px' }}>
+                                  <button
+                                    onClick={() => deleteRow(index)}
+                                    className="delete-row-btn"
+                                    title="Delete this row"
+                                    style={{
+                                      background: '#fee',
+                                      border: '1px solid #fcc',
+                                      borderRadius: '4px',
+                                      padding: '4px 8px',
+                                      cursor: 'pointer',
+                                      fontSize: '0.85rem'
+                                    }}
+                                  >
+                                    🗑️
+                                  </button>
+                                </td>
                                 <td className="row-number">{index + 1}</td>
                                 {visibleColumns.map(colKey => {
                                   const column = availableColumns.find(col => col.key === colKey)
@@ -706,6 +831,127 @@ const CSVImportModal = ({
         )}
 
       </div>
+
+      {/* FULL SCREEN EDIT MODAL */}
+      {fullScreenEdit && (
+        <div className="fullscreen-edit-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'white',
+          zIndex: 10000,
+          overflow: 'auto',
+          padding: '20px'
+        }}>
+          <div style={{ maxWidth: '100%', margin: '0 auto' }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginBottom: '10px',
+              padding: '15px',
+              background: '#f8f9fa',
+              borderRadius: '8px',
+              position: 'sticky',
+              top: '0',
+              zIndex: 100,
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}>
+              <div>
+                <h2 style={{ margin: '0 0 5px 0' }}>Full Screen Edit Mode</h2>
+                <p style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>
+                  {editableCsvData.length} Students - Edit all fields or delete unwanted rows
+                </p>
+              </div>
+              <button
+                onClick={() => setFullScreenEdit(false)}
+                style={{
+                  padding: '10px 20px',
+                  background: '#0066cc',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  fontWeight: '500'
+                }}
+              >
+                ✓ Done Editing
+              </button>
+            </div>
+
+            <div style={{ overflowX: 'auto', background: 'white', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', position: 'relative' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead style={{ position: 'sticky', top: '0', background: '#f8f9fa', zIndex: 50, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                  <tr>
+                    <th style={{ padding: '12px 8px', borderBottom: '2px solid #dee2e6', textAlign: 'center', fontSize: '0.9rem', fontWeight: '700', textTransform: 'uppercase' }}>DELETE</th>
+                    <th style={{ padding: '12px 8px', borderBottom: '2px solid #dee2e6', textAlign: 'center', fontSize: '0.9rem', fontWeight: '700', textTransform: 'uppercase' }}>#</th>
+                    {visibleColumns.map(colKey => {
+                      const column = availableColumns.find(col => col.key === colKey)
+                      return (
+                        <th key={colKey} style={{ padding: '12px 8px', borderBottom: '2px solid #dee2e6', fontSize: '0.9rem', minWidth: '150px', fontWeight: '700', textTransform: 'uppercase' }}>
+                          {column.label} {column.required && <span style={{ color: 'red' }}>*</span>}
+                        </th>
+                      )
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {editableCsvData.map((student, index) => (
+                    <tr key={index} style={{ borderBottom: '1px solid #e9ecef' }}>
+                      <td style={{ padding: '8px', textAlign: 'center' }}>
+                        <button
+                          onClick={() => deleteRow(index)}
+                          style={{
+                            background: '#dc3545',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            padding: '6px 10px',
+                            cursor: 'pointer',
+                            fontSize: '0.85rem',
+                            fontWeight: '500'
+                          }}
+                          title="Delete this row"
+                        >
+                          🗑️ Delete
+                        </button>
+                      </td>
+                      <td style={{ padding: '8px', textAlign: 'center', fontWeight: '600', color: '#666' }}>
+                        {index + 1}
+                      </td>
+                      {visibleColumns.map(colKey => {
+                        const column = availableColumns.find(col => col.key === colKey)
+                        const isEmpty = !student[colKey] || String(student[colKey]).trim() === ''
+                        return (
+                          <td key={colKey} style={{ padding: '8px' }}>
+                            <input
+                              type={colKey === 'email' ? 'email' : colKey === 'dateOfBirth' ? 'date' : 'text'}
+                              value={student[colKey] || ''}
+                              onChange={(e) => handleCellEdit(index, colKey, e.target.value)}
+                              style={{
+                                width: '100%',
+                                padding: '8px',
+                                border: isEmpty && column.required ? '2px solid #ff6b6b' : '1px solid #ced4da',
+                                borderRadius: '4px',
+                                fontSize: '0.9rem',
+                                backgroundColor: isEmpty && column.required ? '#fff5f5' : 'white'
+                              }}
+                              placeholder={`Enter ${column.label.toLowerCase()}`}
+                            />
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

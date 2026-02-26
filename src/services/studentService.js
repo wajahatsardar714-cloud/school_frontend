@@ -112,4 +112,8 @@ export const studentService = {
       requiresAuth: false // Disable auth for testing
     })
   },
+
+  async bulkDeactivate() {
+    return await apiClient.post('/api/students/bulk-deactivate')
+  },
 }

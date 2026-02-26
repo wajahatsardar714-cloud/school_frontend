@@ -106,6 +106,31 @@ export default function DocumentUpload({
         setSuccess(false)
     }
 
+
+    // Scan document using browser APIs (if available)
+    const handleScanDocument = async () => {
+        // Try to use getUserMedia for camera scan as a fallback
+        try {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                // Create a video element to capture image
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.play();
+                // Show a modal or prompt to user to capture
+                alert('A camera window will open. Please capture the document and take a screenshot or use a browser extension to save the image. (Full scanner integration requires additional hardware support.)');
+                // Stop the stream after prompt
+                setTimeout(() => {
+                    stream.getTracks().forEach(track => track.stop());
+                }, 3000);
+            } else {
+                alert('Scanner/camera not supported in this browser.');
+            }
+        } catch (err) {
+            alert('Failed to access scanner/camera.');
+        }
+    };
+
     return (
         <div className="document-upload">
             <div className="document-upload-header">
@@ -113,8 +138,8 @@ export default function DocumentUpload({
                 {success && <span className="success-badge">✓ Uploaded</span>}
             </div>
 
-            {/* File Input */}
-            <div className="file-input-wrapper">
+            {/* File Input & Scan Button */}
+            <div className="file-input-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <input
                     type="file"
                     id={`file-${documentType}`}
@@ -123,12 +148,22 @@ export default function DocumentUpload({
                     disabled={uploading || disabled}
                     className="file-input"
                 />
-                <label htmlFor={`file-${documentType}`} className={`file-label ${uploading || disabled ? 'disabled' : ''}`}>
+                <label htmlFor={`file-${documentType}`} className={`file-label ${uploading || disabled ? 'disabled' : ''}`}> 
                     <span className="file-icon">📎</span>
                     <span className="file-text">
                         {selectedFile ? selectedFile.name : 'Choose File'}
                     </span>
                 </label>
+                <button
+                    type="button"
+                    className="scan-btn"
+                    style={{ marginLeft: '0.5rem', padding: '0.3rem 0.7rem', fontSize: '0.9rem' }}
+                    onClick={handleScanDocument}
+                    disabled={uploading || disabled}
+                    title="Scan document using scanner/camera"
+                >
+                    📷 Scan
+                </button>
                 {selectedFile && !uploading && (
                     <button
                         type="button"

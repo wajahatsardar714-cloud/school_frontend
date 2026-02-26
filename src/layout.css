@@ -560,18 +560,7 @@
     justify-content: center;
   }
   
-  .sidebar {
-    position: fixed;
-    left: -280px;
-    top: 0;
-    height: 100vh;
-    z-index: 1000;
-    transition: left var(--transition-slow);
-  }
-  
-  .sidebar.mobile-open {
-    left: 0;
-  }
+  /* Sidebar mobile styles are handled by mobile-responsive.css */
 }
 
 @media (max-width: 480px) {
