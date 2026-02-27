@@ -1182,6 +1182,235 @@ input:focus, select:focus, textarea:focus, button:focus-visible {
 }
 
 /* ============================================================
+   CLASS CARDS — New Card-Based UI for Classes
+   ============================================================ */
+.classes-card-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+}
+
+.class-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.class-card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.class-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: white;
+}
+
+.class-card-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.class-card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.class-card-badges {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.class-badge {
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.class-badge.college {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.class-badge.school {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.class-badge.active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.class-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.class-card-toggle {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.class-card-toggle:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.class-card-action-btn {
+  background: transparent;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.class-card-action-btn.edit:hover {
+  background: #fef3c7;
+}
+
+.class-card-action-btn.delete:hover {
+  background: #fee2e2;
+}
+
+/* Expanded Content */
+.class-card-expanded {
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  padding: 1rem 1.25rem;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.class-card-buttons {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.class-card-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.class-card-btn.sections-btn {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.class-card-btn.sections-btn:hover {
+  background: #fde68a;
+  border-color: #fcd34d;
+}
+
+.class-card-btn.fees-btn {
+  background: #dbeafe;
+  color: #1e40af;
+  border-color: #bfdbfe;
+}
+
+.class-card-btn.fees-btn:hover {
+  background: #bfdbfe;
+  border-color: #93c5fd;
+}
+
+.class-card-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.class-card-info-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.class-card-info-value {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #1f2937;
+  margin-right: 1.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .class-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .class-card-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .class-card-buttons {
+    flex-direction: column;
+  }
+
+  .class-card-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .class-card-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+
+  .class-card-info-value {
+    margin-right: 0;
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* ============================================================
    EXPENSE & PAYMENT — Screen layout improvements
    ============================================================ */
 
