@@ -191,3 +191,1126 @@ input:focus, select:focus, textarea:focus, button:focus-visible {
   outline: 2px solid var(--color-primary-light);
   outline-offset: 2px;
 }
+
+/* ============================================================
+   PRINT & REPORT STYLES
+   ============================================================ */
+
+/* ─── Hide print-only by default ─────────────────────────── */
+.print-only { display: none; }
+.print-show  { display: none; }
+.no-print    { /* visible by default */ }
+
+/* ─── Report Actions Bar ─────────────────────────────────── */
+.rpt-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-bottom: 1.25rem;
+}
+
+.rpt-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 1.1rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.01em;
+}
+
+.rpt-btn--save {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+.rpt-btn--save:hover {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+}
+
+.rpt-btn--print {
+  background: #1e3a8a;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(30,58,138,0.25);
+}
+.rpt-btn--print:hover {
+  background: #1e40af;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(30,58,138,0.35);
+}
+
+/* ─── Data Table (screen) ────────────────────────────────── */
+.table-container {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.855rem;
+  background: #fff;
+}
+
+.data-table thead tr {
+  background: #1e3a8a;
+}
+
+.data-table th {
+  padding: 0.7rem 0.9rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom: 2px solid #1e40af;
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: 0.65rem 0.9rem;
+  color: #374151;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table tbody tr:hover td {
+  background: #f8faff;
+}
+
+/* ─── Grand total tfoot (screen, shown as last row always) ── */
+.data-table tfoot td {
+  background: #f8fafc;
+  font-weight: 700;
+  color: #1e3a8a;
+  border-top: 2px solid #e2e8f0;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.875rem;
+}
+
+/* ─── Action Buttons (screen) ────────────────────────────── */
+.btn-edit {
+  background: #1e3a8a;
+  color: #fff;
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-edit:hover {
+  background: #1e40af;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(30,58,138,0.3);
+}
+
+.btn-delete {
+  background: #dc2626;
+  color: #fff;
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 0.4rem;
+}
+
+.btn-delete:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(220,38,38,0.3);
+}
+
+.btn-view {
+  background: #0ea5e9;
+  color: #fff;
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-view:hover {
+  background: #0284c7;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(14,165,233,0.3);
+}
+
+/* ============================================================
+   PRINT MEDIA QUERY
+   ============================================================ */
+@media print {
+
+  /* ── Hide ALL non-report chrome ─────────────────────────── */
+  .app-header,
+  .app-layout > .sidebar,
+  .footer,
+  .sidebar,
+  .page-header,
+  .filters-section,
+  .rpt-actions,
+  .report-actions,
+  .action-buttons,
+  .modal-overlay,
+  .analytics-dashboard,
+  .tab-buttons,
+  .summary-card,
+  .stats-grid,
+  .stat-card,
+  .header-actions,
+  .empty-state button,
+  .no-print,
+  button {
+    display: none !important;
+  }
+
+  /* ── Show print-only elements ───────────────────────────── */
+  .print-only { display: block !important; }
+  .print-show { display: table-footer-group !important; }
+
+  /* ── Page size & margins ─────────────────────────────────── */
+  @page {
+    size: A4 landscape;
+    margin: 1cm 0.8cm 1cm 0.8cm;
+  }
+
+  /* ── Box-sizing reset ───────────────────────────────────── */
+  *, *::before, *::after {
+    box-sizing: border-box !important;
+  }
+
+  /* ── Reset layout chrome ─────────────────────────────────── */
+  html, body {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto;
+    overflow: visible;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10pt;
+    color: #000;
+    background: #fff;
+    line-height: 1.3;
+  }
+
+  .app-layout,
+  .main-content,
+  .content,
+  .fee-management,
+  .expense-management,
+  .page-content {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     PRINT HEADER
+  ───────────────────────────────────────────────────────── */
+  .print-header {
+    width: 100%;
+    margin-bottom: 0;
+    page-break-after: avoid;
+  }
+
+  .print-header__title-section {
+    text-align: center;
+    padding: 0.6rem 0 0.45rem;
+  }
+
+  .school-name {
+    font-size: 12pt;
+    font-weight: 800;
+    color: #000;
+    margin: 0 0 0.2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    line-height: 1.2;
+  }
+
+  .report-title {
+    font-size: 14pt;
+    font-weight: 700;
+    color: #1e3a8a;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .print-header__divider {
+    border: none;
+    border-top: 2.5px solid #1e3a8a;
+    margin: 0.5rem 0 0;
+  }
+
+  /* Meta info bar — flush under divider, no gap */
+  .print-header__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    column-gap: 1.5rem;
+    row-gap: 0;
+    align-items: center;
+    font-size: 8.5pt;
+    padding: 0.35rem 0.7rem;
+    background: #e8edf8 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    border: 1px solid #b5c3e8;
+    border-top: none;
+    margin-bottom: 0.6rem;
+  }
+
+  .print-header__meta-item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    white-space: nowrap;
+  }
+
+  .print-header__meta-label {
+    font-weight: 700;
+    color: #1e3a8a;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print-header__meta-value {
+    font-weight: 600;
+    color: #000;
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     DATA TABLE
+  ───────────────────────────────────────────────────────── */
+  .table-container {
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    page-break-before: avoid;
+  }
+
+  .data-table {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 8.5pt;
+    table-layout: fixed !important;
+    page-break-inside: auto;
+  }
+
+  .data-table thead { display: table-header-group; }
+  .data-table tfoot { display: table-footer-group; }
+
+  /* Header row */
+  .data-table thead tr {
+    background: #1e3a8a !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .data-table th {
+    background: #1e3a8a !important;
+    color: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    font-size: 7pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    padding: 0.25rem 0.4rem;
+    border: 1px solid #1e3a8a;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  /* Body cells */
+  .data-table td {
+    padding: 0.18rem 0.4rem;
+    border: 0.5px solid #c0c0c0;
+    font-size: 8pt;
+    color: #000 !important;
+    vertical-align: middle;
+    line-height: 1.1;
+    overflow: hidden;
+    word-break: break-word;
+    height: auto;
+    white-space: nowrap;
+  }
+
+  /* Alternating rows */
+  .data-table tbody tr:nth-child(odd) td {
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .data-table tbody tr:nth-child(even) td {
+    background: #f0f4ff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Grand total footer */
+  .data-table tfoot tr td {
+    background: #1e3a8a !important;
+    color: #fff !important;
+    font-weight: 700;
+    font-size: 8pt;
+    text-align: center;
+    padding: 0.22rem 0.4rem;
+    border: 1.5px solid #1e3a8a !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    letter-spacing: 0.02em;
+  }
+
+  /* Page breaks */
+  .data-table tr     { page-break-inside: avoid; }
+  .print-header      { page-break-after:  avoid; }
+
+  /* ─────────────────────────────────────────────────────────
+     INLINE CONTENT RESETS
+  ───────────────────────────────────────────────────────── */
+
+  /* Payment status in print */
+  .pay-status--full {
+    background: #dcfce7 !important;
+    color: #166534 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    font-size: 7.5pt;
+    font-weight: 700;
+  }
+
+  .pay-status--partial {
+    background: #fff7ed !important;
+    color: #9a3412 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-size: 7.5pt;
+    font-weight: 600;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .pay-status__remaining {
+    font-size: 6.5pt;
+    font-weight: 500;
+  }
+
+  /* Student info — plain text, compact inline */
+  .student-info {
+    display: inline !important;
+    border: none !important;
+    background: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .student-name {
+    display: inline !important;
+    font-weight: 600;
+    font-size: 8.5pt;
+    color: #000 !important;
+    white-space: nowrap;
+  }
+
+  .student-roll {
+    display: inline !important;
+    font-size: 7pt;
+    color: #555 !important;
+    font-style: italic;
+    margin-left: 0.25rem;
+  }
+
+  .data-table td strong {
+    font-weight: 700;
+    font-size: 8.5pt;
+  }
+
+  /* ── Print accuracy ────────────────────────────────────── */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+
+/* ============================================
+   MODERN UI STYLES (SCREEN ONLY)
+   ============================================ */ 
+
+/* Modern School Header with Logo */
+.school-header-with-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.school-logo {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.school-tagline {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-style: italic;
+  text-align: center;
+  margin: 0.25rem 0 0 0;
+}
+
+/* Modern Summary Cards */
+.modern-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  border: none;
+}
+
+.modern-summary .summary-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+}
+
+.modern-summary .summary-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+  border-color: #3b82f6;
+}
+
+.modern-summary .summary-item.highlighted {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border-color: #2563eb;
+}
+
+.modern-summary .summary-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+.modern-summary .summary-item.highlighted .summary-icon {
+  opacity: 1;
+}
+
+.modern-summary .summary-item > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.modern-summary .summary-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.modern-summary .summary-item.highlighted .summary-label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.modern-summary .summary-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.modern-summary .summary-item.highlighted .summary-value {
+  color: white;
+}
+
+/* Modern Stats Grid */
+.modern-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+}
+
+.modern-stats .stat-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+}
+
+.modern-stats .stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  border-color: #3b82f6;
+}
+
+.modern-stats .stat-card.highlighted {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border-color: #2563eb;
+}
+
+.modern-stats .stat-icon {
+  font-size: 2rem;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.modern-stats .stat-card.highlighted .stat-icon {
+  opacity: 1;
+}
+
+.modern-stats .stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.modern-stats .stat-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.modern-stats .stat-card.highlighted .stat-label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.modern-stats .stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.modern-stats .stat-card.highlighted .stat-value {
+  color: white;
+}
+
+/* Modern Table Styles */
+.modern-table {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.modern-table .data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.modern-table .data-table th {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+  color: white;
+  font-weight: 600;
+  padding: 1rem;
+  text-align: left;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: none;
+}
+
+.modern-table .data-table tbody tr {
+  transition: all 0.2s ease;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.modern-table .data-table tbody tr:hover {
+  background: #f0f9ff !important;
+  box-shadow: inset 0 0 0 1px #e0e7ff;
+  transform: scale(1.001);
+}
+
+.modern-table .even-row {
+  background: #ffffff;
+}
+
+.modern-table .odd-row {
+  background: #f8fafc;
+}
+
+.modern-table .data-table td {
+  padding: 0.875rem 1rem;
+  color: #1e293b;
+  border: none;
+}
+
+.modern-table .amount-cell {
+  font-weight: 600;
+  color: #16a34a;
+}
+
+/* Icon Buttons */
+.btn-icon {
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.btn-icon:hover {
+  background: #f1f5f9;
+  transform: scale(1.15);
+}
+
+.btn-edit:hover {
+  background: #dbeafe;
+}
+
+.btn-delete:hover {
+  background: #fee2e2;
+}
+
+.btn-view:hover {
+  background: #f3f4f6;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .modern-summary {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .modern-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .modern-table {
+    overflow-x: auto;
+    border-radius: 8px;
+  }
+
+  .modern-table .data-table {
+    font-size: 0.75rem;
+  }
+
+  .modern-table .data-table th,
+  .modern-table .data-table td {
+    padding: 0.5rem;
+  }
+
+  .modern-summary .summary-value {
+    font-size: 1.5rem;
+  }
+
+  .modern-stats .stat-value {
+    font-size: 1.25rem;
+  }
+
+  .school-header-with-logo {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+/* ============================================================
+   CLASS MANAGEMENT — Scoped Grid Table Styles
+   (Uses .cm-* prefix to avoid conflicts with HTML <table>)
+   ============================================================ */
+.cm-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+}
+
+.cm-section {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.cm-section-header {
+  background: #1e3a8a;
+  color: white;
+  padding: 0.85rem 1.25rem;
+}
+
+.cm-section-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+}
+
+/* Grid table — 7 columns */
+.cm-grid {
+  display: grid;
+  grid-template-columns: 50px 1fr 110px 120px 130px 130px 140px;
+  min-width: 100%;
+}
+
+.cm-row { display: contents; }
+.cm-row:hover .cm-cell { background: #f7f8ff; }
+
+.cm-cell {
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #374151;
+}
+
+.cm-cell:last-child { border-right: none; }
+
+.cm-cell.cm-hdr {
+  background: #f8f9fa;
+  font-weight: 700;
+  color: #374151;
+  border-bottom: 2px solid #1e3a8a;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cm-cell .class-name {
+  font-weight: 600;
+  color: #1e3a8a;
+}
+
+.cm-cell.cm-actions {
+  gap: 0.3rem;
+  justify-content: center;
+}
+
+/* Expanded detail grid — 6 columns */
+.cm-detail-wrap {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  overflow: hidden;
+  margin-top: 0;
+}
+
+.cm-detail-grid {
+  display: grid;
+  grid-template-columns: 80px 1fr 1fr 120px 100px 130px;
+  min-width: 100%;
+}
+
+.cm-drow { display: contents; }
+.cm-drow:hover .cm-dcell { background: #f8fafc; }
+
+.cm-dcell {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+  border-right: 1px solid #f3f4f6;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  color: #374151;
+}
+
+.cm-dcell:last-child { border-right: none; }
+
+.cm-dcell.cm-dhdr {
+  background: #f9fafb;
+  font-weight: 700;
+  color: #4b5563;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Quick action links at bottom of expanded */
+.cm-action-row {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: #f8f9fa;
+  border-top: 1px solid #e5e7eb;
+}
+
+.cm-action-btn {
+  padding: 0.45rem 0.9rem;
+  background: #1e3a8a;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: background-color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.cm-action-btn:hover { background: #1e40af; }
+
+.btn-link-xs {
+  padding: 0.25rem 0.55rem;
+  background: #1e3a8a;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+.btn-link-xs:hover { background: #1e40af; }
+
+/* Generic icon action buttons */
+.btn-action {
+  background: none;
+  border: none;
+  padding: 0.3rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.15s;
+}
+.btn-action.view:hover  { background: #dbeafe; }
+.btn-action.edit:hover  { background: #fef3c7; }
+.btn-action.delete:hover{ background: #fee2e2; }
+
+/* Badges */
+.badge {
+  padding: 0.2rem 0.55rem;
+  border-radius: 12px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.badge-school  { background: #dbeafe; color: #1e40af; }
+.badge-college { background: #ecfdf5; color: #047857; }
+.badge-active  { background: #dcfce7; color: #16a34a; }
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .cm-grid {
+    grid-template-columns: 40px 1fr 90px 100px 110px 110px 120px;
+  }
+}
+
+@media (max-width: 768px) {
+  .cm-container { gap: 1rem; }
+  .cm-grid,
+  .cm-detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .cm-row,
+  .cm-drow {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin: 0.5rem;
+    padding: 0.75rem;
+  }
+  .cm-cell.cm-hdr,
+  .cm-dcell.cm-dhdr { display: none; }
+  .cm-cell,
+  .cm-dcell {
+    border: none;
+    padding: 0.25rem 0;
+    font-size: 0.82rem;
+  }
+  .cm-action-row { flex-direction: column; }
+}
+
+/* ============================================================
+   EXPENSE & PAYMENT — Screen layout improvements
+   ============================================================ */
+
+/* Summary cards row */
+.summary-card {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.summary-item {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1.1rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.summary-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.summary-value {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #1e3a8a;
+  line-height: 1.2;
+}
+
+/* Filters bar */
+.filters-section {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  background: white;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.filters-section .search-input {
+  flex: 1;
+  min-width: 240px;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.filters-section .search-input:focus {
+  border-color: #1e3a8a;
+  box-shadow: 0 0 0 3px rgba(30,58,138,0.1);
+}
+
+.filters-section .filter-input,
+.filter-group input[type="date"] {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  font-size: 0.85rem;
+  outline: none;
+  color: #374151;
+  transition: border-color 0.2s;
+}
+.filters-section .filter-input:focus,
+.filter-group input[type="date"]:focus {
+  border-color: #1e3a8a;
+  box-shadow: 0 0 0 3px rgba(30,58,138,0.1);
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.filter-group label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+/* Stats grid (quick stats row) */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.stat-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.35rem;
+}
+
+.stat-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+@media (max-width: 768px) {
+  .summary-card { grid-template-columns: 1fr; }
+  .stats-grid   { grid-template-columns: repeat(2, 1fr); }
+  .filters-section { flex-direction: column; align-items: stretch; }
+  .filters-section .search-input { min-width: unset; }
+}

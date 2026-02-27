@@ -9,6 +9,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useFetch, useMutation, useDebounce } from '../hooks/useApi';
 import { feeService } from '../services/feeService';
+import { PrintReportHeader, ReportTable, ReportActions } from './PrintReport';
 import '../fee.css';
 
 // Note: Backend API does not support payment_method field
@@ -20,7 +21,10 @@ export default function FeePaymentManagement() {
   // URL search params for handling direct navigation with filters
   const [searchParams] = useSearchParams();
   
-  // Filters state
+  // Get today's date in YYYY-MM-DD format
+  const getTodayDate = () => new Date().toISOString().split('T')[0];
+  
+  // Filters state - Initialize without calling function in initial state
   const [filters, setFilters] = useState({
     search: '',
     dateFrom: '',
@@ -30,12 +34,20 @@ export default function FeePaymentManagement() {
   // Set filters from URL params on component mount
   useEffect(() => {
     const dateParam = searchParams.get('date');
+    const today = getTodayDate();
     if (dateParam) {
-      setFilters(prev => ({
-        ...prev,
+      setFilters({
+        search: '',
         dateFrom: dateParam,
         dateTo: dateParam
-      }));
+      });
+    } else {
+      // Set to today by default
+      setFilters({
+        search: '',
+        dateFrom: today,
+        dateTo: today
+      });
     }
   }, [searchParams]);
   
@@ -127,6 +139,16 @@ export default function FeePaymentManagement() {
   const handleFilterChange = useCallback((key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   }, []);
+
+  // Clear filters - reset to today
+  const clearFilters = useCallback(() => {
+    const todayDate = getTodayDate();
+    setFilters({
+      search: '',
+      dateFrom: todayDate,
+      dateTo: todayDate,
+    });
+  }, []);
   
   // Handle payment form change
   const handlePaymentFormChange = useCallback((key, value) => {
@@ -157,15 +179,6 @@ export default function FeePaymentManagement() {
       year: 'numeric',
       month: 'short',
     });
-  }, []);
-  
-  // Format currency
-  const formatCurrency = useCallback((amount) => {
-    return new Intl.NumberFormat('en-PK', {
-      style: 'currency',
-      currency: 'PKR',
-      minimumFractionDigits: 0,
-    }).format(amount || 0);
   }, []);
   
   // Format date
@@ -204,6 +217,130 @@ export default function FeePaymentManagement() {
     };
   }, [payments]);
   
+  // Print report — isolated popup so app CSS never interferes
+  const handlePrint = useCallback(() => {
+    const dateRangeLabel = `${filters.dateFrom ? new Date(filters.dateFrom).toLocaleDateString('en-GB') : 'N/A'} — ${filters.dateTo ? new Date(filters.dateTo).toLocaleDateString('en-GB') : 'N/A'}`;
+    const printedOn     = new Date().toLocaleDateString('en-GB');
+
+    const rows = payments.map((payment, index) => {
+      const totalFee   = parseFloat(payment.total_fee) || 0;
+      const paidAmount = parseFloat(payment.amount)    || 0;
+      const remaining  = totalFee - paidAmount;
+      const isFullPaid = totalFee === 0 || remaining <= 0;
+      const statusHtml = isFullPaid
+        ? `<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:999px;font-size:7.5pt;font-weight:700;">Full Paid</span>`
+        : `<span style="background:#fff7ed;color:#9a3412;padding:2px 6px;border-radius:4px;font-size:7.5pt;font-weight:600;display:inline-block;text-align:center;">Partial<br/><span style="font-size:6.5pt;">Rs. ${remaining.toLocaleString()} left</span></span>`;
+      const cls = `${payment.class_name}${payment.section_name ? ' - ' + payment.section_name : ''}`;
+      const month = payment.month ? new Date(payment.month).toLocaleDateString('en-PK', { year:'numeric', month:'short' }) : '-';
+      const date  = payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('en-PK', { year:'numeric', month:'short', day:'numeric' }) : '-';
+      const bg = index % 2 === 0 ? '#ffffff' : '#f0f4ff';
+      return `<tr style="background:${bg};">
+        <td style="text-align:center;">${index + 1}</td>
+        <td>${payment.student_name || 'N/A'}</td>
+        <td>${cls}</td>
+        <td style="text-align:center;">${month}</td>
+        <td style="text-align:right;font-weight:700;">Rs. ${paidAmount.toLocaleString()}</td>
+        <td style="text-align:center;">${statusHtml}</td>
+        <td style="text-align:center;">${date}</td>
+      </tr>`;
+    }).join('');
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Fee Collection Report</title>
+  <style>
+    @page { size: A4 landscape; margin: 1.2cm 0.8cm; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; color: #000; background: #fff; }
+    .school-name { text-align:center; font-size:11pt; font-weight:800; text-transform:uppercase; letter-spacing:.06em; margin-bottom:.15rem; }
+    .report-title { text-align:center; font-size:14pt; font-weight:700; color:#1e3a8a; text-transform:uppercase; letter-spacing:.05em; margin-bottom:.4rem; }
+    .divider { border:none; border-top:2.5px solid #1e3a8a; margin-bottom:0; }
+    .meta-bar { display:flex; flex-wrap:wrap; gap:.5rem 1.5rem; align-items:center; font-size:8pt; padding:.3rem .6rem; background:#e8edf8; border:1px solid #b5c3e8; border-top:none; margin-bottom:.5rem; }
+    .meta-bar strong { color:#1e3a8a; }
+    table { width:100%; border-collapse:collapse; table-layout:fixed; }
+    col.sno    { width:5%; }
+    col.student{ width:24%; }
+    col.class  { width:13%; }
+    col.month  { width:12%; }
+    col.amount { width:13%; }
+    col.status { width:18%; }
+    col.date   { width:15%; }
+    th { background:#1e3a8a; color:#fff; font-size:7pt; font-weight:700; text-transform:uppercase; letter-spacing:.03em; padding:.25rem .4rem; border:1px solid #1e3a8a; white-space:nowrap; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    td { padding:.18rem .4rem; border:.5px solid #c0c0c0; font-size:8.5pt; vertical-align:middle; line-height:1.2; white-space:nowrap; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    tfoot td { background:#1e3a8a; color:#fff; font-weight:700; font-size:8.5pt; text-align:center; padding:.25rem .4rem; border:1.5px solid #1e3a8a; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    tr { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  </style>
+</head>
+<body>
+  <div class="school-name">Muslim Public Higher Secondary School Lar</div>
+  <div class="report-title">Fee Collection Report</div>
+  <hr class="divider"/>
+  <div class="meta-bar">
+    <span><strong>Date Range:</strong> ${dateRangeLabel}</span>
+    <span><strong>Total Payments:</strong> ${stats.totalPayments}</span>
+    <span><strong>Total Amount:</strong> Rs. ${stats.totalAmount.toLocaleString()}</span>
+    <span><strong>Printed On:</strong> ${printedOn}</span>
+  </div>
+  <table>
+    <colgroup>
+      <col class="sno"/><col class="student"/><col class="class"/>
+      <col class="month"/><col class="amount"/><col class="status"/><col class="date"/>
+    </colgroup>
+    <thead>
+      <tr>
+        <th style="text-align:center;">S.No</th>
+        <th>Student</th>
+        <th>Class</th>
+        <th style="text-align:center;">Month</th>
+        <th style="text-align:right;">Amount</th>
+        <th style="text-align:center;">Payment Status</th>
+        <th style="text-align:center;">Payment Date</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+    <tfoot>
+      <tr><td colspan="7">Grand Total: Rs. ${stats.totalAmount.toLocaleString()}</td></tr>
+    </tfoot>
+  </table>
+</body>
+</html>`;
+
+    const popup = window.open('', '_blank', 'width=1100,height=750');
+    popup.document.write(html);
+    popup.document.close();
+    popup.focus();
+    setTimeout(() => { popup.print(); popup.close(); }, 400);
+  }, [payments, filters, stats, formatMonth, formatDate]);
+
+  // Save report as CSV
+  const handleSave = useCallback(() => {
+    const headers = ['ID', 'Student', 'Class', 'Month', 'Amount', 'Payment Date'];
+    const csvData = payments.map(p => [
+      p.id,
+      p.student_name || 'N/A',
+      `${p.class_name}${p.section_name ? ' - ' + p.section_name : ''}`,
+      formatMonth(p.month),
+      parseFloat(p.amount || 0).toFixed(2),
+      formatDate(p.payment_date)
+    ]);
+    
+    let csvContent = headers.join(',') + '\n';
+    csvData.forEach(row => {
+      csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
+    });
+    csvContent += `\nTotal Payments,,,,,Rs. ${stats.totalAmount.toFixed(2)}`;
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fee_payments_${filters.dateFrom}_to_${filters.dateTo}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }, [payments, filters, stats, formatMonth, formatDate]);
+  
   return (
     <div className="fee-management">
       <div className="page-header">
@@ -239,7 +376,7 @@ export default function FeePaymentManagement() {
           </div>
           <div className="stat-card">
             <div className="stat-label">Total Collected</div>
-            <div className="stat-value">{formatCurrency(stats.totalAmount)}</div>
+            <div className="stat-value">Rs. {stats.totalAmount.toLocaleString()}</div>
           </div>
           <div className="stat-card">
             <div className="stat-label">Today's Payments</div>
@@ -247,7 +384,7 @@ export default function FeePaymentManagement() {
           </div>
           <div className="stat-card">
             <div className="stat-label">Today's Collection</div>
-            <div className="stat-value">{formatCurrency(stats.todayAmount)}</div>
+            <div className="stat-value">Rs. {stats.todayAmount.toLocaleString()}</div>
           </div>
         </div>
       </div>
@@ -278,12 +415,40 @@ export default function FeePaymentManagement() {
               placeholder="To Date"
             />
             <button
+              className="btn-secondary"
+              onClick={clearFilters}
+            >
+              Reset to Today
+            </button>
+            <button
               className="btn-primary"
               onClick={() => setShowRecordModal(true)}
             >
               + Record Payment
             </button>
           </div>
+
+          <ReportActions
+            onSave={handleSave}
+            onPrint={handlePrint}
+          />
+
+          <PrintReportHeader
+            title="Fee Collection Report"
+            meta={[
+              {
+                label: "Date Range",
+                value: `${filters.dateFrom
+                  ? new Date(filters.dateFrom).toLocaleDateString("en-GB")
+                  : "N/A"} — ${filters.dateTo
+                  ? new Date(filters.dateTo).toLocaleDateString("en-GB")
+                  : "N/A"}`,
+              },
+              { label: "Total Payments", value: stats.totalPayments },
+              { label: "Total Amount",   value: `Rs. ${stats.totalAmount.toLocaleString()}` },
+              { label: "Printed On",     value: new Date().toLocaleDateString("en-GB") },
+            ]}
+          />
           
           {/* Error Display */}
           {paymentsError && (
@@ -304,62 +469,55 @@ export default function FeePaymentManagement() {
               <p>Try adjusting your filters or record a new payment</p>
             </div>
           ) : (
-            <div className="table-container">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Student</th>
-                    <th>Class</th>
-                    <th>Month</th>
-                    <th>Amount</th>
-                    <th>Payment Date</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.map((payment) => (
-                    <tr key={payment.id}>
-                      <td>
-                        <strong>#{payment.id}</strong>
-                      </td>
-                      <td>
-                        <div className="student-info">
-                          <span className="student-name">
-                            {payment.student_name || 'N/A'}
-                          </span>
-                          <span className="student-roll">
-                            {payment.roll_no || ''}
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        {payment.class_name}
-                        {payment.section_name && ` - ${payment.section_name}`}
-                      </td>
-                      <td>{formatMonth(payment.month)}</td>
-                      <td>
-                        <strong style={{ color: '#28a745' }}>
-                          {formatCurrency(parseFloat(payment.amount) || 0)}
-                        </strong>
-                      </td>
-                      <td>{formatDate(payment.payment_date)}</td>
-                      <td>
-                        <div className="action-buttons">
-                          <button
-                            className="btn-action btn-download"
-                            onClick={() => handleViewPayment(payment)}
-                            title="View Details"
-                          >
-                            👁️
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ReportTable
+              columns={[
+                { key: "id",          label: "S.No",           printWidth: "6%",  printAlign: "center" },
+                { key: "student",     label: "Student",        printWidth: "25%", printAlign: "left"   },
+                { key: "class_",      label: "Class",          printWidth: "14%", printAlign: "left"   },
+                { key: "month",       label: "Month",          printWidth: "13%", printAlign: "center" },
+                { key: "amount",      label: "Amount",         printWidth: "13%", printAlign: "right"  },
+                { key: "status",      label: "Payment Status", printWidth: "16%", printAlign: "center" },
+                { key: "paymentDate", label: "Payment Date",   printWidth: "13%", printAlign: "center" },
+                { key: "actions",     label: "Actions",        printHide: true },
+              ]}
+              rows={payments.map((payment, index) => {
+                const totalFee   = parseFloat(payment.total_fee) || 0;
+                const paidAmount = parseFloat(payment.amount)    || 0;
+                const remaining  = totalFee - paidAmount;
+                const isFullPaid = totalFee === 0 || remaining <= 0;
+                return {
+                  id: index + 1,
+                  student: (
+                    <span className="student-name">{payment.student_name || 'N/A'}</span>
+                  ),
+                  class_: `${payment.class_name}${payment.section_name ? ' - ' + payment.section_name : ''}`,
+                  month: formatMonth(payment.month),
+                  amount: <strong>Rs. {paidAmount.toLocaleString()}</strong>,
+                  status: isFullPaid ? (
+                    <span className="pay-status pay-status--full">Full Paid</span>
+                  ) : (
+                    <span className="pay-status pay-status--partial">
+                      Partial<br />
+                      <span className="pay-status__remaining">Rs. {remaining.toLocaleString()} left</span>
+                    </span>
+                  ),
+                  paymentDate: formatDate(payment.payment_date),
+                  actions: (
+                    <div className="action-buttons">
+                      <button
+                        className="btn-view"
+                        onClick={() => handleViewPayment(payment)}
+                      >
+                        View
+                      </button>
+                    </div>
+                  ),
+                };
+              })}
+              footerCells={[
+                { colSpan: 7, content: `Grand Total: Rs. ${stats.totalAmount.toLocaleString()}`, align: "center" },
+              ]}
+            />
           )}
         </>
       )}
@@ -405,7 +563,7 @@ export default function FeePaymentManagement() {
             <div className="stat-card">
               <div className="stat-label">Total Due Amount</div>
               <div className="stat-value" style={{ color: '#dc3545' }}>
-                {formatCurrency(defaultersSummary.total_due_amount || 0)}
+                Rs. {(defaultersSummary.total_due_amount || 0).toLocaleString()}
               </div>
             </div>
           </div>
@@ -454,12 +612,12 @@ export default function FeePaymentManagement() {
                         {defaulter.section_name && ` - ${defaulter.section_name}`}
                       </td>
                       <td>{defaulter.total_vouchers}</td>
-                      <td>{formatCurrency(parseFloat(defaulter.total_fee) || 0)}</td>
+                      <td>Rs. {parseFloat(defaulter.total_fee).toLocaleString()}</td>
                       <td style={{ color: '#28a745' }}>
-                        {formatCurrency(parseFloat(defaulter.paid_amount) || 0)}
+                        Rs. {parseFloat(defaulter.paid_amount).toLocaleString()}
                       </td>
                       <td style={{ color: '#dc3545', fontWeight: 'bold' }}>
-                        {formatCurrency(parseFloat(defaulter.due_amount) || 0)}
+                        Rs. {parseFloat(defaulter.due_amount).toLocaleString()}
                       </td>
                       <td>
                         {defaulter.guardians?.length > 0 ? (
@@ -513,7 +671,7 @@ export default function FeePaymentManagement() {
                     {unpaidVouchers.map(voucher => (
                       <option key={voucher.voucher_id} value={voucher.voucher_id}>
                         #{voucher.voucher_id} - {voucher.student_name} ({voucher.class_name}) - 
-                        Due: {formatCurrency(parseFloat(voucher.due_amount) || 0)}
+                        Due: Rs. {parseFloat(voucher.due_amount).toLocaleString()}
                       </option>
                     ))}
                   </select>
@@ -585,8 +743,8 @@ export default function FeePaymentManagement() {
                 <p><strong>Roll Number:</strong> {selectedPayment.roll_no || 'N/A'}</p>
                 <p><strong>Class:</strong> {selectedPayment.class_name}{selectedPayment.section_name && ` - ${selectedPayment.section_name}`}</p>
                 <p><strong>Month:</strong> {formatMonth(selectedPayment.month)}</p>
-                <p><strong>Amount Paid:</strong> {formatCurrency(parseFloat(selectedPayment.amount) || 0)}</p>
-                <p><strong>Total Fee:</strong> {formatCurrency(parseFloat(selectedPayment.total_fee) || 0)}</p>
+                <p><strong>Amount Paid:</strong> Rs. {parseFloat(selectedPayment.amount).toLocaleString()}</p>
+                <p><strong>Total Fee:</strong> Rs. {parseFloat(selectedPayment.total_fee).toLocaleString()}</p>
                 <p><strong>Payment Date:</strong> {formatDate(selectedPayment.payment_date)}</p>
                 <p><strong>Recorded At:</strong> {formatDate(selectedPayment.created_at)}</p>
               </div>

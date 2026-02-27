@@ -1,0 +1,383 @@
+/* ============================================
+   STUDENT SEARCH BAR STYLES
+   ============================================ */
+
+.student-search-bar {
+  position: relative;
+  width: 100%;
+}
+
+.student-search-bar.compact {
+  max-width: none;
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: white;
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.75rem;
+  box-shadow: none;
+  border: 1.5px solid var(--color-gray-300);
+  transition: all 0.2s ease;
+}
+
+.search-input-wrapper:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-100);
+}
+
+.search-icon {
+  font-size: 1.1rem;
+  margin-right: 0.5rem;
+  color: var(--color-gray-500);
+}
+
+.student-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 0.95rem;
+  color: var(--color-text-primary);
+  background: transparent;
+}
+
+.student-search-input::placeholder {
+  color: var(--color-gray-400);
+}
+
+.search-loading {
+  margin-left: 0.5rem;
+  font-size: 0.9rem;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.clear-search-btn {
+  background: none;
+  border: none;
+  color: var(--color-gray-500);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  margin-left: 0.5rem;
+  transition: color 0.2s ease;
+}
+
+.clear-search-btn:hover {
+  color: var(--color-error);
+}
+
+/* Search Results Dropdown */
+.search-results-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--color-gray-200);
+  max-height: 450px;
+  overflow-y: auto;
+  z-index: 1000;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.search-results-header {
+  padding: 0.625rem 0.875rem;
+  background: var(--color-gray-50);
+  border-bottom: 1px solid var(--color-gray-200);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+}
+
+.search-results-header p {
+  margin: 0;
+}
+
+.search-results-list {
+  padding: 0.375rem;
+}
+
+/* Card Container */
+.search-result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--color-gray-200);
+  margin-bottom: 0.5rem;
+  background: #fff;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  min-height: 80px;
+}
+
+.search-result-item:last-child {
+  margin-bottom: 0;
+}
+
+.search-result-item:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+  transform: translateY(-1px);
+  background: #fafbff;
+}
+
+.search-result-item.compact {
+  padding: 0.6rem 0.875rem;
+}
+
+/* Left Section */
+.student-card-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Avatar Circle */
+.student-avatar {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary), #6366f1);
+  color: white;
+  font-weight: 700;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3);
+}
+
+/* Info Block */
+.student-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.student-name-highlight {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+/* Student Name Row */
+.student-name-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.375rem;
+}
+
+/* Meta Grid - Consistent Layout */
+.student-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  align-items: start;
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.meta-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  line-height: 1;
+}
+
+.meta-value {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+/* Details Button */
+.btn-view-details-compact {
+  padding: 0.45rem 1rem;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.78rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.btn-view-details-compact:hover {
+  background: var(--color-primary-dark);
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-view-details-compact:active {
+  transform: translateY(0);
+}
+
+.search-error,
+.no-results {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.search-error p,
+.no-results p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.search-error {
+  color: var(--color-error);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .search-result-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .student-card-left {
+    gap: 0.625rem;
+  }
+
+  .student-avatar {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    font-size: 0.95rem;
+  }
+
+  .student-name-highlight {
+    font-size: 0.85rem;
+  }
+
+  .student-meta-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.375rem;
+  }
+
+  .meta-label {
+    font-size: 0.6rem;
+  }
+
+  .meta-value {
+    font-size: 0.75rem;
+  }
+
+  .btn-view-details-compact {
+    width: 100%;
+    padding: 0.5rem;
+  }
+
+  .search-results-dropdown {
+    max-height: 350px;
+  }
+}
+
+@media (max-width: 480px) {
+  .search-input-wrapper {
+    padding: 0.4rem 0.6rem;
+  }
+
+  .student-search-input {
+    font-size: 0.85rem;
+  }
+
+  .search-icon {
+    font-size: 1rem;
+  }
+
+  .student-avatar {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    font-size: 0.875rem;
+  }
+
+  .student-name-highlight {
+    font-size: 0.8rem;
+  }
+
+  .student-meta-grid {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+
+  .meta-label {
+    font-size: 0.58rem;
+  }
+
+  .meta-value {
+    font-size: 0.72rem;
+  }
+}
+
+/* Custom Scrollbar for Search Results */
+.search-results-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.search-results-dropdown::-webkit-scrollbar-track {
+  background: var(--color-gray-100);
+  border-radius: var(--radius-md);
+}
+
+.search-results-dropdown::-webkit-scrollbar-thumb {
+  background: var(--color-gray-400);
+  border-radius: var(--radius-md);
+}
+
+.search-results-dropdown::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gray-500);
+}

@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { Link } from 'react-router-dom'
+import { sectionService } from '../../services/classService'
 import './CompactClassCard.css'
 
 const CompactClassCard = ({ 
@@ -20,6 +22,29 @@ const CompactClassCard = ({
     student_count = 0
   } = classData
 
+  const [sections, setSections] = useState([])
+  const [loadingSections, setLoadingSections] = useState(false)
+
+  // Fetch sections for student variant to show section-wise student count
+  useEffect(() => {
+    if (variant === 'student' && id) {
+      loadSections()
+    }
+  }, [variant, id, student_count]) // Re-fetch when student_count changes
+
+  const loadSections = async () => {
+    try {
+      setLoadingSections(true)
+      const response = await sectionService.list(id)
+      setSections(response.data || [])
+    } catch (err) {
+      console.error('Failed to load sections:', err)
+      setSections([])
+    } finally {
+      setLoadingSections(false)
+    }
+  }
+
   if (variant === 'student') {
     return (
       <Link
@@ -34,9 +59,28 @@ const CompactClassCard = ({
         </div>
         <div className="compact-card-body">
           <h3 className="compact-card-title">{name}</h3>
-          <p className="compact-card-subtitle">
-            {section_count} sections • {student_count} students
-          </p>
+          {loadingSections ? (
+            <p className="compact-card-subtitle">Loading sections...</p>
+          ) : sections.length > 0 ? (
+            <div className="section-wise-students">
+              {sections.map((section) => (
+                <div key={section.id} className="section-student-row">
+                  <span className="section-name">{section.name}</span>
+                  <span className="section-count">{section.student_count || 0}</span>
+                </div>
+              ))}
+              {sections.length > 1 && (
+                <div className="total-students-summary">
+                  <span>Total Students</span>
+                  <span>{sections.reduce((sum, sec) => sum + (sec.student_count || 0), 0)}</span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="compact-card-subtitle">
+              {section_count} sections • {student_count} students
+            </p>
+          )}
         </div>
         <div className="compact-card-footer">
           <span className="compact-status-badge active">Active</span>

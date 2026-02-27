@@ -810,3 +810,78 @@
         font-size: var(--font-size-xs);
     }
 }
+
+/* ============================================
+   SEPARATED FILTER SECTIONS
+   ============================================ */
+
+.filter-section {
+    background: white;
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--color-gray-200);
+    margin-bottom: var(--spacing-md);
+}
+
+.filter-section-title {
+    margin: 0 0 var(--spacing-sm) 0;
+    font-size: var(--font-size-base);
+    font-weight: var(--font-semibold);
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.class-filter-controls {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    min-width: 300px;
+}
+
+.search-input-simple {
+    padding: 0.5rem 0.75rem;
+    border: 1.5px solid var(--color-gray-300);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    background: white;
+    transition: all var(--transition-fast);
+    width: 100%;
+}
+
+.search-input-simple:focus {
+    outline: none;
+    border-color: var(--color-primary-600);
+    box-shadow: 0 0 0 2px var(--color-primary-100);
+}
+
+.student-sub-info {
+    margin: 0.5rem 0 0 0;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+/* Responsive for filter sections */
+@media (max-width: 768px) {
+    .filter-section {
+        padding: var(--spacing-sm);
+        margin-bottom: var(--spacing-sm);
+    }
+    
+    .filter-section-title {
+        font-size: var(--font-size-sm);
+    }
+    
+    .class-filter-controls {
+        min-width: auto;
+        width: 100%;
+    }
+}
+
+@media (min-width: 769px) {
+    .filter-section {
+        padding: var(--spacing-lg);
+    }
+}

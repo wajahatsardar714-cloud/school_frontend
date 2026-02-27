@@ -13,7 +13,16 @@ export const studentService = {
     if (filters.section_id) params.append('section_id', filters.section_id)
     if (filters.is_active !== undefined) params.append('is_active', filters.is_active)
     if (filters.is_expelled !== undefined) params.append('is_expelled', filters.is_expelled)
+    if (filters.search) params.append('search', filters.search)
 
+    const query = params.toString() ? `?${params.toString()}` : ''
+    return await apiClient.get(`${API_ENDPOINTS.STUDENTS}${query}`)
+  },
+
+  async search(searchTerm) {
+    const params = new URLSearchParams()
+    if (searchTerm) params.append('search', searchTerm)
+    
     const query = params.toString() ? `?${params.toString()}` : ''
     return await apiClient.get(`${API_ENDPOINTS.STUDENTS}${query}`)
   },

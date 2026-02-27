@@ -697,12 +697,12 @@ const StudentDetail = () => {
             {/* Document Upload Modal */}
             {showDocumentUploadModal && (
                 <div className="modal-overlay" onClick={() => setShowDocumentUploadModal(false)}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px', maxHeight: '95vh', display: 'flex', flexDirection: 'column' }}>
                         <div className="modal-header">
                             <h3>Upload New Document</h3>
                             <button className="modal-close" onClick={() => setShowDocumentUploadModal(false)}>×</button>
                         </div>
-                        <div className="modal-body">
+                        <div className="modal-body" style={{ overflowY: 'auto', flex: 1 }}>
                             <div className="form-group" style={{ marginBottom: '1rem' }}>
                                 <label htmlFor="documentType" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
                                     Document Type
