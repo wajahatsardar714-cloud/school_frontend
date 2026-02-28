@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import * as XLSX from 'xlsx'
 import { studentService } from '../../services/studentService'
 import { classService, sectionService } from '../../services/classService'
+import { sortClassesBySequence } from '../../utils/classSorting'
 import './CSVImportModal.css'
 
 /**
@@ -43,23 +44,22 @@ const CSVImportModal = ({
   // Full screen edit mode
   const [fullScreenEdit, setFullScreenEdit] = useState(false)
   
-  // Column management for preview
+  // Column management for preview - Updated to new CSV structure
   const [availableColumns, setAvailableColumns] = useState([
+    { key: 'srNo', label: 'Sr No (Roll No)', required: true },
     { key: 'name', label: 'Student Name', required: true },
     { key: 'fatherName', label: 'Father Name', required: true },
-    { key: 'firstName', label: 'First Name', required: false },
-    { key: 'lastName', label: 'Last Name', required: false },
-    { key: 'phone', label: 'Contact/Phone', required: false },
-    { key: 'fee', label: 'Fee', required: false },
+    { key: 'fatherContactNo', label: "Father's Contact Number", required: true },
+    { key: 'monthlyFee', label: 'Fee (Monthly)', required: true },
+    // Additional optional fields
     { key: 'email', label: 'Email', required: false },
-    { key: 'rollNumber', label: 'Roll/Sr Number', required: false },
     { key: 'address', label: 'Address', required: false },
     { key: 'dateOfBirth', label: 'Date of Birth', required: false },
     { key: 'motherName', label: 'Mother Name', required: false },
     { key: 'caste', label: 'Caste', required: false },
     { key: 'religion', label: 'Religion', required: false }
   ])
-  const [visibleColumns, setVisibleColumns] = useState(['name', 'fatherName', 'phone', 'fee', 'rollNumber'])
+  const [visibleColumns, setVisibleColumns] = useState(['srNo', 'name', 'fatherName', 'fatherContactNo', 'monthlyFee'])
 
   // If class and section are preselected, skip to step 2
   useEffect(() => {
@@ -96,6 +96,12 @@ const CSVImportModal = ({
     }
   }
 
+  // Sort classes using centralized sorting
+  const sortedClasses = useMemo(
+    () => sortClassesBySequence(classes),
+    [classes]
+  )
+
   const loadSections = async (classId) => {
     try {
       setLoading(true)
@@ -120,7 +126,7 @@ const CSVImportModal = ({
     onClose()
   }
 
-  // Comprehensive field mapping for flexible CSV import
+  // Comprehensive field mapping for flexible CSV import - Updated for new structure
   const fieldMappings = {
     // Name fields 
     'firstname': 'firstName',
@@ -138,38 +144,51 @@ const CSVImportModal = ({
     'studentname': 'name',
     'fullname': 'name',
     
-    // Serial Number / Sr No
-    'srno': 'rollNumber',
-    'sr': 'rollNumber',
-    'sno': 'rollNumber',
-    'serialno': 'rollNumber',
-    'serialnumber': 'rollNumber',
+    // Serial Number / Sr No - Maps to roll number
+    'srno': 'srNo',
+    'sr': 'srNo',
+    'sno': 'srNo',
+    'serialno': 'srNo',
+    'serialnumber': 'srNo',
+    'rollnumber': 'srNo',
+    'rollno': 'srNo',
+    'roll': 'srNo',
     
-    // Contact fields
+    // Father Name - New required field
+    'fathername': 'fatherName',
+    'father': 'fatherName',
+    'fathersname': 'fatherName',
+    'dadname': 'fatherName',
+    'guardianname': 'fatherName',
+    
+    // Father's Contact - New required field
+    'fathercontact': 'fatherContactNo',
+    'fatherscontact': 'fatherContactNo',
+    'fatherphone': 'fatherContactNo',
+    'fathersphone': 'fatherContactNo',
+    'fathercontactnumber': 'fatherContactNo',
+    'fatherscontactnumber': 'fatherContactNo',
+    'guardiancontact': 'fatherContactNo',
+    'parentcontact': 'fatherContactNo',
+    
+    // General contact fields (fallback for father contact)
     'email': 'email',
     'emailaddress': 'email',
     'mail': 'email',
-    'phone': 'phone',
-    'phonenumber': 'phone',
-    'mobile': 'phone',
-    'contact': 'phone',
-    'contactno': 'phone',
-    'contactnumber': 'phone',
-    'cellphone': 'phone',
+    'phone': 'fatherContactNo', // Map general phone to father contact
+    'phonenumber': 'fatherContactNo',
+    'mobile': 'fatherContactNo',
+    'contact': 'fatherContactNo',
+    'contactno': 'fatherContactNo',
+    'contactnumber': 'fatherContactNo',
+    'cellphone': 'fatherContactNo',
     
-    // Identifier
-    'rollnumber': 'rollNumber',
-    'rollno': 'rollNumber',
-    'roll': 'rollNumber',
-    'studentid': 'rollNumber',
-    'regno': 'rollNumber',
-    'registrationnumber': 'rollNumber',
-    
-    // Fee
-    'fee': 'fee',
-    'fees': 'fee',
-    'monthlyfee': 'fee',
-    'amount': 'fee',
+    // Monthly Fee - New required field
+    'fee': 'monthlyFee',
+    'fees': 'monthlyFee',
+    'monthlyfee': 'monthlyFee',
+    'amount': 'monthlyFee',
+    'tuitionfee': 'monthlyFee',
     
     // Address
     'address': 'address',
@@ -246,100 +265,120 @@ const CSVImportModal = ({
         // Convert to JSON - get all rows as arrays first
         const allRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' })
         
-        if (allRows.length < 2) {
-          setError('File must contain at least a header row and one data row')
+        if (allRows.length < 1) {
+          setError('File is empty or cannot be read')
           return
         }
 
-        console.log('All CSV rows:', allRows)
+        console.log('📊 Total CSV rows:', allRows.length)
+        console.log('📋 Sample first row:', allRows[0])
 
-        // Smart header detection: Find the row with actual column names
-        const headerKeywords = ['name', 'father', 'sr', 'contact', 'fee', 'roll', 'phone', 'email', 'student']
-        let headerRowIndex = -1
+        // POSITION-BASED MAPPING (no reliance on headers):
+        // Column 0 = Sr No (Roll No)
+        // Column 1 = Name
+        // Column 2 = Father Name
+        // Column 3 = Father Contact Number  
+        // Column 4 = Fee
 
-        for (let i = 0; i < Math.min(10, allRows.length); i++) {
-          const row = allRows[i]
-          if (!row || row.length === 0) continue
+        // Detect if first row is likely a header (check if first cell is numeric or text)
+        let startRowIndex = 0
+        let headerRow = null
+        
+        if (allRows[0] && allRows[0].length > 0) {
+          const firstCell = String(allRows[0][0] || '').trim().toLowerCase()
+          // If first cell contains "sr", "no", "roll", or is non-numeric text, it's likely a header
+          const isHeader = firstCell.includes('sr') || 
+                          firstCell.includes('no') || 
+                          firstCell.includes('roll') ||
+                          firstCell === '#' ||
+                          (isNaN(firstCell) && firstCell.length > 0 && firstCell.length < 20)
           
-          // Check if this row contains header-like text
-          const rowText = row.map(cell => String(cell || '').toLowerCase()).join(' ')
-          const matchCount = headerKeywords.filter(keyword => rowText.includes(keyword)).length
-          
-          // If we find multiple keywords, this is likely the header row
-          if (matchCount >= 2) {
-            headerRowIndex = i
-            console.log(`📋 Detected header row at index ${i}:`, row)
-            break
+          if (isHeader) {
+            console.log('📋 Detected header row:', allRows[0])
+            headerRow = allRows[0]
+            startRowIndex = 1
+          } else {
+            console.log('⚠️ No header detected, treating all rows as data')
           }
         }
 
-        // If no header detected, assume first row is header
-        if (headerRowIndex === -1) {
-          headerRowIndex = 0
-          console.log('⚠️ No header detected, using first row as header')
+        const dataRows = allRows.slice(startRowIndex)
+        
+        if (dataRows.length === 0) {
+          setError('No data rows found in the CSV file')
+          return
         }
 
-        const originalHeaders = allRows[headerRowIndex]
-        const headers = originalHeaders.map(h => String(h).toLowerCase().replace(/[^a-z0-9]/g, ''))
-        const rows = allRows.slice(headerRowIndex + 1)
+        console.log(`📊 Processing ${dataRows.length} data rows`)
 
-        console.log('📄 Original headers:', originalHeaders)
-        console.log('🔤 Normalized headers:', headers)
-        console.log(`📊 Data rows: ${rows.length}, Skipped ${headerRowIndex} header row(s)`)
+        // Set headers for display (either detected or default)
+        const displayHeaders = headerRow || ['Sr No', 'Name', 'Father Name', 'Father Contact', 'Fee']
+        setCsvHeaders(displayHeaders)
 
-        setCsvHeaders(originalHeaders) // Original headers for display
+        // Map CSV data using POSITION-BASED approach
+        const mappedData = dataRows.map((row, index) => {
+          // Extract values by column position (always the same regardless of header names)
+          const srNo = row[0] ? String(row[0]).trim() : (index + 1).toString()
+          const name = row[1] ? String(row[1]).trim() : ''
+          const fatherName = row[2] ? String(row[2]).trim() : ''
+          const fatherContactNo = row[3] ? String(row[3]).trim() : ''
+          const monthlyFee = row[4] ? parseFloat(row[4]) : null
 
-        // Map CSV data to our fields
-        const mappedData = rows.map((row, index) => {
-          const student = {}
-          
-          headers.forEach((header, columnIndex) => {
-            const value = row[columnIndex]
-            const mappedField = fieldMappings[header] || header
-            
-            if (value !== undefined && value !== null && value !== '') {
-              student[mappedField] = String(value).trim()
-            }
-          })
-
-          // If we have a full "name" field, and no firstName/lastName, use name as full name
-          if (student.name && !student.firstName && !student.lastName) {
-            // Keep as is - backend will handle it
+          // Log first student to verify position-based extraction
+          if (index === 0) {
+            console.log('🔍 POSITION-BASED extraction (first student):', {
+              'Column 0 (Sr No)': srNo,
+              'Column 1 (Name)': name,
+              'Column 2 (Father Name)': fatherName,
+              'Column 3 (Contact)': fatherContactNo,
+              'Column 4 (Fee)': monthlyFee
+            })
           }
 
-          // Set class and section as numbers
-          student.classId = parseInt(selectedClassId)
-          student.sectionId = parseInt(selectedSectionId)
+          // Build student object with correctly named fields
+          const student = {
+            srNo: srNo,
+            name: name,
+            fatherName: fatherName,
+            fatherContactNo: fatherContactNo,
+            monthlyFee: monthlyFee,
+            classId: parseInt(selectedClassId),
+            sectionId: parseInt(selectedSectionId)
+          }
 
           return student
         })
 
-        // Filter out completely empty rows
+        // Filter out completely empty rows (rows with no name)
         const validData = mappedData.filter(student => {
-          const hasData = Object.keys(student).some(key => 
-            key !== 'classId' && key !== 'sectionId' && 
-            student[key] && String(student[key]).trim() !== ''
-          )
-          return hasData
+          // At minimum, student must have a name
+          return student.name && student.name.trim() !== ''
         })
 
-        console.log('✅ Mapped data - first student:', validData[0])
+        console.log('✅ Position-based mapping complete!')
+        console.log('📊 First student mapped:', validData[0])
         console.log(`📊 Total valid students: ${validData.length}`)
 
         // Validate data - Accept everything, only warn for useful info
         const warnings = []
         validData.forEach((student, index) => {
-          // Warn if missing name or father name (soft requirement)
-          if (!student.name && !student.firstName) {
+          // Warn if missing important fields
+          if (!student.name) {
             warnings.push({
               row: index + 1,
-              message: 'Missing student name - please review'
+              message: 'Missing student name'
             })
           }
           if (!student.fatherName) {
             warnings.push({
               row: index + 1,
-              message: 'Missing father name - please review'
+              message: 'Missing father name'
+            })
+          }
+          if (!student.fatherContactNo) {
+            warnings.push({
+              row: index + 1,
+              message: 'Missing contact number'
             })
           }
         })
@@ -366,24 +405,26 @@ const CSVImportModal = ({
       setLoading(true)
       setError('')
       
-      // Prepare data for import - accept everything with minimal processing
+      // Data is already properly mapped from position-based extraction
+      // Just ensure all fields are present and in the correct format
       const importData = editableCsvData.map((student, index) => {
-        // Build full name if not provided - auto-generate if needed
-        let fullName = student.name
-        if (!fullName && (student.firstName || student.lastName)) {
-          fullName = `${student.firstName || ''} ${student.lastName || ''}`.trim()
+        const studentData = {
+          // Already mapped from CSV positions
+          name: student.name || `Student ${index + 1}`,
+          fatherName: student.fatherName || '',
+          fatherContactNo: student.fatherContactNo || '',
+          monthlyFee: student.monthlyFee || null,
+          srNo: student.srNo || (index + 1).toString(),
+          classId: parseInt(selectedClassId) || 1,
+          sectionId: parseInt(selectedSectionId) || 1,
         }
-        if (!fullName) {
-          fullName = `Student ${index + 1}` // Auto-generate name
+
+        // Log first student to verify data structure before sending
+        if (index === 0) {
+          console.log('📦 First student being sent to backend:', studentData)
         }
-        
-        return {
-          ...student,
-          name: fullName,
-          classId: parseInt(selectedClassId) || 1, // Default to class 1
-          sectionId: parseInt(selectedSectionId) || 1, // Default to section 1
-          // Let backend handle all other fields - no validation here
-        }
+
+        return studentData
       })
 
       console.log('🚀 Sending data without frontend validation:', {
@@ -472,12 +513,13 @@ const CSVImportModal = ({
   const downloadTemplate = () => {
     const template = [
       ['Muslim Public Higher Secondary School'], // Row 1
-      ['Fee Record 2026'], // Row 2  
-      ['Class Information'], // Row 3
-      ['Sr No', 'Name', 'Father Name', 'Contact No', 'Fee', 'March', 'Outstanding Dues'], // Headers Row 4
-      [1, 'Muhammad Ahmad Salar', 'Muhammad Ashraf', '0300-2673686', 1200, '', ''], // Data Row 5
-      [2, 'Ali Haider', 'Nasir Hussain', '0300-6774954', 1200, '', ''],
-      [3, 'Abdul Hadi Sabir', 'Muhammad Sabir', '0306-9458339', 1200, '', '']
+      ['Student Import Template 2026'], // Row 2  
+      ['Format: Sr No (auto-assigned), Name, Father Name, Father\'s Contact Number, Fee (Monthly)'], // Row 3
+      ['Sr No', 'Name', 'Father Name', 'Father\'s Contact Number', 'Fee'], // Headers Row 4 - New structure
+      [1, 'Ahmed Ali Khan', 'Ali Khan', '0300-1234567', 5000], // Data Row 5
+      [2, 'Fatima Sheikh', 'Muhammad Sheikh', '0301-2345678', 4500],
+      [3, 'Hassan Ahmed', 'Ahmed Sheikh', '0302-3456789', 5000],
+      [4, 'Ayesha Malik', 'Malik Saeed', '0303-4567890', 4000]
     ]
     
     const ws = XLSX.utils.aoa_to_sheet(template)
@@ -523,7 +565,7 @@ const CSVImportModal = ({
                       className="form-select"
                     >
                       <option value="">Select a class</option>
-                      {classes.map(cls => (
+                      {sortedClasses.map(cls => (
                         <option key={cls.id} value={cls.id}>
                           {cls.name}
                         </option>

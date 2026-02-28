@@ -73,7 +73,16 @@
   transform: translateY(-1px);
 }
 
-/* Responsive Design */
+/* ============================================
+   MOBILE RESPONSIVENESS - FILTER BAR
+   ============================================ */
+
+@media (max-width: 1024px) {
+  .filter-btn-thin {
+    padding: 0.4375rem 0.75rem;
+  }
+}
+
 @media (max-width: 768px) {
   .filter-group-thin {
     flex-direction: column;
@@ -83,11 +92,57 @@
   
   .filter-buttons-thin {
     width: 100%;
+    gap: 0.5rem;
   }
   
   .filter-btn-thin {
     flex: 1;
+    min-width: calc(50% - 0.25rem);
     text-align: center;
-    padding: 0.5rem 0.75rem;
+    padding: 0.625rem 0.75rem;
+    min-height: 44px; /* Touch-friendly */
+    font-size: 0.875rem;
+  }
+
+  .filter-label-thin {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .filter-buttons-thin {
+    gap: 0.5rem;
+  }
+
+  .filter-btn-thin {
+    padding: 0.625rem 0.625rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .filter-group-thin {
+    gap: 0.75rem;
+  }
+
+  .filter-btn-thin {
+    flex: 1 1 100%;
+    min-width: 100%;
+    font-size: 0.8125rem;
+    padding: 0.625rem 0.75rem;
+  }
+
+  .filter-label-thin {
+    font-size: 0.8125rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .filter-btn-thin {
+    font-size: 0.75rem;
+    padding: 0.5625rem 0.625rem;
+  }
+
+  .filter-label-thin {
+    font-size: 0.75rem;
   }
 }

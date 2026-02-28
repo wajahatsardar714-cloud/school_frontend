@@ -3,6 +3,7 @@ import { discountService } from '../services/feeService'
 import { studentService } from '../services/studentService'
 import { classService } from '../services/classService'
 import { useFetch, useMutation } from '../hooks/useApi'
+import { sortClassesBySequence } from '../utils/classSorting'
 import '../fee.css'
 
 const DISCOUNT_TYPES = {
@@ -49,6 +50,12 @@ const DiscountManagement = () => {
     () => classService.list(),
     [],
     { enabled: true }
+  )
+
+  // Sort classes using centralized sorting
+  const sortedClasses = useMemo(
+    () => sortClassesBySequence(classesData?.data || []),
+    [classesData]
   )
 
   // Fetch students for selected class
@@ -177,7 +184,7 @@ const DiscountManagement = () => {
             onChange={(e) => setFilters({ ...filters, class_id: e.target.value })}
           >
             <option value="">All Classes</option>
-            {(classesData?.data || []).map(c => (
+            {sortedClasses.map(c => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
@@ -294,7 +301,7 @@ const DiscountManagement = () => {
                     required
                   >
                     <option value="">Select Class</option>
-                    {(classesData?.data || []).map(c => (
+                    {sortedClasses.map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>

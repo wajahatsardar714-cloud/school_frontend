@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback, memo } from 'react'
+import React, { useState, useEffect, useCallback, memo, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { studentService } from '../../services/studentService'
 import { feePaymentService } from '../../services/feeService'
 import { classService, sectionService } from '../../services/classService'
 import { useFetch, useMutation } from '../../hooks/useApi'
+import { sortClassesBySequence } from '../../utils/classSorting'
 import DocumentUpload from '../DocumentUpload'
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_LABELS } from '../../utils/documentUtils'
 import './Students.css'
@@ -230,6 +231,12 @@ const StudentDetail = () => {
         () => sectionService.list(selectedClass),
         [selectedClass],
         { enabled: !!selectedClass }
+    )
+
+    // Sort classes using centralized sorting
+    const sortedClasses = useMemo(
+        () => sortClassesBySequence(classesData?.data || []),
+        [classesData]
     )
 
     const handleEnrollmentAction = async (e) => {
@@ -650,7 +657,7 @@ const StudentDetail = () => {
                                                 style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e0' }}
                                             >
                                                 <option value="">-- Choose Class --</option>
-                                                {classesData?.data?.map(c => (
+                                                {sortedClasses.map(c => (
                                                     <option key={c.id} value={c.id}>{c.name}</option>
                                                 ))}
                                             </select>
@@ -797,6 +804,14 @@ const StudentDetail = () => {
                                 <div className="info-item">
                                     <label>Address</label>
                                     <span>{student.address || 'N/A'}</span>
+                                </div>
+                                <div className="info-item">
+                                    <label>Caste</label>
+                                    <span>{student.caste || 'N/A'}</span>
+                                </div>
+                                <div className="info-item">
+                                    <label>Previous School</label>
+                                    <span>{student.previous_school || 'N/A'}</span>
                                 </div>
                             </div>
                         </div>

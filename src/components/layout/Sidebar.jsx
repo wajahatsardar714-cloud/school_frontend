@@ -87,6 +87,14 @@ const IconAdmissions = () => (
   </svg>
 )
 
+const IconTestReport = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14,2 14,8 20,8" />
+    <polyline points="9,13 11,15 15,11" />
+  </svg>
+)
+
 const navigationItems = [
   { path: '/dashboard', label: 'Dashboard', icon: <IconDashboard />, roles: ['ADMIN', 'ACCOUNTANT'] },
   { path: '/admissions', label: 'Admissions', icon: <IconAdmissions />, roles: ['ADMIN', 'ACCOUNTANT'] },
@@ -112,6 +120,7 @@ const navigationItems = [
   },
   { path: '/expenses', label: 'Expenses', icon: <IconExpenses />, roles: ['ADMIN', 'ACCOUNTANT'] },
   { path: '/analytics', label: 'Analytics', icon: <IconAnalytics />, roles: ['ADMIN'] },
+  { path: '/test-report', label: 'Test Report', icon: <IconTestReport />, roles: ['ADMIN', 'ACCOUNTANT'] },
   { path: '/users', label: 'Users', icon: <IconUsers />, roles: ['ADMIN'] },
 ]
 

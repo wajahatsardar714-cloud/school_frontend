@@ -13,15 +13,13 @@ const BulkStudentImport = () => {
   const [message, setMessage] = useState({ type: '', text: '' })
   const [validationErrors, setValidationErrors] = useState([])
 
-  // AG Grid column definitions
+  // AG Grid column definitions - Updated to match new CSV structure
   const columnDefs = useMemo(() => [
-    { headerName: 'Sr No', field: 'srNo', editable: true, width: 80 },
+    { headerName: 'Sr No (Roll No)', field: 'srNo', editable: false, width: 120, cellStyle: { backgroundColor: '#f0f9ff' } },
     { headerName: 'Name', field: 'name', editable: true, width: 150 },
     { headerName: 'Father Name', field: 'fatherName', editable: true, width: 150 },
-    { headerName: 'Contact No', field: 'contactNo', editable: true, width: 120 },
-    { headerName: 'Fee', field: 'fee', editable: true, width: 100 },
-    { headerName: 'Class ID', field: 'classId', editable: true, width: 80 },
-    { headerName: 'Other Fields', field: 'otherFields', editable: false, width: 200 },
+    { headerName: "Father's Contact Number", field: 'fatherContactNo', editable: true, width: 180 },
+    { headerName: 'Fee (Monthly)', field: 'monthlyFee', editable: true, width: 120, cellRenderer: (params) => params.value ? `Rs. ${params.value}` : '' },
   ], [])
 
   // Grid options
@@ -142,12 +140,12 @@ const BulkStudentImport = () => {
             return ''
           }
 
-          // Extract known fields with multiple variations
-          const srNo = findValue('Sr No', 'Sr.No', 'SrNo', 'Sr', 'Serial No', 'S.No', 'S No') || (index + 1)
+          // Extract fields in new CSV structure - Sr No, Name, Father Name, Father's Contact Number, Fee
+          const srNo = index + 1 // Auto-assign based on CSV sequence
           const name = findValue('Name', 'Student Name', 'StudentName', 'Student')
           const fatherName = findValue('Father Name', 'FatherName', 'Father', "Father's Name")
-          const contactNo = findValue('Contact No', 'ContactNo', 'Contact', 'Phone', 'Mobile', 'Contact Number')
-          const fee = findValue('Fee', 'Monthly Fee', 'Fees', 'Amount')
+          const fatherContactNo = findValue("Father's Contact Number", 'Father Contact', 'Contact No', 'ContactNo', 'Contact', 'Phone', 'Mobile')
+          const monthlyFee = findValue('Fee', 'Monthly Fee', 'Fees', 'Amount')
           const classId = findValue('Class ID', 'ClassID', 'Class', 'Grade')
           
           // Collect any other fields (like March, Outstanding Dues, etc.)
@@ -162,18 +160,18 @@ const BulkStudentImport = () => {
           // Log first row for debugging
           if (index === 0) {
             console.log('Mapped first student:', {
-              srNo, name, fatherName, contactNo, fee, classId,
+              srNo, name, fatherName, fatherContactNo, monthlyFee, classId,
               preservedFields
             })
           }
 
           return {
             id: index + 1,
-            srNo,
+            srNo, // This will be the roll_no
             name,
             fatherName,
-            contactNo,
-            fee,
+            fatherContactNo,
+            monthlyFee,
             classId: classId || '1', // Default to class 1
             otherFields: JSON.stringify(preservedFields),
             // Pass all original data for backend processing
@@ -184,7 +182,7 @@ const BulkStudentImport = () => {
 
         // Filter out completely empty rows
         const validData = mappedData.filter(row => 
-          row.name || row.fatherName || row.contactNo || row.fee
+          row.name || row.fatherName || row.fatherContactNo || row.monthlyFee
         )
 
         setGridData(validData)
@@ -279,19 +277,21 @@ const BulkStudentImport = () => {
     }
   }
 
-  // Download template
+  // Download template - Updated to new CSV structure
   const downloadTemplate = () => {
     // Create header rows
     const ws = XLSX.utils.aoa_to_sheet([
       ['Muslim Public Higher Secondary School'], // Row 1
-      ['Fee Record 2026'], // Row 2
-      ['Class Information'], // Row 3
-      // Column headers in Row 4
-      ['Sr No', 'Name', 'Father Name', 'Contact No', 'Fee', 'March', 'Outstanding Dues'],
-      // Sample data starting from Row 5
-      [1, 'Nisha Fatima', 'Intazar Ali', '0300-7189442', 4000, '', ''],
-      [2, 'Bakhtawar Sharafat', 'Sharafat Ali', '0300-7365689', 5000, '', ''],
-      [3, 'Fizza Khan', 'Muhammad Hussain', '0302-8838015', 5000, '', ''],
+      ['Student Import Template 2026'], // Row 2
+      ['Format: Sr No (auto-assigned), Name, Father Name, Father\'s Contact Number, Fee (Monthly)'], // Row 3
+      // Column headers in Row 4 - New structure
+      ['Sr No', 'Name', 'Father Name', 'Father\'s Contact Number', 'Fee'],
+      // Sample data starting from Row 5 - New structure
+      [1, 'Ahmed Ali Khan', 'Ali Khan', '0300-1234567', 5000],
+      [2, 'Fatima Sheikh', 'Muhammad Sheikh', '0301-2345678', 4500],
+      [3, 'Hassan Ahmed', 'Ahmed Sheikh', '0302-3456789', 5000],
+      [4, 'Ayesha Malik', 'Malik Saeed', '0303-4567890', 4000],
+      [5, 'Usman Tariq', 'Tariq Ahmad', '0304-5678901', 4500],
     ])
     
     const wb = XLSX.utils.book_new()

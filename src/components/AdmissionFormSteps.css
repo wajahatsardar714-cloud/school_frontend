@@ -190,3 +190,270 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* Voucher Preview Styles */
+.voucher-preview-section {
+    margin-top: 2rem;
+}
+
+.voucher-preview {
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.voucher-header {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.voucher-header h4 {
+    margin: 0 0 1rem 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.voucher-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+.voucher-body {
+    padding: 2rem;
+}
+
+.student-info {
+    margin-bottom: 2rem;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-row span:first-child {
+    font-weight: 600;
+    color: #374151;
+}
+
+.info-row span:last-child {
+    color: #6b7280;
+}
+
+.fee-breakdown h5 {
+    margin: 0 0 1rem 0;
+    color: #1f2937;
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+.fee-items {
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.fee-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.fee-item:last-child {
+    border-bottom: 2px solid #3b82f6;
+    padding-top: 1rem;
+    margin-top: 1rem;
+}
+
+.fee-item.total {
+    background: #eff6ff;
+    margin: 1rem -1.5rem -1.5rem -1.5rem;
+    padding: 1rem 1.5rem;
+    border-radius: 0 0 8px 8px;
+}
+
+.fee-item span:first-child {
+    color: #374151;
+}
+
+.fee-item span:last-child {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.fee-item.total span {
+    font-size: 1.125rem;
+    color: #1e40af;
+}
+
+.voucher-footer {
+    background: #f3f4f6;
+    padding: 1rem 2rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.voucher-footer p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #6b7280;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .voucher-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+    }
+    
+    .info-row {
+        flex-direction: column;
+        gap: 0.25rem;
+        text-align: left;
+    }
+    
+    .fee-item {
+        flex-direction: column;
+        gap: 0.25rem;
+        text-align: left;
+    }
+}
+
+/* Editable Voucher Styles */
+.fee-item.editable {
+    background: rgba(59, 130, 246, 0.05);
+    border-radius: 4px;
+    padding: 0.75rem;
+    margin: 0.25rem 0;
+}
+
+.editable-amount {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.inline-fee-input {
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    width: 80px;
+    text-align: right;
+    background: white;
+    transition: all 0.2s;
+}
+
+.inline-fee-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.custom-fee-item {
+    background: rgba(16, 185, 129, 0.05);
+    border: 1px dashed rgba(16, 185, 129, 0.3);
+    border-radius: 4px;
+    padding: 0.75rem;
+    margin: 0.25rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.custom-fee-name-input {
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    flex: 1;
+    min-width: 120px;
+    background: white;
+}
+
+.custom-fee-name-input:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+}
+
+.remove-fee-btn {
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    margin-left: 0.5rem;
+    transition: all 0.2s;
+}
+
+.remove-fee-btn:hover {
+    background: #dc2626;
+    transform: scale(1.1);
+}
+
+.add-custom-fee {
+    text-align: center;
+    margin: 1rem 0;
+}
+
+.add-fee-btn {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+.add-fee-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+.add-fee-btn:active {
+    transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+    .custom-fee-item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .editable-amount {
+        justify-content: space-between;
+    }
+    
+    .inline-fee-input {
+        width: 60px;
+    }
+}

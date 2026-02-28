@@ -15,6 +15,7 @@ import { Line, Doughnut } from 'react-chartjs-2'
 import { feePaymentService } from '../services/feeService'
 import { classService } from '../services/classService'
 import { useFetch } from '../hooks/useApi'
+import { sortClassesBySequence } from '../utils/classSorting'
 import '../fee.css'
 
 // Register Chart.js components
@@ -45,6 +46,12 @@ const FeeStatistics = () => {
     () => classService.list(),
     [],
     { enabled: true }
+  )
+
+  // Sort classes using centralized sorting
+  const sortedClasses = useMemo(
+    () => sortClassesBySequence(classesData?.data || []),
+    [classesData]
   )
 
   // Fetch statistics
@@ -378,7 +385,7 @@ const FeeStatistics = () => {
               className="class-select"
             >
               <option value="">All Classes</option>
-              {(classesData?.data || []).map(c => (
+              {sortedClasses.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>

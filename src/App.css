@@ -1961,6 +1961,13 @@ h6 {
   box-shadow: 0 4px 12px rgba(52, 152, 219, 0.15);
 }
 
+/* Admission List Card - Thin horizontal layout */
+.admission-list-card:hover {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15) !important;
+  transform: translateX(2px) !important;
+}
+
 .student-preview {
   display: flex;
   justify-content: space-between;
@@ -7384,10 +7391,185 @@ h6 {
   background-color: #f9fafb;
 }
 
+/* Expanded row styling */
+.data-table tbody tr.expanded {
+  background-color: #eff6ff;
+  border-left: 4px solid #3b82f6;
+}
+
+.data-table tbody tr.expanded:hover {
+  background-color: #dbeafe;
+}
+
 .action-buttons {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  padding: 8px;
+  transition: all 0.3s ease;
+}
+
+/* Compact state - single preview button */
+.action-buttons:not(:has(.action-row-top)) {
+  padding: 4px;
+  gap: 0;
+}
+
+.action-row-top {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
   flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+
+.action-row-bottom {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Utility Actions - Small Icon Buttons */
+.btn-small {
+  padding: 6px 10px;
+  font-size: 12px;
+  min-width: 45px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+}
+
+.btn-small:hover {
+  background: #f9fafb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Print Button - Neutral */
+.btn-print {
+  border-color: #6b7280;
+  color: #6b7280;
+}
+
+.btn-print:hover {
+  background: #f3f4f6;
+  border-color: #4b5563;
+  color: #4b5563;
+}
+
+/* Edit Button - Blue accent */
+.btn-edit {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  color: #3b82f6;
+}
+
+.btn-edit:hover {
+  background: #dbeafe;
+  border-color: #2563eb;
+}
+
+/* Delete Button - Soft Red */
+.btn-delete {
+  border-color: #ef4444;
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+.btn-delete:hover {
+  background: #fee2e2;
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+/* Main Actions - Large Text Buttons */
+.btn-large {
+  padding: 8px 16px;
+  font-size: 14px;
+  min-width: 100px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+}
+
+.btn-large:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* Download Button - Secondary (Outline) */
+.btn-download {
+  border: 2px solid #3b82f6;
+  background: #ffffff;
+  color: #3b82f6;
+}
+
+.btn-download:hover {
+  background: #eff6ff;
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
+/* Record Payment Button - Primary (Solid Blue) */
+.btn-pay {
+  border: 2px solid #3b82f6;
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+.btn-pay:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Preview Button - Gradient Blue */
+.btn-preview {
+  border: 2px solid #3b82f6;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #ffffff;
+  min-width: 120px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.btn-preview:hover {
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Collapse Button - Subtle Gray */
+.btn-collapse {
+  border: 1px solid #9ca3af;
+  background: #f3f4f6;
+  color: #6b7280;
+  margin-top: 8px;
+  font-size: 11px;
+  padding: 4px 12px;
+  min-width: 80px;
+}
+
+.btn-collapse:hover {
+  background: #e5e7eb;
+  border-color: #6b7280;
+  color: #4b5563;
 }
 
 .btn-sm {

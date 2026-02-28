@@ -15,11 +15,12 @@
  * - Optimized re-renders
  */
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { feeVoucherService, feePaymentService } from '../services/feeService'
 import { studentService } from '../services/studentService'
-import { classService } from '../services/classService'
+import { classService, sectionService } from '../services/classService'
 import { useFetch, useMutation, useDebounce } from '../hooks/useApi'
+import { sortClassesBySequence } from '../utils/classSorting'
 import '../fee.css'
 
 // Constants
@@ -52,11 +53,8 @@ const MONTHS = [
 
 // Fee types available for selection
 const FEE_TYPES = [
-  { value: 'MONTHLY', label: 'Monthly Fee', description: 'Regular monthly tuition fee' },
-  { value: 'ADMISSION', label: 'Admission Fee', description: 'One-time admission fee' },
-  { value: 'PAPER_FUND', label: 'Paper/Exam Fund', description: 'Examination and paper charges' },
-  { value: 'TRANSPORT', label: 'Transport Fee', description: 'School transport charges' },
-  { value: 'OTHER', label: 'Other Charges', description: 'Miscellaneous fees' },
+  { value: 'MONTHLY', label: 'Monthly Fee', description: 'Regular monthly tuition fee (uses individual student fee)' },
+  { value: 'OTHER', label: 'Other Charges', description: 'Add custom fees with name and amount' },
 ]
 
 const FeeVoucherManagement = () => {
@@ -65,6 +63,9 @@ const FeeVoucherManagement = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [selectedVoucher, setSelectedVoucher] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
+  
+  // Selection State for bulk operations
+  const [selectedVouchers, setSelectedVouchers] = useState([])
   
   // Edit Items Modal State
   const [showEditItemsModal, setShowEditItemsModal] = useState(false)
@@ -89,12 +90,16 @@ const FeeVoucherManagement = () => {
     year: new Date().getFullYear(),
     due_date: '',
     fee_types: ['MONTHLY'], // Default to monthly fee only
+    custom_charges: [] // Array of {description: string, amount: number}
   })
   
   // Preview State (NEW - Issue #3)
   const [previewData, setPreviewData] = useState(null)
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  
+  // Expanded Row State
+  const [expandedRow, setExpandedRow] = useState(null)
 
   // Payment Form State
   const [paymentForm, setPaymentForm] = useState({
@@ -117,6 +122,15 @@ const FeeVoucherManagement = () => {
     { enabled: true }
   )
 
+  // Data Fetching - sections for filter (fetch when class selected)
+  const { 
+    data: filterSectionsData
+  } = useFetch(
+    () => sectionService.list(filters.class_id),
+    [filters.class_id],
+    { enabled: !!filters.class_id }
+  )
+
   // Data Fetching - vouchers (fetch when filters change)
   const { 
     data: vouchersData, 
@@ -128,9 +142,10 @@ const FeeVoucherManagement = () => {
       month: filters.month,
       year: filters.year,
       class_id: filters.class_id || undefined,
+      section_id: filters.section_id || undefined,
       status: filters.status || undefined,
     }),
-    [filters.month, filters.year, filters.class_id, filters.status],
+    [filters.month, filters.year, filters.class_id, filters.section_id, filters.status],
     { enabled: true }
   )
 
@@ -280,9 +295,20 @@ const FeeVoucherManagement = () => {
     )
   }, [vouchersData, debouncedSearch, parseVoucherMonth])
 
+  // Clear selection when filters change or tab changes
+  useEffect(() => {
+    setSelectedVouchers([])
+  }, [filters, activeTab])
+
   // Handlers
   const handleFilterChange = useCallback((key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }))
+    setFilters(prev => {
+      // Reset section when class changes
+      if (key === 'class_id') {
+        return { ...prev, class_id: value, section_id: '' }
+      }
+      return { ...prev, [key]: value }
+    })
   }, [])
 
   const handleGenerateFormChange = useCallback((key, value) => {
@@ -309,6 +335,32 @@ const FeeVoucherManagement = () => {
         : [...current, feeType]
       return { ...prev, fee_types: newTypes }
     })
+  }, [])
+
+  // Add custom charge
+  const handleAddCustomCharge = useCallback(() => {
+    setGenerateForm(prev => ({
+      ...prev,
+      custom_charges: [...(prev.custom_charges || []), { description: '', amount: '' }]
+    }))
+  }, [])
+
+  // Update custom charge
+  const handleUpdateCustomCharge = useCallback((index, field, value) => {
+    setGenerateForm(prev => ({
+      ...prev,
+      custom_charges: prev.custom_charges.map((charge, i) => 
+        i === index ? { ...charge, [field]: value } : charge
+      )
+    }))
+  }, [])
+
+  // Remove custom charge
+  const handleRemoveCustomCharge = useCallback((index) => {
+    setGenerateForm(prev => ({
+      ...prev,
+      custom_charges: prev.custom_charges.filter((_, i) => i !== index)
+    }))
   }, [])
 
   // Open edit items modal
@@ -504,6 +556,174 @@ const FeeVoucherManagement = () => {
     await deleteMutation.mutate(voucher.id)
   }, [deleteMutation])
 
+  // Checkbox selection handlers
+  const handleSelectVoucher = useCallback((voucherId) => {
+    setSelectedVouchers(prev => {
+      if (prev.includes(voucherId)) {
+        return prev.filter(id => id !== voucherId)
+      } else {
+        return [...prev, voucherId]
+      }
+    })
+  }, [])
+
+  const handleSelectAll = useCallback((checked) => {
+    if (checked) {
+      const allVoucherIds = filteredVouchers.map(v => v.id)
+      setSelectedVouchers(allVoucherIds)
+    } else {
+      setSelectedVouchers([])
+    }
+  }, [filteredVouchers])
+
+  // Bulk operations
+  const handleBulkPrint = useCallback(() => {
+    if (selectedVouchers.length === 0) {
+      alert('Please select at least one voucher to print')
+      return
+    }
+    
+    // Open all vouchers sequentially with small delay
+    selectedVouchers.forEach((voucherId, index) => {
+      setTimeout(() => {
+        feeVoucherService.printVoucher(voucherId)
+      }, index * 200) // 200ms delay between each print
+    })
+  }, [selectedVouchers])
+
+  // NEW: Enhanced bulk print with single PDF (4 vouchers per page)
+  const handleEnhancedPrint = useCallback(async () => {
+    if (selectedVouchers.length === 0) {
+      alert('Please select vouchers to print using the checkboxes')
+      return
+    }
+
+    console.log('Starting enhanced print for vouchers:', selectedVouchers)
+    
+    // Show loading indicator
+    const loadingDiv = document.createElement('div')
+    loadingDiv.id = 'enhanced-print-loading'
+    loadingDiv.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(220,38,38,0.95);color:white;padding:20px 40px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:10000;font-size:16px;text-align:center;'
+    loadingDiv.innerHTML = `
+      <div style="margin-bottom:10px;">🖨️ Generating ${selectedVouchers.length} voucher(s)...</div>
+      <div style="font-size:12px;opacity:0.9;">Please wait, creating PDF</div>
+    `
+    document.body.appendChild(loadingDiv)
+    
+    try {
+      const result = await feeVoucherService.bulkPrintVouchers(selectedVouchers)
+      
+      console.log('Enhanced print result:', result)
+      
+      // Remove loading indicator
+      const loadingElement = document.getElementById('enhanced-print-loading')
+      if (loadingElement) {
+        loadingElement.remove()
+      }
+      
+      if (result.success) {
+        console.log(`Successfully opened ${result.count} vouchers for printing`)
+        
+        // Show brief success message
+        const successDiv = document.createElement('div')
+        successDiv.style.cssText = 'position:fixed;top:20px;right:20px;background:#dc2626;color:white;padding:12px 20px;border-radius:4px;z-index:10000;font-size:14px;box-shadow:0 4px 12px rgba(220,38,38,0.3);'
+        successDiv.innerHTML = `✓ ${result.count} voucher(s) ready to print`
+        document.body.appendChild(successDiv)
+        setTimeout(() => successDiv.remove(), 3000)
+        
+        // Clear selection after successful print
+        setSelectedVouchers([])
+      } else {
+        console.error('Enhanced print failed:', result.error)
+        alert(`Failed to print vouchers: ${result.error}\n\nPlease try again or contact support if the issue persists.`)
+      }
+    } catch (error) {
+      console.error('Failed to enhanced print vouchers:', error)
+      
+      // Remove loading indicator
+      const loadingElement = document.getElementById('enhanced-print-loading')
+      if (loadingElement) {
+        loadingElement.remove()
+      }
+      
+      alert(`Failed to print vouchers: ${error.message}\n\nPlease check your connection and try again.`)
+    }
+  }, [selectedVouchers])
+
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedVouchers.length === 0) {
+      alert('Please select at least one voucher to delete')
+      return
+    }
+
+    // Check if any selected voucher has payments
+    const selectedVoucherObjects = filteredVouchers.filter(v => selectedVouchers.includes(v.id))
+    const hasPayments = selectedVoucherObjects.some(v => v.status !== VOUCHER_STATUS.UNPAID)
+    
+    if (hasPayments) {
+      alert('Cannot delete vouchers with payments. Please deselect paid/partial vouchers.')
+      return
+    }
+
+    if (!confirm(`Are you sure you want to delete ${selectedVouchers.length} voucher(s)?`)) return
+
+    // Show progress indicator
+    const deleteCount = selectedVouchers.length
+    const progressMsg = deleteCount > 10 
+      ? `Deleting ${deleteCount} vouchers... Please wait.` 
+      : null
+    
+    if (progressMsg) {
+      // For large batches, show a loading message
+      const loadingDiv = document.createElement('div')
+      loadingDiv.id = 'bulk-delete-loading'
+      loadingDiv.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px 40px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:10000;font-size:16px;'
+      loadingDiv.innerHTML = `<div style="text-align:center;">🗑️ Deleting ${deleteCount} vouchers...<br/><small>Please wait...</small></div>`
+      document.body.appendChild(loadingDiv)
+    }
+
+    try {
+      // Delete all vouchers concurrently using Promise.allSettled
+      const deletePromises = selectedVouchers.map(voucherId => 
+        feeVoucherService.delete(voucherId)
+          .then(() => ({ success: true, voucherId }))
+          .catch(error => ({ success: false, voucherId, error: error.message }))
+      )
+
+      const results = await Promise.all(deletePromises)
+      
+      // Count successes and failures
+      const successful = results.filter(r => r.success).length
+      const failed = results.filter(r => !r.success)
+
+      // Remove loading indicator
+      const loadingDiv = document.getElementById('bulk-delete-loading')
+      if (loadingDiv) loadingDiv.remove()
+
+      // Refresh voucher list
+      await refreshVouchers()
+      
+      // Clear selection
+      setSelectedVouchers([])
+
+      // Show results
+      if (failed.length === 0) {
+        alert(`✅ Successfully deleted all ${successful} voucher(s)!`)
+      } else if (successful > 0) {
+        alert(`⚠️ Partially completed:\\n✅ Deleted: ${successful}\\n❌ Failed: ${failed.length}\\n\\nPlease refresh and try again for failed vouchers.`)
+      } else {
+        alert(`❌ Failed to delete vouchers. Please try again or contact support.`)
+      }
+    } catch (error) {
+      // Remove loading indicator
+      const loadingDiv = document.getElementById('bulk-delete-loading')
+      if (loadingDiv) loadingDiv.remove()
+      
+      console.error('Bulk delete error:', error)
+      alert('❌ An error occurred while deleting vouchers. Please try again.')
+    }
+  }, [selectedVouchers, filteredVouchers, refreshVouchers])
+
   // Render helpers
   const renderStatusBadge = (status) => (
     <span className={`status-badge ${STATUS_COLORS[status] || ''}`}>
@@ -519,9 +739,14 @@ const FeeVoucherManagement = () => {
     }).format(amount || 0)
   }
 
-  const classes = classesData?.data || []
+  // Sort classes using centralized sorting
+  const classes = useMemo(
+    () => sortClassesBySequence(classesData?.data || []),
+    [classesData]
+  )
   const students = studentsData?.data || []
   const sections = sectionsData?.data || []
+  const filterSections = filterSectionsData?.data || []
 
   return (
     <div className="page-content fee-management">
@@ -573,6 +798,18 @@ const FeeVoucherManagement = () => {
             </select>
 
             <select
+              value={filters.section_id}
+              onChange={(e) => handleFilterChange('section_id', e.target.value)}
+              className="filter-select"
+              disabled={!filters.class_id}
+            >
+              <option value="">All Sections</option>
+              {filterSections.map(sec => (
+                <option key={sec.id} value={sec.id}>{sec.name}</option>
+              ))}
+            </select>
+
+            <select
               value={filters.status}
               onChange={(e) => handleFilterChange('status', e.target.value)}
               className="filter-select"
@@ -603,6 +840,67 @@ const FeeVoucherManagement = () => {
             />
           </div>
 
+          {/* Bulk Action Buttons */}
+          {selectedVouchers.length > 0 && (
+            <div className="bulk-actions-bar" style={{ 
+              padding: '12px 16px',
+              background: '#f0f9ff',
+              border: '1px solid #bfdbfe',
+              borderRadius: '6px',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              flexWrap: 'wrap'
+            }}>
+              <span style={{ fontWeight: '500', color: '#1e40af' }}>
+                {selectedVouchers.length} voucher(s) selected
+              </span>
+              <button
+                onClick={handleEnhancedPrint}
+                style={{
+                  padding: '8px 16px',
+                  background: '#dc2626',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: '500'
+                }}
+              >
+                🖨️ Print Selected
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                style={{
+                  padding: '8px 16px',
+                  background: '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: '500'
+                }}
+              >
+                🗑️ Delete Selected
+              </button>
+              <button
+                onClick={() => setSelectedVouchers([])}
+                style={{
+                  padding: '8px 16px',
+                  background: 'white',
+                  color: '#374151',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  marginLeft: 'auto'
+                }}
+              >
+                Clear Selection
+              </button>
+            </div>
+          )}
+
           {/* Vouchers Table */}
           {vouchersLoading ? (
             <div className="loading-container">
@@ -618,6 +916,14 @@ const FeeVoucherManagement = () => {
               <table className="data-table">
                 <thead>
                   <tr>
+                    <th style={{ width: '40px' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedVouchers.length === filteredVouchers.length && filteredVouchers.length > 0}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                      />
+                    </th>
                     <th>Voucher #</th>
                     <th>Student</th>
                     <th>Class</th>
@@ -631,7 +937,16 @@ const FeeVoucherManagement = () => {
                 </thead>
                 <tbody>
                   {filteredVouchers.map(voucher => (
-                    <tr key={voucher.id}>
+                    <tr key={voucher.id} className={expandedRow === voucher.id ? 'expanded' : ''}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={selectedVouchers.includes(voucher.id)}
+                          onChange={() => handleSelectVoucher(voucher.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                        />
+                      </td>
                       <td>{voucher.voucher_no}</td>
                       <td>
                         <div className="student-info">
@@ -649,46 +964,73 @@ const FeeVoucherManagement = () => {
                       <td>{renderStatusBadge(voucher.status)}</td>
                       <td>
                         <div className="action-buttons">
-                          {voucher.status !== VOUCHER_STATUS.PAID && (
+                          {expandedRow === voucher.id ? (
+                            // Expanded view - show all action buttons
+                            <>
+                              <div className="action-row-top">
+                                <button 
+                                  className="btn-action btn-print btn-small"
+                                  onClick={() => handlePrintVoucher(voucher)}
+                                  title="Print Voucher"
+                                >
+                                  Print
+                                </button>
+                                {voucher.status !== VOUCHER_STATUS.PAID && (
+                                  <button 
+                                    className="btn-action btn-edit btn-small"
+                                    onClick={() => openEditItemsModal(voucher)}
+                                    title="Edit Items"
+                                  >
+                                    ✏️
+                                  </button>
+                                )}
+                                {voucher.status === VOUCHER_STATUS.UNPAID && (
+                                  <button 
+                                    className="btn-action btn-delete btn-small"
+                                    onClick={() => handleDelete(voucher)}
+                                    disabled={deleteMutation.loading}
+                                    title="Delete Voucher"
+                                  >
+                                    🗑️
+                                  </button>
+                                )}
+                              </div>
+                              
+                              <div className="action-row-bottom">
+                                <button 
+                                  className="btn-action btn-download btn-large"
+                                  onClick={() => handleDownloadPDF(voucher)}
+                                  title="Download PDF"
+                                >
+                                  Download
+                                </button>
+                                {voucher.status !== VOUCHER_STATUS.PAID && (
+                                  <button 
+                                    className="btn-action btn-pay btn-large"
+                                    onClick={() => openPaymentModal(voucher)}
+                                    title="Record Payment"
+                                  >
+                                    Record Payment
+                                  </button>
+                                )}
+                              </div>
+                              
+                              <button 
+                                className="btn-action btn-collapse btn-small"
+                                onClick={() => setExpandedRow(null)}
+                                title="Collapse"
+                              >
+                                ▲ Collapse
+                              </button>
+                            </>
+                          ) : (
+                            // Collapsed view - show only preview button
                             <button 
-                              className="btn-action btn-pay"
-                              onClick={() => openPaymentModal(voucher)}
-                              title="Record Payment"
+                              className="btn-action btn-preview btn-large"
+                              onClick={() => setExpandedRow(voucher.id)}
+                              title="Show Actions"
                             >
-                              💰
-                            </button>
-                          )}
-                          <button 
-                            className="btn-action btn-print"
-                            onClick={() => handlePrintVoucher(voucher)}
-                            title="Print Voucher"
-                          >
-                            🖨️
-                          </button>
-                          <button 
-                            className="btn-action btn-download"
-                            onClick={() => handleDownloadPDF(voucher)}
-                            title="Download PDF"
-                          >
-                            📄
-                          </button>
-                          {voucher.status !== VOUCHER_STATUS.PAID && (
-                            <button 
-                              className="btn-action btn-edit"
-                              onClick={() => openEditItemsModal(voucher)}
-                              title="Edit Items"
-                            >
-                              ✏️
-                            </button>
-                          )}
-                          {voucher.status === VOUCHER_STATUS.UNPAID && (
-                            <button 
-                              className="btn-action btn-delete"
-                              onClick={() => handleDelete(voucher)}
-                              disabled={deleteMutation.loading}
-                              title="Delete Voucher"
-                            >
-                              🗑️
+                              ⚙️ Actions
                             </button>
                           )}
                         </div>
@@ -822,7 +1164,7 @@ const FeeVoucherManagement = () => {
             {/* Fee Types Selection */}
             <div className="form-section">
               <h3>Fee Types to Include *</h3>
-              <p className="form-hint">Select which fees to include in the voucher. Admission fee is typically only charged once.</p>
+              <p className="form-hint">Select which fees to include. Monthly fee uses each student's individual fee amount.</p>
               <div className="checkbox-group">
                 {FEE_TYPES.map(feeType => (
                   <label key={feeType.value} className="checkbox-label">
@@ -838,6 +1180,85 @@ const FeeVoucherManagement = () => {
                   </label>
                 ))}
               </div>
+
+              {/* Custom Charges Section */}
+              {generateForm.fee_types?.includes('OTHER') && (
+                <div style={{ marginTop: '1rem', padding: '1rem', background: '#f3f4f6', borderRadius: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '600' }}>Custom Charges</h4>
+                    <button
+                      type="button"
+                      onClick={handleAddCustomCharge}
+                      style={{
+                        padding: '0.4rem 0.8rem',
+                        background: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        fontWeight: '500'
+                      }}
+                    >
+                      + Add Charge
+                    </button>
+                  </div>
+                  
+                  {(generateForm.custom_charges || []).length === 0 ? (
+                    <p style={{ fontSize: '0.85rem', color: '#6b7280', margin: '0.5rem 0' }}>
+                      No custom charges added. Click "Add Charge" to add fees.
+                    </p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {(generateForm.custom_charges || []).map((charge, index) => (
+                        <div key={index} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <input
+                            type="text"
+                            placeholder="Fee description (e.g., Library Fee)"
+                            value={charge.description}
+                            onChange={(e) => handleUpdateCustomCharge(index, 'description', e.target.value)}
+                            style={{
+                              flex: 2,
+                              padding: '0.5rem',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '4px',
+                              fontSize: '0.9rem'
+                            }}
+                          />
+                          <input
+                            type="number"
+                            placeholder="Amount"
+                            value={charge.amount}
+                            onChange={(e) => handleUpdateCustomCharge(index, 'amount', e.target.value)}
+                            style={{
+                              flex: 1,
+                              padding: '0.5rem',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '4px',
+                              fontSize: '0.9rem'
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCustomCharge(index)}
+                            style={{
+                              padding: '0.5rem 0.75rem',
+                              background: '#ef4444',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '0.85rem'
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}
@@ -912,7 +1333,8 @@ const FeeVoucherManagement = () => {
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th>Student</th>
+                      <th>Student Name</th>
+                      <th>Father Name</th>
                       <th>Roll No</th>
                       <th>Fee Items</th>
                       <th>Total</th>
@@ -934,6 +1356,7 @@ const FeeVoucherManagement = () => {
                             </span>
                           )}
                         </td>
+                        <td>{voucher.father_name || '-'}</td>
                         <td>{voucher.roll_no}</td>
                         <td>
                           {(voucher.items || []).map((item, idx) => (
@@ -968,7 +1391,7 @@ const FeeVoucherManagement = () => {
                   onClick={handlePrintWithoutSaving}
                   className="btn-secondary"
                 >
-                  🖨️ Print Without Saving
+                  Print Without Saving
                 </button>
                 <button 
                   type="button"

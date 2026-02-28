@@ -159,6 +159,48 @@ export const feeVoucherService = {
       printWindow.close()
     })
   },
+
+  /**
+   * Bulk print multiple vouchers in a single PDF (4 per page)
+   * POST /api/vouchers/bulk-print
+   * Body: { voucher_ids: [1, 2, 3, ...] }
+   */
+  async bulkPrintVouchers(voucherIds) {
+    try {
+      const token = apiClient.getToken()
+      const url = `${apiClient.baseURL}${API_ENDPOINTS.FEE_VOUCHER_BULK_PRINT}`
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ voucher_ids: voucherIds }),
+      })
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Failed to print vouchers: ${errorText}`)
+      }
+      
+      const blob = await response.blob()
+      const blobUrl = window.URL.createObjectURL(blob)
+      
+      // Open in new tab for printing
+      window.open(blobUrl, '_blank')
+      
+      // Clean up blob URL after a delay
+      setTimeout(() => {
+        window.URL.revokeObjectURL(blobUrl)
+      }, 1000)
+      
+      return { success: true, count: voucherIds.length }
+    } catch (error) {
+      console.error('Bulk print error:', error)
+      throw error
+    }
+  },
 }
 
 /**

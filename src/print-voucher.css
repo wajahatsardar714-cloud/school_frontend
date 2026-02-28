@@ -1,0 +1,236 @@
+/* Voucher Print Styles */
+@media print {
+  /* Reset all margins and padding for clean print */
+  * {
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+    font-family: 'Arial', sans-serif !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+  }
+  
+  /* Hide all non-voucher elements */
+  .sidebar,
+  .navbar,
+  .navigation,
+  .header,
+  .footer,
+  .actions,
+  .bulk-actions,
+  .no-print,
+  button,
+  input,
+  .btn,
+  .form-controls {
+    display: none !important;
+  }
+  
+  /* Voucher container styles */
+  .voucher-container {
+    width: 100% !important;
+    height: 100% !important;
+    background: white !important;
+    page-break-inside: avoid !important;
+  }
+  
+  /* Individual voucher styles */
+  .fee-voucher,
+  .voucher-page {
+    width: 100% !important;
+    height: auto !important;
+    background: white !important;
+    border: 2px solid #000 !important;
+    margin: 0 !important;
+    padding: 10px !important;
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+  
+  /* Voucher header */
+  .voucher-header,
+  .school-header {
+    text-align: center !important;
+    margin-bottom: 15px !important;
+    border-bottom: 2px solid #000 !important;
+    padding-bottom: 10px !important;
+  }
+  
+  .school-name {
+    font-size: 18px !important;
+    font-weight: bold !important;
+    color: black !important;
+    margin-bottom: 5px !important;
+  }
+  
+  .voucher-title {
+    font-size: 16px !important;
+    font-weight: bold !important;
+    color: black !important;
+    margin-bottom: 10px !important;
+  }
+  
+  /* Student information */
+  .student-info,
+  .voucher-details {
+    margin-bottom: 15px !important;
+  }
+  
+  .student-info table,
+  .voucher-details table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    border: 1px solid #000 !important;
+  }
+  
+  .student-info th,
+  .student-info td,
+  .voucher-details th,
+  .voucher-details td {
+    border: 1px solid #000 !important;
+    padding: 5px !important;
+    text-align: left !important;
+    font-size: 12px !important;
+  }
+  
+  .student-info th,
+  .voucher-details th {
+    background: #f0f0f0 !important;
+    font-weight: bold !important;
+  }
+  
+  /* Fee items table */
+  .fee-items-table,
+  .voucher-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-bottom: 15px !important;
+    border: 2px solid #000 !important;
+  }
+  
+  .fee-items-table th,
+  .fee-items-table td,
+  .voucher-table th,
+  .voucher-table td {
+    border: 1px solid #000 !important;
+    padding: 8px !important;
+    text-align: left !important;
+    font-size: 12px !important;
+  }
+  
+  .fee-items-table th,
+  .voucher-table th {
+    background: #e0e0e0 !important;
+    font-weight: bold !important;
+    text-align: center !important;
+  }
+  
+  .fee-items-table .amount,
+  .voucher-table .amount {
+    text-align: right !important;
+    font-weight: bold !important;
+  }
+  
+  /* Total amount */
+  .total-section,
+  .voucher-total {
+    border: 2px solid #000 !important;
+    padding: 10px !important;
+    margin-top: 15px !important;
+    background: #f0f0f0 !important;
+  }
+  
+  .total-amount {
+    font-size: 16px !important;
+    font-weight: bold !important;
+    text-align: right !important;
+  }
+  
+  /* Payment info */
+  .payment-info,
+  .voucher-footer {
+    margin-top: 20px !important;
+    font-size: 11px !important;
+    border-top: 1px solid #000 !important;
+    padding-top: 10px !important;
+  }
+  
+  /* Force page breaks for multiple vouchers */
+  .voucher-page-break {
+    page-break-before: always !important;
+  }
+  
+  /* Hide any modals or overlays */
+  .modal,
+  .overlay,
+  .popup,
+  .dropdown {
+    display: none !important;
+  }
+  
+  /* Ensure proper margins for A4 paper */
+  @page {
+    size: A4 portrait;
+    margin: 0.5cm;
+  }
+  
+  /* Compact layout for 4 vouchers per page */
+  .voucher-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-rows: 1fr 1fr !important;
+    gap: 10px !important;
+    height: 100vh !important;
+  }
+  
+  .voucher-grid .fee-voucher {
+    height: auto !important;
+    max-height: 45vh !important;
+    overflow: hidden !important;
+    font-size: 10px !important;
+  }
+  
+  .voucher-grid .school-name {
+    font-size: 14px !important;
+  }
+  
+  .voucher-grid .voucher-title {
+    font-size: 12px !important;
+  }
+  
+  .voucher-grid table {
+    font-size: 9px !important;
+  }
+  
+  .voucher-grid th,
+  .voucher-grid td {
+    padding: 3px !important;
+    font-size: 9px !important;
+  }
+}
+
+/* Print button specific styles */
+.print-btn {
+  background: #28a745 !important;
+  color: white !important;
+  border: none !important;
+  padding: 8px 16px !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  font-size: 14px !important;
+}
+
+.print-btn:hover {
+  background: #218838 !important;
+}
+
+@media print {
+  .print-btn {
+    display: none !important;
+  }
+}

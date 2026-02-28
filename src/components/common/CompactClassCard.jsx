@@ -47,46 +47,55 @@ const CompactClassCard = ({
 
   if (variant === 'student') {
     return (
-      <Link
-        to={`/students/class/${id}`}
-        className="compact-class-card student-variant"
-      >
-        <div className="compact-card-header">
-          <div className="compact-card-icon">📚</div>
-          <span className={`compact-type-badge ${class_type.toLowerCase()}`}>
-            {class_type}
-          </span>
-        </div>
-        <div className="compact-card-body">
-          <h3 className="compact-card-title">{name}</h3>
-          {loadingSections ? (
-            <p className="compact-card-subtitle">Loading sections...</p>
-          ) : sections.length > 0 ? (
-            <div className="section-wise-students">
-              {sections.map((section) => (
-                <div key={section.id} className="section-student-row">
-                  <span className="section-name">{section.name}</span>
-                  <span className="section-count">{section.student_count || 0}</span>
-                </div>
-              ))}
-              {sections.length > 1 && (
-                <div className="total-students-summary">
-                  <span>Total Students</span>
-                  <span>{sections.reduce((sum, sec) => sum + (sec.student_count || 0), 0)}</span>
-                </div>
-              )}
-            </div>
-          ) : (
-            <p className="compact-card-subtitle">
-              {section_count} sections • {student_count} students
-            </p>
-          )}
-        </div>
-        <div className="compact-card-footer">
-          <span className="compact-status-badge active">Active</span>
-          <span className="compact-view-link">View Students →</span>
-        </div>
-      </Link>
+      <div className="compact-class-card student-variant">
+        <Link
+          to={`/students/class/${id}`}
+          className="compact-card-clickable"
+          style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+        >
+          <div className="compact-card-header">
+            <div className="compact-card-icon">📚</div>
+            <span className={`compact-type-badge ${class_type.toLowerCase()}`}>
+              {class_type}
+            </span>
+          </div>
+          <div className="compact-card-body">
+            <h3 className="compact-card-title">{name}</h3>
+            {loadingSections ? (
+              <p className="compact-card-subtitle">Loading sections...</p>
+            ) : sections.length > 0 ? (
+              <div className="section-wise-students" onClick={(e) => e.stopPropagation()}>
+                {sections.map((section) => (
+                  <Link
+                    key={section.id}
+                    to={`/students/class/${id}?section=${section.id}`}
+                    className="section-student-row"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ textDecoration: 'none', color: 'inherit' }}
+                  >
+                    <span className="section-name">{section.name}</span>
+                    <span className="section-count">{section.student_count || 0}</span>
+                  </Link>
+                ))}
+                {sections.length > 1 && (
+                  <div className="total-students-summary">
+                    <span>Total Students</span>
+                    <span>{sections.reduce((sum, sec) => sum + (sec.student_count || 0), 0)}</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="compact-card-subtitle">
+                {section_count} sections • {student_count} students
+              </p>
+            )}
+          </div>
+          <div className="compact-card-footer">
+            <span className="compact-status-badge active">Active</span>
+            <span className="compact-view-link">View Students →</span>
+          </div>
+        </Link>
+      </div>
     )
   }
 

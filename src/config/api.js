@@ -12,6 +12,7 @@ export const API_ENDPOINTS = {
   // Students
   STUDENTS: '/api/students',
   STUDENTS_BULK: '/api/students/bulk-noauth', // No auth endpoint for CSV import
+  STUDENTS_BULK_DELETE: '/api/bulk-delete-students', // No auth bulk delete endpoint
   STUDENT_DETAIL: (id) => `/api/students/${id}`,
   STUDENT_ENROLL: (id) => `/api/students/${id}/enroll`,
   STUDENT_WITHDRAW: (id) => `/api/students/${id}/withdraw`,
@@ -48,6 +49,7 @@ export const API_ENDPOINTS = {
   FEE_VOUCHER_BULK_GENERATE: '/api/vouchers/generate-bulk',
   FEE_VOUCHER_PREVIEW_BULK: '/api/vouchers/preview-bulk',
   FEE_VOUCHER_GENERATE_BULK_PDF: '/api/vouchers/generate-bulk-pdf',
+  FEE_VOUCHER_BULK_PRINT: '/api/vouchers/bulk-print',
   FEE_VOUCHER_PDF: (id) => `/api/vouchers/${id}/pdf`,
   FEE_VOUCHER_PRINT: (id) => `/api/vouchers/${id}/print`,
   FEE_VOUCHER_ITEMS: (id) => `/api/vouchers/${id}/items`,

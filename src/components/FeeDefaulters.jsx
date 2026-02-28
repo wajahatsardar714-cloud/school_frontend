@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from 'react'
 import { feePaymentService } from '../services/feeService'
 import { classService } from '../services/classService'
 import { useFetch } from '../hooks/useApi'
+import { sortClassesBySequence } from '../utils/classSorting'
 import '../fee.css'
 
 const FeeDefaulters = () => {
@@ -23,6 +24,11 @@ const FeeDefaulters = () => {
     [],
     { enabled: true }
   )
+  
+  // Sort classes by sequence
+  const sortedClasses = useMemo(() => {
+    return sortClassesBySequence(classesData?.data || [])
+  }, [classesData])
 
   // Fetch sections for selected class
   const { data: sectionsData } = useFetch(
@@ -175,7 +181,7 @@ const FeeDefaulters = () => {
             onChange={(e) => setFilters({ ...filters, class_id: e.target.value, section_id: '' })}
           >
             <option value="">All Classes</option>
-            {(classesData?.data || []).map(c => (
+            {sortedClasses.map(c => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>

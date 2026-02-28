@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { studentService } from '../services/studentService'
 import { guardianService } from '../services/guardianService'
 import { classService, sectionService } from '../services/classService'
-import { feeOverrideService } from '../services/feeService'
+import { feeOverrideService, feeService } from '../services/feeService'
+import { sortClassesBySequence } from '../utils/classSorting'
 import DocumentUpload from './DocumentUpload'
 import DocumentList from './DocumentList'
 import { DOCUMENT_TYPES } from '../utils/documentUtils'
@@ -19,8 +20,7 @@ const AdmissionForm = () => {
   const [sections, setSections] = useState([])
   const [selectedClassId, setSelectedClassId] = useState('')
   const [selectedSectionId, setSelectedSectionId] = useState('')
-  const [currentStep, setCurrentStep] = useState(1)
-  const [createdStudentId, setCreatedStudentId] = useState(null)
+  const [showReview, setShowReview] = useState(false)
   const [uploadedDocuments, setUploadedDocuments] = useState([])
 
   const [formData, setFormData] = useState({
@@ -36,7 +36,7 @@ const AdmissionForm = () => {
     father_cnic: '',
     father_phone: '',
     father_occupation: '',
-    admission_date: '',
+    admission_date: new Date().toISOString().split('T')[0], // Default to today
     class: '',
     section: ''
   })
@@ -94,6 +94,12 @@ const AdmissionForm = () => {
       setSections([])
     }
   }, [selectedClassId])
+
+  // Sort classes using centralized sorting
+  const sortedClasses = useMemo(
+    () => sortClassesBySequence(classes),
+    [classes]
+  )
 
   const loadClasses = async () => {
     try {
@@ -395,7 +401,7 @@ const AdmissionForm = () => {
   return (
     <div className="page-content">
       <div className="breadcrumb-nav">
-        <Link to="/admission">Admission</Link>
+        <Link to="/admissions">Admission</Link>
         <span className="breadcrumb-separator">›</span>
         <span className="breadcrumb-current">New Admission Form</span>
       </div>
@@ -406,7 +412,7 @@ const AdmissionForm = () => {
           <button onClick={() => navigate(-1)} className="back-btn" disabled={submitting}>
             ← Go Back
           </button>
-          <Link to="/admission" className="back-btn secondary">Admission Home</Link>
+          <Link to="/admissions" className="back-btn secondary">Admission Home</Link>
         </div>
       </div>
 
@@ -719,7 +725,7 @@ const AdmissionForm = () => {
                       required
                     >
                       <option value="">Select Class</option>
-                      {classes.map(cls => (
+                      {sortedClasses.map(cls => (
                         <option key={cls.id} value={cls.id}>
                           {cls.name} ({cls.class_type}) - {cls.student_count || 0} students
                         </option>

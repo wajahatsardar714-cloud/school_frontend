@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import AdmissionForm from './AdmissionForm'
+import AdmissionFormNew from './AdmissionFormNew'
 import AdmissionList from './AdmissionList'
 
 const Admissions = () => {
@@ -25,7 +25,7 @@ const Admissions = () => {
       </div>
 
       <div className="admissions-content">
-        {activeTab === 'admission-form' && <AdmissionForm />}
+        {activeTab === 'admission-form' && <AdmissionFormNew />}
         {activeTab === 'admission-list' && <AdmissionList />}
       </div>
     </div>

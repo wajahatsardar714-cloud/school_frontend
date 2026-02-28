@@ -130,10 +130,10 @@ const FeeStructureManagement = () => {
                 <input
                   type="number"
                   min="0"
-                  step="0.01"
-                  placeholder="0.00"
+                  step="1"
+                  placeholder="0"
                   value={formData.admission_fee}
-                  onChange={(e) => setFormData({ ...formData, admission_fee: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, admission_fee: Math.floor(parseFloat(e.target.value) || 0).toString() })}
                   disabled={submitting}
                   required
                 />
@@ -144,10 +144,10 @@ const FeeStructureManagement = () => {
                 <input
                   type="number"
                   min="0"
-                  step="0.01"
-                  placeholder="0.00"
+                  step="1"
+                  placeholder="0"
                   value={formData.monthly_fee}
-                  onChange={(e) => setFormData({ ...formData, monthly_fee: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, monthly_fee: Math.floor(parseFloat(e.target.value) || 0).toString() })}
                   disabled={submitting}
                   required
                 />
@@ -158,10 +158,10 @@ const FeeStructureManagement = () => {
                 <input
                   type="number"
                   min="0"
-                  step="0.01"
-                  placeholder="0.00"
+                  step="1"
+                  placeholder="0"
                   value={formData.paper_fund}
-                  onChange={(e) => setFormData({ ...formData, paper_fund: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, paper_fund: Math.floor(parseFloat(e.target.value) || 0).toString() })}
                   disabled={submitting}
                   required
                 />
@@ -172,10 +172,10 @@ const FeeStructureManagement = () => {
                 <input
                   type="number"
                   min="0"
-                  step="0.01"
-                  placeholder="0.00"
+                  step="1"
+                  placeholder="0"
                   value={formData.promotion_fee}
-                  onChange={(e) => setFormData({ ...formData, promotion_fee: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, promotion_fee: Math.floor(parseFloat(e.target.value) || 0).toString() })}
                   disabled={submitting}
                   required
                 />
@@ -183,7 +183,7 @@ const FeeStructureManagement = () => {
 
               <div className="fee-total">
                 <strong>Total Fee:</strong>
-                <span className="total-amount">Rs. {calculateTotal().toFixed(2)}</span>
+                <span className="total-amount">Rs. {Math.floor(calculateTotal()).toLocaleString()}</span>
               </div>
 
               <button type="submit" className="btn-primary" disabled={submitting}>
@@ -209,23 +209,23 @@ const FeeStructureManagement = () => {
                     <div className="fee-history-details">
                       <div className="fee-row">
                         <span>Admission Fee:</span>
-                        <span>Rs. {parseFloat(fee.admission_fee).toFixed(2)}</span>
+                        <span>Rs. {Math.floor(parseFloat(fee.admission_fee) || 0).toLocaleString()}</span>
                       </div>
                       <div className="fee-row">
                         <span>Monthly Fee:</span>
-                        <span>Rs. {parseFloat(fee.monthly_fee).toFixed(2)}</span>
+                        <span>Rs. {Math.floor(parseFloat(fee.monthly_fee) || 0).toLocaleString()}</span>
                       </div>
                       <div className="fee-row">
                         <span>Paper Fund:</span>
-                        <span>Rs. {parseFloat(fee.paper_fund).toFixed(2)}</span>
+                        <span>Rs. {Math.floor(parseFloat(fee.paper_fund) || 0).toLocaleString()}</span>
                       </div>
                       <div className="fee-row">
                         <span>Promotion Fee:</span>
-                        <span>Rs. {parseFloat(fee.promotion_fee || 0).toFixed(2)}</span>
+                        <span>Rs. {Math.floor(parseFloat(fee.promotion_fee || 0)).toLocaleString()}</span>
                       </div>
                       <div className="fee-row fee-total-row">
                         <strong>Total:</strong>
-                        <strong>Rs. {(parseFloat(fee.admission_fee) + parseFloat(fee.monthly_fee) + parseFloat(fee.paper_fund) + parseFloat(fee.promotion_fee || 0)).toFixed(2)}</strong>
+                        <strong>Rs. {Math.floor(parseFloat(fee.admission_fee) + parseFloat(fee.monthly_fee) + parseFloat(fee.paper_fund) + parseFloat(fee.promotion_fee || 0)).toLocaleString()}</strong>
                       </div>
                     </div>
                   </div>

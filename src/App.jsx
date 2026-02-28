@@ -11,10 +11,12 @@ import ErrorBoundary from './components/ErrorBoundary'
 import './App.css'
 import './responsive.css'
 import './mobile-responsive.css'
+import './mobile-enhancements.css'
+import './mobile-extras.css'
 
 // Lazy load heavy components for better performance
 const Admissions = lazy(() => import('./components/Admissions'))
-const AdmissionForm = lazy(() => import('./components/AdmissionForm'))
+const AdmissionForm = lazy(() => import('./components/AdmissionFormNew'))
 const AdmissionList = lazy(() => import('./components/AdmissionList'))
 const ClassManagement = lazy(() => import('./components/ClassManagement'))
 const SectionManagement = lazy(() => import('./components/SectionManagement'))
@@ -37,6 +39,7 @@ const ClassStudentList = lazy(() => import('./components/students/ClassStudentLi
 const StudentDetail = lazy(() => import('./components/students/StudentDetail'))
 const Profile = lazy(() => import('./components/Profile'))
 const BulkStudentImport = lazy(() => import('./components/students/BulkStudentImport'))
+const TestReport = lazy(() => import('./components/TestReport'))
 
 // Loading fallback component
 const PageLoader = () => (
@@ -96,6 +99,7 @@ function AppLayout() {
                 </ProtectedRoute>
               } />
               <Route path="/students/class/:classId" element={<ClassStudentList />} />
+              <Route path="/classes/:classId/students" element={<ClassStudentList />} />
               <Route path="/students/:studentId" element={<StudentDetail />} />
 
               {/* Class Management Routes */}
@@ -149,6 +153,9 @@ function AppLayout() {
                   <AnalyticsDashboard />
                 </ProtectedRoute>
               } />
+
+              {/* Test Report */}
+              <Route path="/test-report" element={<TestReport />} />
 
               {/* Expense Routes */}
               <Route path="/expenses" element={<ExpenseManagement />} />

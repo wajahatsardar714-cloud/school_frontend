@@ -164,17 +164,157 @@
   border: 2px solid #3498db;
 }
 
+/* ============================================
+   MOBILE RESPONSIVENESS - BULK IMPORT
+   ============================================ */
+
+@media (max-width: 1024px) {
+  .bulk-import-container {
+    padding: 1.25rem;
+  }
+
+  .bulk-import-controls {
+    padding: 1rem;
+  }
+}
+
 @media (max-width: 768px) {
+  .bulk-import-container {
+    padding: 1rem;
+  }
+
+  .bulk-import-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .bulk-import-header p {
+    font-size: 0.875rem;
+  }
+
   .bulk-import-controls {
     flex-direction: column;
-    gap: 16px;
+    gap: 1rem;
+    padding: 1rem;
   }
   
   .file-upload-section {
+    width: 100%;
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .file-upload-btn,
+  .btn-secondary,
+  .btn-primary {
+    width: 100%;
+    min-height: 44px; /* Touch-friendly */
+    text-align: center;
+  }
+
+  .btn-primary {
+    padding: 0.875rem 1.25rem;
   }
   
   .grid-container {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ag-theme-alpine {
+    font-size: 0.875rem;
+  }
+
+  .message {
+    font-size: 0.875rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .validation-errors {
+    padding: 1rem;
+  }
+
+  .validation-errors h3 {
+    font-size: 0.9375rem;
+  }
+
+  .error-row {
+    font-size: 0.8125rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .bulk-import-container {
+    padding: 0.875rem;
+  }
+
+  .bulk-import-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .bulk-import-controls {
+    padding: 0.875rem;
+    gap: 0.875rem;
+  }
+
+  .file-upload-btn,
+  .btn-secondary {
+    font-size: 0.875rem;
+    padding: 0.75rem 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .bulk-import-container {
+    padding: 0.75rem;
+  }
+
+  .bulk-import-header h1 {
+    font-size: 1.125rem;
+  }
+
+  .bulk-import-header p {
+    font-size: 0.8125rem;
+  }
+
+  .bulk-import-controls {
+    padding: 0.75rem;
+  }
+
+  .file-upload-btn,
+  .btn-secondary,
+  .btn-primary {
+    font-size: 0.875rem;
+    padding: 0.75rem 0.875rem;
+  }
+
+  .message {
+    font-size: 0.8125rem;
+    padding: 0.625rem 0.875rem;
+  }
+
+  .validation-errors {
+    padding: 0.875rem;
+  }
+
+  .validation-errors h3 {
+    font-size: 0.875rem;
+  }
+
+  .error-row {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .bulk-import-container {
+    padding: 0.625rem;
+  }
+
+  .bulk-import-header h1 {
+    font-size: 1rem;
+  }
+
+  .btn-primary {
+    font-size: 0.8125rem;
   }
 }

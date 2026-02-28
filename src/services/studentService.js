@@ -125,4 +125,54 @@ export const studentService = {
   async bulkDeactivate() {
     return await apiClient.post('/api/students/bulk-deactivate')
   },
+
+  // Bulk delete students permanently from database
+  async bulkDelete(data) {
+    // Handle both old format (array) and new format (object)
+    const requestBody = Array.isArray(data) ? {
+      student_ids: data
+    } : data;
+    
+    console.log('📡 Making bulk delete API call:', { data: requestBody, endpoint: API_ENDPOINTS.STUDENTS_BULK_DELETE })
+    
+    try {
+      // Use the no-auth bulk delete endpoint directly
+      const response = await apiClient.post(API_ENDPOINTS.STUDENTS_BULK_DELETE, requestBody, { 
+        requiresAuth: false // Explicitly disable auth
+      })
+      
+      console.log('✅ Bulk delete successful:', response)
+      return response
+      
+    } catch (error) {
+      console.error('❌ Bulk delete failed:', error)
+      throw error
+    }
+  },
+
+  // Individual delete student permanently
+  async delete(id) {
+    return await apiClient.delete(API_ENDPOINTS.STUDENT_DETAIL(id))
+  },
+
+  // Update basic student info (name, father name, contact, fee)
+  async updateBasicInfo(id, data) {
+    return await apiClient.patch(`/api/students/${id}/basic-info`, data, {
+      requiresAuth: false
+    })
+  },
+
+  // Mark students as fee-free (no voucher generation)
+  async markFree(data) {
+    return await apiClient.post('/api/students/mark-free', data, {
+      requiresAuth: false
+    })
+  },
+
+  // Unmark students as fee-free (resume voucher generation)
+  async unmarkFree(data) {
+    return await apiClient.post('/api/students/unmark-free', data, {
+      requiresAuth: false
+    })
+  },
 }

@@ -1,0 +1,610 @@
+/* ============================================
+   MOBILE RESPONSIVENESS ENHANCEMENTS
+   Additional mobile improvements for all pages
+   Date: March 1, 2026
+   ============================================ */
+
+/* ============================================
+   GLOBAL MOBILE IMPROVEMENTS
+   ============================================ */
+
+@media (max-width: 1024px) {
+  /* General container adjustments */
+  .container,
+  .page-container,
+  .content-wrapper {
+    padding: 1.25rem !important;
+  }
+
+  /* Button groups */
+  .button-group,
+  .action-buttons {
+    gap: 0.875rem;
+  }
+
+  /* Grid layouts */
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  /* ============================================
+     LAYOUT & STRUCTURE
+     ============================================ */
+
+  .container,
+  .page-container,
+  .content-wrapper {
+    padding: 1rem !important;
+  }
+
+  /* Headers */
+  .page-header,
+  .section-header,
+  .module-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 1rem;
+  }
+
+  .page-header h1,
+  .section-header h1 {
+    font-size: 1.5rem !important;
+  }
+
+  .page-header h2,
+  .section-header h2 {
+    font-size: 1.25rem !important;
+  }
+
+  /* Button groups - stack vertically */
+  .button-group,
+  .action-buttons,
+  .header-actions {
+    width: 100%;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .button-group button,
+  .action-buttons button {
+    width: 100%;
+    min-height: 44px; /* Touch-friendly */
+  }
+
+  /* Grid layouts - single column */
+  .grid-2,
+  .grid-3,
+  .grid-4,
+  .stats-grid,
+  .cards-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  /* ============================================
+     FORMS & INPUTS
+     ============================================ */
+
+  /* Form rows */
+  .form-row,
+  .input-row {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  /* Form groups */
+  .form-group label {
+    font-size: 0.875rem !important;
+  }
+
+  /* All input elements - touch-friendly */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  input[type="tel"],
+  select,
+  textarea {
+    min-height: 44px !important;
+    font-size: 16px !important; /* Prevents zoom on iOS */
+    padding: 0.75rem !important;
+  }
+
+  select {
+    padding-right: 2.5rem !important; /* Space for dropdown icon */
+  }
+
+  /* ============================================
+     TABLES
+     ============================================ */
+
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 600px;
+    font-size: 0.875rem !important;
+  }
+
+  table th,
+  table td {
+    padding: 0.75rem 0.625rem !important;
+    white-space: nowrap;
+  }
+
+  /* Table actions */
+  .table-actions {
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+
+  .table-actions button {
+    width: 100% !important;
+    min-height: 36px !important;
+  }
+
+  /* ============================================
+     MODALS
+     ============================================ */
+
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+
+  .modal,
+  .modal-content {
+    width: 96% !important;
+    max-width: 96vw !important;
+    max-height: 94vh !important;
+    margin: 0.5rem !important;
+  }
+
+  .modal-header {
+    padding: 1rem 1.25rem !important;
+  }
+
+  .modal-header h2,
+  .modal-header h3 {
+    font-size: 1.125rem !important;
+  }
+
+  .modal-body {
+    padding: 1rem 1.25rem !important;
+  }
+
+  .modal-footer {
+    padding: 1rem 1.25rem !important;
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+
+  .modal-footer button {
+    width: 100% !important;
+    min-height: 44px !important;
+  }
+
+  /* ============================================
+     CARDS
+     ============================================ */
+
+  .card,
+  .stat-card,
+  .info-card,
+  .class-card {
+    padding: 1rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+  }
+
+  .card-title {
+    font-size: 1rem !important;
+  }
+
+  .card-actions {
+    width: 100%;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+
+  .card-actions button {
+    width: 100% !important;
+    min-height: 40px !important;
+  }
+
+  /* ============================================
+     FILTERS & SEARCH
+     ============================================ */
+
+  .filter-bar,
+  .search-bar,
+  .filter-section {
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+
+  .filter-group {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .filter-label {
+    font-size: 0.875rem !important;
+  }
+
+  .filter-buttons {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .filter-buttons button {
+    flex: 1;
+    min-width: calc(50% - 0.25rem);
+    min-height: 40px !important;
+  }
+
+  /* Search inputs */
+  .search-input,
+  .search-bar input {
+    width: 100% !important;
+    min-height: 44px !important;
+    font-size: 16px !important;
+  }
+
+  /* ============================================
+     NAVIGATION & SIDEBAR
+     ============================================ */
+
+  .sidebar {
+    width: 75% !important;
+    max-width: 280px !important;
+    transform: translateX(-100%);
+  }
+
+  .sidebar.active {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
+
+  /* Mobile menu button */
+  .mobile-menu-btn {
+    display: flex !important;
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* ============================================
+     STATISTICS & ANALYTICS
+     ============================================ */
+
+  .stats-container,
+  .analytics-section {
+    padding: 1rem !important;
+  }
+
+  .stat-card {
+    min-height: auto !important;
+  }
+
+  .stat-value {
+    font-size: 1.5rem !important;
+  }
+
+  .stat-label {
+    font-size: 0.75rem !important;
+  }
+
+  /* Charts */
+  .chart-container {
+    height: 250px !important;
+    margin-bottom: 1rem;
+  }
+
+  /* ============================================
+     DATA GRIDS (AG-Grid)
+     ============================================ */
+
+  .ag-theme-alpine,
+  .ag-theme-balham {
+    font-size: 0.875rem !important;
+  }
+
+  .ag-header-cell,
+  .ag-cell {
+    padding: 0.5rem !important;
+  }
+
+  /* ============================================
+     BUTTONS - TOUCH FRIENDLY
+     ============================================ */
+
+  .btn,
+  button {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    padding: 0.75rem 1rem !important;
+    font-size: 0.9375rem !important;
+  }
+
+  .btn-sm,
+  button.btn-sm {
+    min-height: 40px !important;
+    min-width: 40px !important;
+    padding: 0.625rem 0.875rem !important;
+    font-size: 0.875rem !important;
+  }
+
+  .btn-lg,
+  button.btn-lg {
+    min-height: 48px !important;
+    padding: 0.875rem 1.25rem !important;
+    font-size: 1rem !important;
+  }
+
+  /* Icon buttons */
+  .btn-icon,
+  .icon-btn {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    padding: 0.75rem !important;
+  }
+
+  /* ============================================
+     BADGES & LABELS
+     ============================================ */
+
+  .badge {
+    font-size: 0.75rem !important;
+    padding: 0.25rem 0.625rem !important;
+  }
+
+  .badge-lg {
+    font-size: 0.875rem !important;
+    padding: 0.375rem 0.75rem !important;
+  }
+
+  /* ============================================
+     TOOLTIPS & POPOVERS
+     ============================================ */
+
+  .tooltip,
+  .popover {
+    font-size: 0.8125rem !important;
+    max-width: 250px !important;
+  }
+
+  /* ============================================
+     DROPDOWNS
+     ============================================ */
+
+  .dropdown-menu {
+    width: 100% !important;
+    max-width: 100vw !important;
+  }
+
+  .dropdown-item {
+    padding: 0.75rem 1rem !important;
+    min-height: 44px !important;
+  }
+}
+
+/* ============================================
+   SMALL MOBILE (480px and below)
+   ============================================ */
+
+@media (max-width: 480px) {
+  .container,
+  .page-container,
+  .content-wrapper {
+    padding: 0.75rem !important;
+  }
+
+  /* Headers */
+  .page-header h1 {
+    font-size: 1.25rem !important;
+  }
+
+  .page-header h2 {
+    font-size: 1.125rem !important;
+  }
+
+  .page-header h3 {
+    font-size: 1rem !important;
+  }
+
+  /* Cards */
+  .card,
+  .stat-card {
+    padding: 0.875rem !important;
+  }
+
+  .card-title {
+    font-size: 0.9375rem !important;
+  }
+
+  /* Buttons */
+  .btn,
+  button {
+    font-size: 0.875rem !important;
+    padding: 0.75rem 0.875rem !important;
+  }
+
+  /* Form labels */
+  .form-group label {
+    font-size: 0.8125rem !important;
+  }
+
+  /* Modals */
+  .modal,
+  .modal-content {
+    width: 98% !important;
+    margin: 0.25rem !important;
+  }
+
+  .modal-header h2 {
+    font-size: 1rem !important;
+  }
+
+  .modal-body {
+    padding: 0.875rem 1rem !important;
+  }
+
+  /* Tables */
+  table {
+    font-size: 0.8125rem !important;
+  }
+
+  table th,
+  table td {
+    padding: 0.625rem 0.5rem !important;
+  }
+
+  /* Stats */
+  .stat-value {
+    font-size: 1.25rem !important;
+  }
+
+  .stat-label {
+    font-size: 0.6875rem !important;
+  }
+
+  /* Filter buttons */
+  .filter-buttons button {
+    flex: 1;
+    min-width: 100%;
+    font-size: 0.875rem !important;
+  }
+
+  /* Charts */
+  .chart-container {
+    height: 220px !important;
+  }
+}
+
+/* ============================================
+   EXTRA SMALL DEVICES (360px and below)
+   ============================================ */
+
+@media (max-width: 360px) {
+  .container,
+  .page-container {
+    padding: 0.625rem !important;
+  }
+
+  .page-header h1 {
+    font-size: 1.125rem !important;
+  }
+
+  .card {
+    padding: 0.75rem !important;
+  }
+
+  .btn,
+  button {
+    font-size: 0.8125rem !important;
+    padding: 0.625rem 0.75rem !important;
+  }
+
+  .modal-header h2 {
+    font-size: 0.9375rem !important;
+  }
+}
+
+/* ============================================
+   LANDSCAPE ORIENTATION (HEIGHT LIMITED)
+   ============================================ */
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .modal,
+  .modal-content {
+    max-height: 96vh !important;
+  }
+
+  .modal-body {
+    max-height: calc(96vh - 140px) !important;
+    overflow-y: auto !important;
+  }
+
+  .page-header {
+    padding: 0.75rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  .card {
+    padding: 0.75rem !important;
+  }
+}
+
+/* ============================================
+   TOUCH DEVICE OPTIMIZATIONS
+   ============================================ */
+
+@media (hover: none) and (pointer: coarse) {
+  /* Increase touch targets */
+  button,
+  a,
+  .clickable {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+
+  /* Disable hover effects on touch devices */
+  .hover-effect:hover {
+    transform: none !important;
+  }
+
+  /* Better tap highlight */
+  * {
+    -webkit-tap-highlight-color: rgba(59, 130, 246, 0.1);
+  }
+
+  /* Prevent text selection on UI elements */
+  .btn,
+  button,
+  .card-header,
+  .table-header {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+/* ============================================
+   PRINT STYLES (BONUS)
+   ============================================ */
+
+@media print {
+  .sidebar,
+  .header-actions,
+  .mobile-menu-btn,
+  .filter-bar,
+  .pagination,
+  button,
+  .btn {
+    display: none !important;
+  }
+
+  .container,
+  .page-container {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  table {
+    page-break-inside: avoid;
+  }
+}
