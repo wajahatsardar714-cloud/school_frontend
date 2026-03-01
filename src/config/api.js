@@ -12,6 +12,7 @@ export const API_ENDPOINTS = {
   // Students
   STUDENTS: '/api/students',
   STUDENTS_BULK: '/api/students/bulk-noauth', // No auth endpoint for CSV import
+  STUDENTS_BULK_UPDATE: '/api/students/bulk-update-noauth', // No auth endpoint for bulk update
   STUDENTS_BULK_DELETE: '/api/bulk-delete-students', // No auth bulk delete endpoint
   STUDENT_DETAIL: (id) => `/api/students/${id}`,
   STUDENT_ENROLL: (id) => `/api/students/${id}/enroll`,

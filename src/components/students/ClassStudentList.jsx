@@ -47,7 +47,8 @@ const ClassStudentList = () => {
         { enabled: !!classId }
     )
 
-    // Fetch students for this class/section
+    // Fetch students for this class/section  
+    const [refreshKey, setRefreshKey] = useState(0)
     const { data: studentsResponse, loading, error } = useFetch(
         () => studentService.list({
             class_id: classId,
@@ -55,7 +56,7 @@ const ClassStudentList = () => {
             is_active: statusFilter === 'ACTIVE' ? true : (statusFilter === 'INACTIVE' ? false : undefined),
             is_expelled: statusFilter === 'EXPELLED' ? true : undefined
         }),
-        [classId, activeSection, statusFilter],
+        [classId, activeSection, statusFilter, refreshKey],
         { enabled: !!classId }
     )
 
@@ -72,6 +73,35 @@ const ClassStudentList = () => {
             s.phone?.includes(searchTerm)
         )
     }, [students, searchTerm])
+
+    // Group students by section when showing all sections
+    const groupedStudents = useMemo(() => {
+        if (activeSection !== null) {
+            return null // Don't group when showing specific section
+        }
+
+        const groups = {}
+        filteredStudents.forEach(student => {
+            const sectionName = student.current_section_name || 'No Section'
+            if (!groups[sectionName]) {
+                groups[sectionName] = []
+            }
+            groups[sectionName].push(student)
+        })
+
+        // Sort section names and return array of {sectionName, students}
+        return Object.keys(groups)
+            .sort()
+            .map(sectionName => ({
+                sectionName,
+                students: groups[sectionName].sort((a, b) => {
+                    // Sort students by roll_no if available
+                    const aRoll = parseInt(a.roll_no) || 999999
+                    const bRoll = parseInt(b.roll_no) || 999999
+                    return aRoll - bRoll
+                })
+            }))
+    }, [filteredStudents, activeSection])
     
     // Bulk selection handlers
     const handleSelectAll = (checked) => {
@@ -162,7 +192,7 @@ const ClassStudentList = () => {
         setEditFormData({
             name: student.name,
             father_name: student.father_name || student.father_guardian_name || '',
-            phone: student.father_contact_number || student.phone || '',
+            phone: student.phone || '',
             individual_monthly_fee: student.individual_monthly_fee || student.effective_monthly_fee || student.class_monthly_fee || 0
         })
     }
@@ -365,7 +395,8 @@ const ClassStudentList = () => {
                     <div className="empty-state">
                         <p>No students found in this {activeSection ? 'section' : 'class'}.</p>
                     </div>
-                ) : (
+                ) : activeSection !== null ? (
+                    // Show single section table
                     <table className="student-table">
                         <thead>
                             <tr>
@@ -381,7 +412,8 @@ const ClassStudentList = () => {
                                 <th>Name</th>
                                 <th>Father Name</th>
                                 <th>Father's Contact Number</th>
-                                <th>Fee</th>
+                                <th>Monthly Fee</th>
+                                <th>Fee Status</th>
                                 <th style={{ width: '100px' }}>Actions</th>
                             </tr>
                         </thead>
@@ -438,7 +470,7 @@ const ClassStudentList = () => {
                                                 style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid #cbd5e0' }}
                                             />
                                         ) : (
-                                            <span className="student-sub-info" onClick={() => navigate(`/students/${student.id}`)}>{student.father_contact_number || student.phone || '-'}</span>
+                                            <span className="student-sub-info" onClick={() => navigate(`/students/${student.id}`)}>{student.phone || '-'}</span>
                                         )}
                                     </td>
                                     <td onClick={(e) => isEditing && e.stopPropagation()}>
@@ -452,10 +484,77 @@ const ClassStudentList = () => {
                                         ) : (
                                             <span className="student-sub-info" onClick={() => navigate(`/students/${student.id}`)}>
                                                 Rs. {(student.individual_monthly_fee || student.effective_monthly_fee || student.class_monthly_fee || 0).toLocaleString()}
-                                                {student.is_fee_free && <span style={{ marginLeft: '0.5rem', fontSize: '12px', color: '#059669', fontWeight: 'bold' }}>FREE</span>}
                                             </span>
                                         )}
                                     </td>
+                                    <td onClick={(e) => e.stopPropagation()}>
+                                        {(() => {
+                                            if (student.is_fee_free) {
+                                                return (
+                                                    <span style={{ 
+                                                        background: 'linear-gradient(135deg, #059669, #047857)', 
+                                                        color: 'white', 
+                                                        padding: '0.25rem 0.75rem', 
+                                                        borderRadius: '20px', 
+                                                        fontSize: '0.75rem', 
+                                                        fontWeight: '600',
+                                                        display: 'inline-block'
+                                                    }}>
+                                                        📚 FREE
+                                                    </span>
+                                                )
+                                            }
+                                            
+                                            const studentFee = student.individual_monthly_fee || student.effective_monthly_fee || 0
+                                            const classFee = student.class_monthly_fee || 0
+                                            
+                                            if (studentFee === classFee && classFee > 0) {
+                                                return (
+                                                    <span style={{ 
+                                                        background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', 
+                                                        color: 'white', 
+                                                        padding: '0.25rem 0.75rem', 
+                                                        borderRadius: '20px', 
+                                                        fontSize: '0.75rem', 
+                                                        fontWeight: '600',
+                                                        display: 'inline-block'
+                                                    }}>
+                                                        💰 FULL
+                                                    </span>
+                                                )
+                                            } else if (studentFee < classFee && studentFee > 0) {
+                                                const discountPercent = Math.round(((classFee - studentFee) / classFee) * 100)
+                                                return (
+                                                    <span style={{ 
+                                                        background: 'linear-gradient(135deg, #f59e0b, #d97706)', 
+                                                        color: 'white', 
+                                                        padding: '0.25rem 0.75rem', 
+                                                        borderRadius: '20px', 
+                                                        fontSize: '0.75rem', 
+                                                        fontWeight: '600',
+                                                        display: 'inline-block'
+                                                    }}>
+                                                        🎯 {discountPercent}% OFF
+                                                    </span>
+                                                )
+                                            } else {
+                                                return (
+                                                    <span style={{ 
+                                                        background: 'linear-gradient(135deg, #6b7280, #4b5563)', 
+                                                        color: 'white', 
+                                                        padding: '0.25rem 0.75rem', 
+                                                        borderRadius: '20px', 
+                                                        fontSize: '0.75rem', 
+                                                        fontWeight: '600',
+                                                        display: 'inline-block'
+                                                    }}>
+                                                        ⚙️ CUSTOM
+                                                    </span>
+                                                )
+                                            }
+                                        })()
+                                    }
+                                </td>
                                     <td onClick={(e) => e.stopPropagation()}>
                                         {isEditing ? (
                                             <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
@@ -499,12 +598,241 @@ const ClassStudentList = () => {
                             )})}
                         </tbody>
                     </table>
+                ) : (
+                    // Show grouped sections when activeSection is null
+                    <div className="grouped-sections">
+                        {groupedStudents?.map((sectionGroup, sectionIndex) => (
+                            <div key={sectionGroup.sectionName} className="section-group">
+                                <div className="section-header">
+                                    <h3>{classData?.data?.name || 'Class'} - {sectionGroup.sectionName}</h3>
+                                    <span className="section-student-count">({sectionGroup.students.length} students)</span>
+                                </div>
+                                
+                                <table className="student-table">
+                                    <thead>
+                                        <tr>
+                                            <th style={{ width: '50px' }}>
+                                                <input 
+                                                    type="checkbox"
+                                                    checked={sectionGroup.students.every(student => 
+                                                        selectedStudents.has(JSON.stringify({name: student.name, roll_no: student.roll_no, phone: student.phone}))
+                                                    )}
+                                                    onChange={(e) => {
+                                                        sectionGroup.students.forEach(student => {
+                                                            handleSelectStudent(student, e.target.checked)
+                                                        })
+                                                    }}
+                                                    style={{ transform: 'scale(1.2)' }}
+                                                />
+                                            </th>
+                                            <th>Sr No</th>
+                                            <th>Name</th>
+                                            <th>Father Name</th>
+                                            <th>Father's Contact Number</th>
+                                            <th>Monthly Fee</th>
+                                            <th>Fee Status</th>
+                                            <th style={{ width: '100px' }}>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {sectionGroup.students.map(student => {
+                                            const isEditing = editingStudentId === student.id
+                                            return (
+                                            <tr
+                                                key={`${student.name}-${student.roll_no}`}
+                                                className={`student-row ${selectedStudents.has(JSON.stringify({name: student.name, roll_no: student.roll_no, phone: student.phone})) ? 'selected' : ''}`}
+                                            >
+                                                <td onClick={(e) => e.stopPropagation()}>
+                                                    <input 
+                                                        type="checkbox"
+                                                        checked={selectedStudents.has(JSON.stringify({name: student.name, roll_no: student.roll_no, phone: student.phone}))}
+                                                        onChange={(e) => handleSelectStudent(student, e.target.checked)}
+                                                        style={{ transform: 'scale(1.2)' }}
+                                                        disabled={isEditing}
+                                                    />
+                                                </td>
+                                                <td onClick={() => !isEditing && navigate(`/students/${student.id}`)}>
+                                                    <span className="student-name-main">{student.roll_no || '-'}</span>
+                                                </td>
+                                                <td onClick={(e) => isEditing && e.stopPropagation()}>
+                                                    {isEditing ? (
+                                                        <input 
+                                                            type="text"
+                                                            value={editFormData.name}
+                                                            onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                                                            style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid #cbd5e0' }}
+                                                        />
+                                                    ) : (
+                                                        <span className="student-name-main" onClick={() => navigate(`/students/${student.id}`)}>{student.name}</span>
+                                                    )}
+                                                </td>
+                                                <td onClick={(e) => isEditing && e.stopPropagation()}>
+                                                    {isEditing ? (
+                                                        <input 
+                                                            type="text"
+                                                            value={editFormData.father_name}
+                                                            onChange={(e) => setEditFormData({...editFormData, father_name: e.target.value})}
+                                                            style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid #cbd5e0' }}
+                                                        />
+                                                    ) : (
+                                                        <span className="student-sub-info" onClick={() => navigate(`/students/${student.id}`)}>{student.father_name || student.father_guardian_name || '-'}</span>
+                                                    )}
+                                                </td>
+                                                <td onClick={(e) => isEditing && e.stopPropagation()}>
+                                                    {isEditing ? (
+                                                        <input 
+                                                            type="tel"
+                                                            value={editFormData.phone}
+                                                            onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
+                                                            style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid #cbd5e0' }}
+                                                        />
+                                                    ) : (
+                                                        <span className="student-sub-info" onClick={() => navigate(`/students/${student.id}`)}>{student.phone || '-'}</span>
+                                                    )}
+                                                </td>
+                                                <td onClick={(e) => isEditing && e.stopPropagation()}>
+                                                    {isEditing ? (
+                                                        <input 
+                                                            type="number"
+                                                            value={editFormData.individual_monthly_fee}
+                                                            onChange={(e) => setEditFormData({...editFormData, individual_monthly_fee: parseFloat(e.target.value) || 0})}
+                                                            style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid #cbd5e0' }}
+                                                        />
+                                                    ) : (
+                                                        <span className="student-sub-info" onClick={() => navigate(`/students/${student.id}`)}>
+                                                            Rs. {(student.individual_monthly_fee || student.effective_monthly_fee || student.class_monthly_fee || 0).toLocaleString()}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td onClick={(e) => e.stopPropagation()}>
+                                                    {(() => {
+                                                        if (student.is_fee_free) {
+                                                            return (
+                                                                <span style={{ 
+                                                                    background: 'linear-gradient(135deg, #059669, #047857)', 
+                                                                    color: 'white', 
+                                                                    padding: '0.25rem 0.75rem', 
+                                                                    borderRadius: '20px', 
+                                                                    fontSize: '0.75rem', 
+                                                                    fontWeight: '600',
+                                                                    display: 'inline-block'
+                                                                }}>
+                                                                    📚 FREE
+                                                                </span>
+                                                            )
+                                                        }
+                                                        
+                                                        const studentFee = student.individual_monthly_fee || student.effective_monthly_fee || 0
+                                                        const classFee = student.class_monthly_fee || 0
+                                                        
+                                                        if (studentFee === classFee && classFee > 0) {
+                                                            return (
+                                                                <span style={{ 
+                                                                    background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', 
+                                                                    color: 'white', 
+                                                                    padding: '0.25rem 0.75rem', 
+                                                                    borderRadius: '20px', 
+                                                                    fontSize: '0.75rem', 
+                                                                    fontWeight: '600',
+                                                                    display: 'inline-block'
+                                                                }}>
+                                                                    💰 FULL
+                                                                </span>
+                                                            )
+                                                        } else if (studentFee < classFee && studentFee > 0) {
+                                                            const discountPercent = Math.round(((classFee - studentFee) / classFee) * 100)
+                                                            return (
+                                                                <span style={{ 
+                                                                    background: 'linear-gradient(135deg, #f59e0b, #d97706)', 
+                                                                    color: 'white', 
+                                                                    padding: '0.25rem 0.75rem', 
+                                                                    borderRadius: '20px', 
+                                                                    fontSize: '0.75rem', 
+                                                                    fontWeight: '600',
+                                                                    display: 'inline-block'
+                                                                }}>
+                                                                    🎯 {discountPercent}% OFF
+                                                                </span>
+                                                            )
+                                                        } else {
+                                                            return (
+                                                                <span style={{ 
+                                                                    background: 'linear-gradient(135deg, #6b7280, #4b5563)', 
+                                                                    color: 'white', 
+                                                                    padding: '0.25rem 0.75rem', 
+                                                                    borderRadius: '20px', 
+                                                                    fontSize: '0.75rem', 
+                                                                    fontWeight: '600',
+                                                                    display: 'inline-block'
+                                                                }}>
+                                                                    ⚙️ CUSTOM
+                                                                </span>
+                                                            )
+                                                        }
+                                                    })()
+                                                }
+                                                </td>
+                                                <td onClick={(e) => e.stopPropagation()}>
+                                                    {isEditing ? (
+                                                        <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+                                                            <button 
+                                                                className="btn-success"
+                                                                onClick={() => handleSaveEdit(student.id)}
+                                                                disabled={isSaving}
+                                                                style={{ fontSize: '0.7rem', padding: '0.3rem 0.6rem', background: 'linear-gradient(135deg, #059669, #047857)' }}
+                                                            >
+                                                                {isSaving ? '...' : '💾 Save'}
+                                                            </button>
+                                                            <button 
+                                                                className="btn-secondary"
+                                                                onClick={handleCancelEdit}
+                                                                disabled={isSaving}
+                                                                style={{ fontSize: '0.7rem', padding: '0.3rem 0.6rem' }}
+                                                            >
+                                                                ✕ Cancel
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+                                                            <button 
+                                                                className="btn-warning"
+                                                                onClick={() => handleEditClick(student)}
+                                                                style={{ fontSize: '0.7rem', padding: '0.3rem 0.6rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}
+                                                            >
+                                                                ✏️ Edit
+                                                            </button>
+                                                            <button 
+                                                                className="btn-primary"
+                                                                onClick={() => navigate(`/students/${student.id}`)}
+                                                                style={{ fontSize: '0.7rem', padding: '0.3rem 0.6rem' }}
+                                                            >
+                                                                👁️ Detail
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        )})}
+                                    </tbody>
+                                </table>
+                                
+                                {sectionIndex < groupedStudents.length - 1 && (
+                                    <div className="section-divider"></div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
                 )}
             </div>
 
             <CSVImportModal
                 isOpen={showImportModal}
                 onClose={() => setShowImportModal(false)}
+                onImportSuccess={() => {
+                    console.log('✅ CSV import successful, refreshing student list...')
+                    setRefreshKey(prev => prev + 1) // Trigger refresh
+                    setShowImportModal(false)
+                }}
                 preselectedClassId={classId}
                 preselectedSectionId={activeSection}
             />

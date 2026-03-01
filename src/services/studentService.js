@@ -122,6 +122,19 @@ export const studentService = {
     })
   },
 
+  // Bulk update existing students with missing data (phone, fee, etc.)
+  async bulkUpdate(data) {
+    console.log('📝 Calling bulk update with data:', {
+      studentsCount: data.students?.length || 0,
+      classId: data.class_id,
+      sectionId: data.section_id,
+      endpoint: API_ENDPOINTS.STUDENTS_BULK_UPDATE
+    })
+    return await apiClient.post(API_ENDPOINTS.STUDENTS_BULK_UPDATE, data, { 
+      requiresAuth: false
+    })
+  },
+
   async bulkDeactivate() {
     return await apiClient.post('/api/students/bulk-deactivate')
   },

@@ -1,19 +1,53 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { feePaymentService } from '../services/feeService'
 import { studentService } from '../services/studentService'
 import { useFetch } from '../hooks/useApi'
 import '../fee.css'
+import './StudentFeeHistory.css'
 
 const StudentFeeHistory = () => {
   const [studentId, setStudentId] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [showResults, setShowResults] = useState(false)
+  const [selectedStudent, setSelectedStudent] = useState(null)
+  const searchRef = useRef(null)
 
-  // Fetch students
-  const { data: studentsData, loading: studentsLoading } = useFetch(
-    () => studentService.list({ is_active: true }),
-    [],
-    { enabled: true }
-  )
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowResults(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Search students with debouncing
+  useEffect(() => {
+    const delayDebounce = setTimeout(async () => {
+      if (searchTerm.trim().length >= 2) {
+        setSearchLoading(true)
+        try {
+          const response = await studentService.search(searchTerm.trim())
+          const students = response.data || []
+          setSearchResults(students)
+          setShowResults(true)
+        } catch (err) {
+          console.error('Search error:', err)
+          setSearchResults([])
+        } finally {
+          setSearchLoading(false)
+        }
+      } else {
+        setSearchResults([])
+        setShowResults(false)
+      }
+    }, 300)
+    return () => clearTimeout(delayDebounce)
+  }, [searchTerm])
 
   // Fetch student fee history
   const {
@@ -77,37 +111,40 @@ const StudentFeeHistory = () => {
     return dueData?.data || dueData || { total_due: 0, voucher_count: 0 }
   }, [dueData])
 
-  const selectedStudent = useMemo(() => {
-    if (!studentId) return null
-    const students = studentsData?.data || []
-    const student = students.find(s => String(s.id) === String(studentId))
-    console.log('Selected Student:', student)
-    console.log('Selected Student Keys:', student ? Object.keys(student) : 'null')
-    console.log('All Students:', students)
+  // Handle selecting a student from search results
+  const handleSelectStudent = (student) => {
+    // Extract class and section info
+    const className = student.current_enrollment?.class_name || 
+                      student.current_class_name || 
+                      student.current_class?.name || 
+                      student.class_name || 
+                      'Not Enrolled'
+    const sectionName = student.current_enrollment?.section_name || 
+                        student.current_section_name || 
+                        student.current_section?.name || 
+                        student.section_name || 
+                        'N/A'
+    const fatherName = student.father_name || 
+                       student.guardians?.find(g => g.relation === 'Father')?.name || 
+                       'N/A'
     
-    // If student doesn't have class info, try to get it from the first history record
-    if (student && history.length > 0 && !student.class_name) {
-      const firstRecord = history[0]
-      return {
-        ...student,
-        class_name: firstRecord.class_name,
-        section_name: firstRecord.section_name,
-        roll_no: student.roll_no || student.roll_number || firstRecord.roll_no || 'N/A'
-      }
-    }
-    
-    return student
-  }, [studentId, studentsData, history])
+    setSelectedStudent({
+      ...student,
+      class_name: className,
+      section_name: sectionName,
+      father_name: fatherName
+    })
+    setStudentId(student.id.toString())
+    setSearchTerm('')
+    setShowResults(false)
+  }
 
-  const filteredStudents = useMemo(() => {
-    const students = studentsData?.data || []
-    if (!searchTerm) return students
-
-    return students.filter(s =>
-      s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.roll_no?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  }, [studentsData, searchTerm])
+  // Clear selection
+  const handleClearSelection = () => {
+    setStudentId('')
+    setSelectedStudent(null)
+    setSearchTerm('')
+  }
 
   // Calculate summary statistics - use backend summary if available
   const summary = useMemo(() => {
@@ -166,35 +203,107 @@ const StudentFeeHistory = () => {
         </div>
       )}
 
-      {/* Student Selection */}
-      <div className="filters-section">
-        <div className="filter-group">
-          <label>Search Student</label>
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Search by name or roll no..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      {/* Student Search Section */}
+      <div className="student-search-section">
+        <div className="search-container" ref={searchRef}>
+          <div className="search-header">
+            <h3>🔍 Search Student</h3>
+            <p>Find a student to view their complete fee history</p>
+          </div>
+          
+          <div className="search-input-container">
+            <input
+              type="text"
+              className="student-search-input"
+              placeholder="Type student name to search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onFocus={() => searchResults.length > 0 && setShowResults(true)}
+            />
+            {searchTerm && (
+              <button 
+                className="clear-search-btn"
+                onClick={() => { setSearchTerm(''); setShowResults(false); }}
+              >✕</button>
+            )}
+            {searchLoading && <span className="search-loading">⏳</span>}
+          </div>
+
+          {/* Search Results Dropdown */}
+          {showResults && (
+            <div className="search-results-dropdown">
+              {searchResults.length === 0 ? (
+                <div className="no-results">
+                  <p>No students found matching "{searchTerm}"</p>
+                </div>
+              ) : (
+                <>
+                  <div className="search-results-header">
+                    <p>Found {searchResults.length} student{searchResults.length > 1 ? 's' : ''}</p>
+                  </div>
+                  <div className="search-results-list">
+                    {searchResults.map((student) => {
+                      const fatherName = student.father_name || student.guardians?.find(g => g.relation === 'Father')?.name || 'N/A'
+                      const className = student.current_enrollment?.class_name || student.current_class_name || student.class_name || 'Not Enrolled'
+                      const sectionName = student.current_enrollment?.section_name || student.current_section_name || student.section_name || ''
+                      
+                      return (
+                        <div 
+                          key={student.id}
+                          className="search-result-item"
+                          onClick={() => handleSelectStudent(student)}
+                        >
+                          <div className="student-card-left">
+                            <div className="student-avatar">
+                              {student.name?.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="student-card-info">
+                              <div className="student-name-highlight">{student.name}</div>
+                              <div className="student-meta-grid">
+                                <div className="meta-item">
+                                  <span className="meta-label">FATHER</span>
+                                  <span className="meta-value">{fatherName}</span>
+                                </div>
+                                <div className="meta-item">
+                                  <span className="meta-label">CLASS</span>
+                                  <span className="meta-value">{className}</span>
+                                </div>
+                                {sectionName && (
+                                  <div className="meta-item">
+                                    <span className="meta-label">SECTION</span>
+                                    <span className="meta-value">{sectionName}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <button className="btn-view-details">
+                            View History →
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
-        <div className="filter-group">
-          <label>Select Student</label>
-          <select
-            className="filter-select"
-            value={studentId}
-            onChange={(e) => setStudentId(e.target.value)}
-            disabled={studentsLoading}
-          >
-            <option value="">-- Select Student --</option>
-            {filteredStudents.map(s => (
-              <option key={s.id} value={s.id}>
-                {s.name} ({s.roll_no}) - {s.class_name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Selected Student Badge */}
+        {selectedStudent && (
+          <div className="selected-student-badge">
+            <div className="selected-info">
+              <span className="selected-text">
+                Selected: <strong>{selectedStudent.name}</strong> ({selectedStudent.class_name})
+              </span>
+            </div>
+            <button 
+              className="clear-selection-btn"
+              onClick={handleClearSelection}
+            >✕</button>
+          </div>
+        )}
       </div>
 
       {studentId && selectedStudent && (
@@ -208,6 +317,9 @@ const StudentFeeHistory = () => {
               <div className="student-details">
                 <h2>{selectedStudent.name}</h2>
                 <div className="student-meta">
+                  <span className="meta-item">
+                    <strong>Father:</strong> {selectedStudent.father_name || 'N/A'}
+                  </span>
                   <span className="meta-item">
                     <strong>Roll No:</strong> {selectedStudent.roll_no || 'N/A'}
                   </span>

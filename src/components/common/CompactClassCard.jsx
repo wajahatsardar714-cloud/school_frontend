@@ -74,13 +74,13 @@ const CompactClassCard = ({
                     style={{ textDecoration: 'none', color: 'inherit' }}
                   >
                     <span className="section-name">{section.name}</span>
-                    <span className="section-count">{section.student_count || 0}</span>
+                    <span className="section-count">{parseInt(section.student_count || 0)}</span>
                   </Link>
                 ))}
                 {sections.length > 1 && (
                   <div className="total-students-summary">
                     <span>Total Students</span>
-                    <span>{sections.reduce((sum, sec) => sum + (sec.student_count || 0), 0)}</span>
+                    <span>{sections.reduce((sum, sec) => sum + parseInt(sec.student_count || 0), 0)}</span>
                   </div>
                 )}
               </div>

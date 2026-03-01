@@ -93,9 +93,12 @@ class APIClient {
       const response = await fetch(url, config)
       
       if (response.status === HTTP_STATUS.UNAUTHORIZED) {
-        this.clearAuth()
-        if (this.onUnauthorized) {
-          this.onUnauthorized()
+        // Only trigger auth handlers for requests that require authentication
+        if (requiresAuth) {
+          this.clearAuth()
+          if (this.onUnauthorized) {
+            this.onUnauthorized()
+          }
         }
         throw new APIError('Unauthorized', HTTP_STATUS.UNAUTHORIZED, null)
       }

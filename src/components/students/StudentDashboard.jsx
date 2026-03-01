@@ -6,11 +6,13 @@ import FilterBar from '../common/FilterBar'
 import CompactClassCard from '../common/CompactClassCard'
 import CSVImportModal from '../common/CSVImportModal'
 import StudentSearchBar from './StudentSearchBar'
+import PrintStudentsModal from './PrintStudentsModal'
 import { getClassSortOrder } from '../../utils/classSorting'
 import './Students.css'
 
 const StudentDashboard = () => {
     const [showImportModal, setShowImportModal] = useState(false)
+    const [showPrintModal, setShowPrintModal] = useState(false)
     const [classTypeFilter, setClassTypeFilter] = useState('ALL')
     const [searchTerm, setSearchTerm] = useState('')
     const [refreshKey, setRefreshKey] = useState(0)
@@ -88,6 +90,13 @@ const StudentDashboard = () => {
                     </button>
                     <button 
                         className="btn-secondary"
+                        onClick={() => setShowPrintModal(true)}
+                        title="Print class/section student list"
+                    >
+                        🖨️ Print
+                    </button>
+                    <button 
+                        className="btn-secondary"
                         onClick={() => setShowImportModal(true)}
                     >
                         📁 Import Students
@@ -143,6 +152,11 @@ const StudentDashboard = () => {
                     // Refresh classes to update student counts
                     setRefreshKey(prev => prev + 1)
                 }}
+            />
+
+            <PrintStudentsModal
+                isOpen={showPrintModal}
+                onClose={() => setShowPrintModal(false)}
             />
         </div>
     )

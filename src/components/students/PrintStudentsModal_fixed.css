@@ -1,0 +1,633 @@
+/* Print Students Modal Styles */
+.print-modal {
+    max-width: 900px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Full-screen modal for print preview */
+.print-preview-modal {
+    max-width: 95vw !important;
+    max-height: 95vh !important;
+    min-width: auto !important;
+    width: 95vw;
+    height: 95vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Full-screen preview mode for desktop */
+.print-preview-container .modal-content {
+    max-width: 95vw !important;
+    max-height: 95vh !important;
+    min-width: auto !important;
+    width: 95vw;
+    height: 95vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.print-preview-container .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.print-preview-container .modal-header {
+    flex-shrink: 0;
+}
+
+.print-preview-container .modal-footer {
+    flex-shrink: 0;
+}
+
+.selection-section {
+    padding: 20px 0;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.form-select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    background-color: #fff;
+    transition: border-color 0.2s ease;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+.checkbox-group {
+    padding: 16px;
+    background-color: #f7fafc;
+    border-radius: 8px;
+    border: 2px solid #e2e8f0;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 500;
+    color: #2d3748;
+}
+
+.checkbox-label input[type="checkbox"] {
+    margin-right: 12px;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.selection-preview {
+    margin-top: 24px;
+    padding: 16px;
+    background-color: #edf2f7;
+    border-radius: 8px;
+    border-left: 4px solid #4299e1;
+}
+
+.selection-preview h4 {
+    margin: 0 0 12px 0;
+    color: #2d3748;
+    font-size: 16px;
+}
+
+.selection-preview p {
+    margin: 8px 0;
+    color: #4a5568;
+    font-size: 14px;
+}
+
+/* Print Preview Styles */
+.print-preview-container {
+    flex: 1;
+    width: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: #f5f5f5;
+    padding: 20px;
+}
+
+.print-content {
+    background: white;
+    padding: 40px;
+    min-height: 500px;
+    max-width: 1200px; /* Wider preview for better screen usage */
+    width: 98%;
+    margin: 0 auto 20px auto;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #ddd;
+}
+
+/* Make preview look like paper on desktop */
+@media screen and (min-width: 768px) {
+    .print-content {
+        margin: 0 auto 20px auto;
+        min-height: auto;
+    }
+}
+
+.print-header {
+    text-align: center;
+    margin-bottom: 40px;
+    border-bottom: 3px solid #2d3748;
+    padding-bottom: 20px;
+}
+
+.school-info h1 {
+    margin: 0 0 8px 0;
+    font-size: 28px;
+    font-weight: bold;
+    color: #2d3748;
+}
+
+.school-info p {
+    margin: 0;
+    font-size: 16px;
+    color: #4a5568;
+}
+
+.report-info {
+    margin-top: 20px;
+}
+
+.report-info h2 {
+    margin: 0 0 12px 0;
+    font-size: 24px;
+    color: #2b6cb0;
+    font-weight: 600;
+}
+
+.report-info p {
+    margin: 4px 0;
+    font-size: 14px;
+    color: #4a5568;
+}
+
+.section-group {
+    margin-bottom: 40px;
+}
+
+.section-header {
+    margin-bottom: 20px;
+    padding: 12px 16px;
+    background-color: #edf2f7;
+    border-radius: 8px;
+    border-left: 4px solid #2b6cb0;
+}
+
+.section-header h3 {
+    margin: 0 0 4px 0;
+    font-size: 20px;
+    color: #2d3748;
+    font-weight: 600;
+}
+
+.section-header p {
+    margin: 0;
+    font-size: 14px;
+    color: #4a5568;
+}
+
+.students-table {
+    overflow-x: auto;
+}
+
+.students-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 20px;
+    table-layout: fixed; /* Fixed layout for consistent column widths */
+}
+
+.students-table th,
+.students-table td {
+    padding: 10px 12px;
+    border: 1px solid #cbd5e0;
+    text-align: left;
+    vertical-align: middle;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Column widths are now controlled by colgroup in JSX */
+
+.students-table th {
+    background-color: #2d3748;
+    color: white;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.students-table tbody tr:nth-child(even) {
+    background-color: #f7fafc;
+}
+
+.students-table tbody tr:hover {
+    background-color: #edf2f7;
+}
+
+.students-table td {
+    color: #2d3748;
+}
+
+.print-footer {
+    margin-top: 30px;
+    padding: 15px;
+    background-color: #edf2f7;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.print-footer p {
+    margin: 0;
+    font-weight: 600;
+    font-size: 16px;
+    color: #2d3748;
+}
+
+/* Print-specific styles */
+@media print {
+    /* Reset page */
+    @page {
+        size: A4 portrait;
+        margin: 15mm 10mm;
+    }
+    
+    /* HIDE EVERYTHING first */
+    body * {
+        visibility: hidden !important;
+    }
+    
+    /* Reset body and html */
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        font-family: Arial, sans-serif !important;
+        font-size: 12pt !important;
+        line-height: 1.4 !important;
+    }
+    
+    /* Hide the main page completely */
+    .student-dashboard,
+    .page-content,
+    .class-grid,
+    .compact-class-card,
+    .search-section,
+    .page-header,
+    .sidebar,
+    .navbar,
+    .navigation {
+        display: none !important;
+        visibility: hidden !important;
+    }
+    
+    /* Only show modal and its content */
+    .modal-overlay,
+    .modal-overlay *,
+    .print-preview-modal,
+    .print-preview-modal *,
+    .modal-content,
+    .modal-content *,
+    .print-preview-container,
+    .print-preview-container *,
+    .print-content,
+    .print-content * {
+        visibility: visible !important;
+    }
+    
+    /* Hide modal UI elements */
+    .no-print,
+    .modal-header,
+    .modal-footer,
+    button,
+    .btn,
+    .close-btn,
+    .primary-btn,
+    .cancel-btn {
+        display: none !important;
+        visibility: hidden !important;
+    }
+    
+    /* Reset modal structure for printing */
+    .modal-overlay {
+        position: static !important;
+        background: none !important;
+        overflow: visible !important;
+        display: block !important;
+        visibility: visible !important;
+    }
+    
+    .print-preview-modal,
+    .modal-content {
+        position: static !important;
+        max-width: none !important;
+        width: auto !important;
+        height: auto !important;
+        box-shadow: none !important;
+        border: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        visibility: visible !important;
+    }
+    
+    .print-preview-container {
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: visible !important;
+        background: white !important;
+        visibility: visible !important;
+    }
+    
+    .print-content {
+        padding: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        background: white !important;
+        visibility: visible !important;
+    }
+    
+    
+    /* Header styles */
+    .print-header {
+        text-align: center;
+        margin-bottom: 20mm !important;
+        padding-bottom: 10mm !important;
+        border-bottom: 2px solid #000 !important;
+        visibility: visible !important;
+    }
+    
+    .school-info,
+    .report-info {
+        visibility: visible !important;
+    }
+    
+    .school-info h1 {
+        font-size: 24pt !important;
+        font-weight: bold !important;
+        color: #000 !important;
+        margin: 0 0 5mm 0 !important;
+        visibility: visible !important;
+    }
+    
+    .school-info p {
+        font-size: 14pt !important;
+        color: #000 !important;
+        margin: 0 0 10mm 0 !important;
+        visibility: visible !important;
+    }
+    
+    .report-info h2 {
+        font-size: 20pt !important;
+        font-weight: bold !important;
+        color: #000 !important;
+        margin: 10mm 0 5mm 0 !important;
+        visibility: visible !important;
+    }
+    
+    .report-info p {
+        font-size: 12pt !important;
+        color: #000 !important;
+        margin: 2mm 0 !important;
+        visibility: visible !important;
+    }
+    
+    /* Section styling */
+    .section-group {
+        margin-bottom: 15mm !important;
+        page-break-inside: auto; /* Allow section to break across pages */
+        visibility: visible !important;
+    }
+    
+    .section-header {
+        background-color: #e0e0e0 !important;
+        padding: 5mm !important;
+        margin-bottom: 5mm !important;
+        border-left: 5mm solid #000 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        page-break-after: avoid; /* Keep header with table */
+        page-break-inside: avoid; /* Don't break header itself */
+        visibility: visible !important;
+    }
+    
+    .section-header h3 {
+        font-size: 16pt !important;
+        font-weight: bold !important;
+        color: #000 !important;
+        margin: 0 !important;
+        visibility: visible !important;
+    }
+    
+    .section-header p {
+        font-size: 12pt !important;
+        color: #000 !important;
+        margin: 2mm 0 0 0 !important;
+        visibility: visible !important;
+    }
+    
+    /* Table styles */
+    .students-table {
+        width: 100% !important;
+        margin-bottom: 10mm !important;
+        visibility: visible !important;
+    }
+    
+    .students-table table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        font-size: 10pt !important;
+        page-break-inside: auto; /* Allow table to break across pages */
+        table-layout: fixed !important; /* Use fixed layout with colgroup widths */
+        visibility: visible !important;
+    }
+    
+    .students-table colgroup,
+    .students-table col,
+    .students-table thead,
+    .students-table tbody,
+    .students-table tr {
+        visibility: visible !important;
+    }
+    
+    .students-table th,
+    .students-table td {
+        padding: 3mm 2mm !important;
+        border: 0.5pt solid #000 !important;
+        text-align: left !important;
+        font-size: 9pt !important;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+        visibility: visible !important;
+    }
+    
+    .students-table th {
+        background-color: #333 !important;
+        color: white !important;
+        font-weight: bold !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        visibility: visible !important;
+    }
+    
+    .students-table thead {
+        display: table-header-group; /* Repeat header on each page */
+    }
+    
+    .students-table tbody tr:nth-child(even) {
+        background-color: #f0f0f0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .students-table tbody tr {
+        page-break-inside: avoid; /* Keep rows together */
+        break-inside: avoid;
+        visibility: visible !important;
+    }
+    
+    /* Column widths controlled by colgroup in JSX - auto-adjusts for all column counts */
+    
+    /* Page breaks */
+    .page-break {
+        page-break-before: always !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        visibility: visible !important;
+    }
+    
+    /* Footer */
+    .print-footer {
+        background-color: #e0e0e0 !important;
+        padding: 5mm !important;
+        margin-top: 10mm !important;
+        text-align: center;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        visibility: visible !important;
+    }
+    
+    .print-footer p {
+        color: #000 !important;
+        font-size: 12pt !important;
+        font-weight: bold !important;
+        margin: 0 !important;
+        visibility: visible !important;
+    }
+}
+
+/* Loading state */
+.loading-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #e2e8f0;
+    border-top: 2px solid #4299e1;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Error message */
+.error-message {
+    background-color: #fed7d7;
+    color: #9b2c2c;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid #feb2b2;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .print-preview-modal,
+    .print-modal {
+        max-width: 100vw !important;
+        width: 100vw !important;
+        max-height: 100vh !important;
+        height: 100vh !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+    }
+    
+    .print-preview-container {
+        padding: 10px !important;
+    }
+    
+    .print-content {
+        padding: 20px !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+    
+    .print-header {
+        margin-bottom: 15px;
+        padding-bottom: 15px;
+    }
+    
+    .school-info h1 {
+        font-size: 20px;
+    }
+    
+    .school-info p {
+        font-size: 13px;
+    }
+    
+    .report-info h2 {
+        font-size: 18px;
+    }
+    
+    .report-info p {
+        font-size: 12px;
+    }
+    
+    .section-header h3 {
+        font-size: 16px;
+    }
+    
+    .students-table table {
+        font-size: 10px;
+    }
+    
+    .students-table th,
+    .students-table td {
+        padding: 5px 3px;
+        font-size: 9px;
+    }
+    
+    .students-table th {
+        font-size: 8px;
+    }
+}

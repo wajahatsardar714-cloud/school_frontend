@@ -5,7 +5,7 @@ const Footer = () => {
         <div className="footer-section">
           <div className="footer-logo">
             <h3>Muslim Public Higher Secondary School</h3>
-            <p className="footer-tagline">Excellence in Education Since 1990</p>
+            <p className="footer-tagline">Excellence in Education Since 1994</p>
           </div>
         </div>
         

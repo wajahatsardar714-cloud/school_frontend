@@ -36,6 +36,9 @@ const CSVImportModal = ({
   const [validationWarnings, setValidationWarnings] = useState([])
   const [editableCsvData, setEditableCsvData] = useState([])
   
+  // Import mode: 'create' for new students, 'update' for updating existing students
+  const [importMode, setImportMode] = useState('create')
+  
   // Drag & Drop states
   const [dragActive, setDragActive] = useState(false)
   const [fileName, setFileName] = useState('')
@@ -123,6 +126,10 @@ const CSVImportModal = ({
     setValidationWarnings([])
     setFileName('')
     setDragActive(false)
+    // Reset file input to allow re-selecting the same file
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
     onClose()
   }
 
@@ -159,7 +166,6 @@ const CSVImportModal = ({
     'father': 'fatherName',
     'fathersname': 'fatherName',
     'dadname': 'fatherName',
-    'guardianname': 'fatherName',
     
     // Father's Contact - New required field
     'fathercontact': 'fatherContactNo',
@@ -204,11 +210,8 @@ const CSVImportModal = ({
     'caste': 'caste',
     'previousschool': 'previousSchool',
     'lastschool': 'previousSchool',
-    'fathername': 'fatherName',
-    'father': 'fatherName',
     'mothername': 'motherName',
     'mother': 'motherName',
-    'guardianname': 'guardianName',
     'guardian': 'guardianName',
     'gender': 'gender',
     'sex': 'gender',
@@ -240,6 +243,11 @@ const CSVImportModal = ({
     const files = e.dataTransfer.files
     if (files && files[0]) {
       const file = files[0]
+      // Clear old data immediately before processing new file
+      setCsvData([])
+      setEditableCsvData([])
+      setError('')
+      setValidationWarnings([])
       setFileName(file.name)
       processCSV(file)
     }
@@ -248,6 +256,11 @@ const CSVImportModal = ({
   const handleFileSelect = (e) => {
     const file = e.target.files[0]
     if (file) {
+      // Clear old data immediately before processing new file
+      setCsvData([])
+      setEditableCsvData([])
+      setError('')
+      setValidationWarnings([])
       setFileName(file.name)
       processCSV(file)
     }
@@ -387,9 +400,18 @@ const CSVImportModal = ({
         setEditableCsvData(JSON.parse(JSON.stringify(validData))) // Deep copy for editing
         setValidationWarnings(warnings)
         setError('')
+        
+        // Reset file input to allow re-selecting the same file if needed
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
       } catch (err) {
         console.error('CSV Processing error:', err)
         setError('Error processing file: ' + err.message)
+        // Also reset file input on error
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
       }
     }
     reader.readAsArrayBuffer(file)
@@ -427,14 +449,34 @@ const CSVImportModal = ({
         return studentData
       })
 
-      console.log('🚀 Sending data without frontend validation:', {
+      console.log(`🚀 ${importMode === 'update' ? 'Updating' : 'Creating'} students:`, {
+        mode: importMode,
         count: importData.length,
-        sample: importData[0]
+        sample: importData[0],
+        sampleFields: {
+          name: importData[0]?.name,
+          fatherName: importData[0]?.fatherName,
+          fatherContactNo: importData[0]?.fatherContactNo,
+          monthlyFee: importData[0]?.monthlyFee
+        }
       })
       
-      const result = await studentService.bulkCreate(importData)
-      
-      console.log('✅ Import successful:', result)
+      let result
+      if (importMode === 'update') {
+        // Update existing students with missing data
+        const updatePayload = {
+          students: importData,
+          class_id: parseInt(selectedClassId),
+          section_id: parseInt(selectedSectionId)
+        }
+        console.log('📡 Sending bulk update request:', updatePayload)
+        result = await studentService.bulkUpdate(updatePayload)
+        console.log('✅ Bulk update successful:', result)
+      } else {
+        // Create new students
+        result = await studentService.bulkCreate(importData)
+        console.log('✅ Import successful:', result)
+      }
       
       // API returns { success: true, data: {...} } - extract the data part
       setImportResults(result.data || result)
@@ -449,7 +491,7 @@ const CSVImportModal = ({
       
       // Use simple error message - don't show validation details
       const errorMessage = err.response?.data?.message || err.message || 'Import failed'
-      setError(`Import failed: ${errorMessage}`)
+      setError(`${importMode === 'update' ? 'Update' : 'Import'} failed: ${errorMessage}`)
       
       // Log details for debugging but don't show to user
       if (err.response?.data) {
@@ -606,6 +648,65 @@ const CSVImportModal = ({
                   Section {sections.find(s => s.id == selectedSectionId)?.name}
                 </p>
               </div>
+
+              {/* Import Mode Toggle */}
+              <div className="import-mode-toggle" style={{ 
+                display: 'flex', 
+                gap: '12px', 
+                justifyContent: 'center', 
+                marginBottom: '16px',
+                padding: '12px',
+                backgroundColor: '#f8fafc',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0'
+              }}>
+                <button
+                  className={`mode-btn ${importMode === 'create' ? 'active' : ''}`}
+                  onClick={() => setImportMode('create')}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: '6px',
+                    border: importMode === 'create' ? '2px solid #3b82f6' : '1px solid #e2e8f0',
+                    backgroundColor: importMode === 'create' ? '#dbeafe' : 'white',
+                    color: importMode === 'create' ? '#1d4ed8' : '#64748b',
+                    fontWeight: importMode === 'create' ? '600' : '400',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  ➕ Add New Students
+                </button>
+                <button
+                  className={`mode-btn ${importMode === 'update' ? 'active' : ''}`}
+                  onClick={() => setImportMode('update')}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: '6px',
+                    border: importMode === 'update' ? '2px solid #10b981' : '1px solid #e2e8f0',
+                    backgroundColor: importMode === 'update' ? '#d1fae5' : 'white',
+                    color: importMode === 'update' ? '#047857' : '#64748b',
+                    fontWeight: importMode === 'update' ? '600' : '400',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  ✏️ Update Existing Students
+                </button>
+              </div>
+              
+              {importMode === 'update' && (
+                <div style={{
+                  backgroundColor: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  borderRadius: '8px',
+                  padding: '12px 16px',
+                  marginBottom: '16px',
+                  fontSize: '0.9rem',
+                  color: '#166534'
+                }}>
+                  <strong>Update Mode:</strong> Students will be matched by name and their missing data (Father Contact, Fee) will be updated from the CSV.
+                </div>
+              )}
 
               <div className="modal-body-grid">
                 
@@ -783,15 +884,40 @@ const CSVImportModal = ({
           {step === 3 && (
             <div className="results-card">
               <div className="success-header">
-                <h3>Import Complete!</h3>
-                <p>Students have been successfully imported</p>
+                <h3>{importMode === 'update' ? 'Update Complete!' : 'Import Complete!'}</h3>
+                <p>Students have been successfully {importMode === 'update' ? 'updated' : 'imported'}</p>
               </div>
 
               {importResults && (
                 <div className="import-summary">
-                  <p><strong>✅ Total imported:</strong> {importResults.successCount || 0}</p>
-                  <p><strong>⚠️ Warnings:</strong> {importResults.warningCount || 0}</p>
-                  <p><strong>❌ Failed:</strong> {importResults.errorCount || 0}</p>
+                  {importMode === 'update' ? (
+                    <>
+                      <p><strong>✅ Updated:</strong> {importResults.updatedCount || 0}</p>
+                      <p><strong>ℹ️ No Changes Needed:</strong> {importResults.noChangesCount || 0}</p>
+                      <p><strong>⚠️ Not Found:</strong> {importResults.notFoundCount || 0}</p>
+                      <p><strong>❌ Errors:</strong> {importResults.errorCount || 0}</p>
+                      
+                      {importResults.notFoundStudents?.length > 0 && (
+                        <div className="warning-summary" style={{ marginTop: '12px' }}>
+                          <strong>Students not found in this class (check names match exactly):</strong>
+                          <ul style={{ maxHeight: '150px', overflowY: 'auto' }}>
+                            {importResults.notFoundStudents.slice(0, 10).map((student, idx) => (
+                              <li key={idx}>Row {student.row}: {student.name}</li>
+                            ))}
+                            {importResults.notFoundStudents.length > 10 && (
+                              <li>... and {importResults.notFoundStudents.length - 10} more</li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <p><strong>✅ Total imported:</strong> {importResults.successCount || 0}</p>
+                      <p><strong>⚠️ Warnings:</strong> {importResults.warningCount || 0}</p>
+                      <p><strong>❌ Failed:</strong> {importResults.errorCount || 0}</p>
+                    </>
+                  )}
                   
                   {importResults.warnings?.length > 0 && (
                     <div className="warning-summary">
@@ -836,8 +962,17 @@ const CSVImportModal = ({
                 className="primary-btn"
                 disabled={editableCsvData.length === 0 || loading}
                 onClick={handleImport}
+                style={importMode === 'update' ? { 
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  borderColor: '#059669'
+                } : {}}
               >
-                {loading ? 'Importing...' : `Import ${editableCsvData.length} Students`}
+                {loading 
+                  ? (importMode === 'update' ? 'Updating...' : 'Importing...') 
+                  : (importMode === 'update' 
+                      ? `✏️ Update ${editableCsvData.length} Students` 
+                      : `➕ Import ${editableCsvData.length} Students`)
+                }
               </button>
             </>
           )}
