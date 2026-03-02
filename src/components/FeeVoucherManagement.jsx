@@ -647,6 +647,65 @@ const FeeVoucherManagement = () => {
     }
   }, [selectedVouchers])
 
+  // NEW: Save selected vouchers as PDF
+  const handleSaveAsPDF = useCallback(async () => {
+    if (selectedVouchers.length === 0) {
+      alert('Please select vouchers to save as PDF using the checkboxes')
+      return
+    }
+
+    console.log('Starting PDF download for vouchers:', selectedVouchers)
+    
+    // Show loading indicator
+    const loadingDiv = document.createElement('div')
+    loadingDiv.id = 'pdf-download-loading'
+    loadingDiv.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(37,99,235,0.95);color:white;padding:20px 40px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:10000;font-size:16px;text-align:center;'
+    loadingDiv.innerHTML = `
+      <div style="margin-bottom:10px;">📥 Downloading ${selectedVouchers.length} voucher(s)...</div>
+      <div style="font-size:12px;opacity:0.9;">Please wait, preparing PDF file</div>
+    `
+    document.body.appendChild(loadingDiv)
+    
+    try {
+      const result = await feeVoucherService.bulkDownloadPDF(selectedVouchers)
+      
+      console.log('PDF download result:', result)
+      
+      // Remove loading indicator
+      const loadingElement = document.getElementById('pdf-download-loading')
+      if (loadingElement) {
+        loadingElement.remove()
+      }
+      
+      if (result.success) {
+        console.log(`Successfully downloaded ${result.count} vouchers as PDF`)
+        
+        // Show brief success message
+        const successDiv = document.createElement('div')
+        successDiv.style.cssText = 'position:fixed;top:20px;right:20px;background:#2563eb;color:white;padding:12px 20px;border-radius:4px;z-index:10000;font-size:14px;box-shadow:0 4px 12px rgba(37,99,235,0.3);'
+        successDiv.innerHTML = `✓ ${result.count} voucher(s) saved as PDF`
+        document.body.appendChild(successDiv)
+        setTimeout(() => successDiv.remove(), 3000)
+        
+        // Clear selection after successful download
+        setSelectedVouchers([])
+      } else {
+        console.error('PDF download failed:', result.error)
+        alert(`Failed to save vouchers as PDF: ${result.error}\n\nPlease try again or contact support if the issue persists.`)
+      }
+    } catch (error) {
+      console.error('Failed to download vouchers as PDF:', error)
+      
+      // Remove loading indicator
+      const loadingElement = document.getElementById('pdf-download-loading')
+      if (loadingElement) {
+        loadingElement.remove()
+      }
+      
+      alert(`Failed to save vouchers as PDF: ${error.message}\n\nPlease check your connection and try again.`)
+    }
+  }, [selectedVouchers])
+
   const handleBulkDelete = useCallback(async () => {
     if (selectedVouchers.length === 0) {
       alert('Please select at least one voucher to delete')
@@ -866,6 +925,20 @@ const FeeVoucherManagement = () => {
                 }}
               >
                 🖨️ Print Selected
+              </button>
+              <button
+                onClick={handleSaveAsPDF}
+                style={{
+                  padding: '8px 16px',
+                  background: '#2563eb',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: '500'
+                }}
+              >
+                💾 Save as PDF
               </button>
               <button
                 onClick={handleBulkDelete}

@@ -201,6 +201,53 @@ export const feeVoucherService = {
       throw error
     }
   },
+
+  /**
+   * Bulk download multiple vouchers as a single PDF file
+   * POST /api/vouchers/bulk-print
+   * Body: { voucher_ids: [1, 2, 3, ...] }
+   * Downloads the PDF file instead of opening in new tab
+   */
+  async bulkDownloadPDF(voucherIds) {
+    try {
+      const token = apiClient.getToken()
+      const url = `${apiClient.baseURL}${API_ENDPOINTS.FEE_VOUCHER_BULK_PRINT}`
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ voucher_ids: voucherIds }),
+      })
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Failed to download vouchers: ${errorText}`)
+      }
+      
+      const blob = await response.blob()
+      const blobUrl = window.URL.createObjectURL(blob)
+      
+      // Create download link
+      const a = document.createElement('a')
+      a.href = blobUrl
+      const timestamp = new Date().toISOString().split('T')[0]
+      a.download = `fee-vouchers-${timestamp}-${voucherIds.length}items.pdf`
+      document.body.appendChild(a)
+      a.click()
+      
+      // Clean up
+      window.URL.revokeObjectURL(blobUrl)
+      document.body.removeChild(a)
+      
+      return { success: true, count: voucherIds.length }
+    } catch (error) {
+      console.error('Bulk download error:', error)
+      throw error
+    }
+  },
 }
 
 /**

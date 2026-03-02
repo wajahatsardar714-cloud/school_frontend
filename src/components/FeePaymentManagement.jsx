@@ -155,6 +155,9 @@ export default function FeePaymentManagement() {
     setPaymentForm(prev => ({ ...prev, [key]: value }));
   }, []);
 
+  // Extract unpaid vouchers - must be declared before use
+  const unpaidVouchers = unpaidVouchersData?.data || unpaidVouchersData?.vouchers || [];
+
   // Get selected voucher details
   const selectedVoucher = unpaidVouchers.find(v => v.voucher_id === paymentForm.voucherId);
   const dueAmount = selectedVoucher ? parseFloat(selectedVoucher.due_amount) : 0;
@@ -223,7 +226,6 @@ export default function FeePaymentManagement() {
   
   // Computed values - backend wraps data in { success, data, ... }
   const payments = paymentsData?.data || paymentsData?.payments || [];
-  const unpaidVouchers = unpaidVouchersData?.data || unpaidVouchersData?.vouchers || [];
   
   // Extract defaulters data - backend wraps in { success, data: { summary, defaulters } }
   const defaultersRaw = defaultersData?.data || defaultersData || {};

@@ -665,13 +665,13 @@ export default function AnalyticsDashboard() {
               <div className="table-container" style={{ overflowX: 'auto' }}>
                 <table className="data-table" style={{ width: '100%', minWidth: '600px' }}>
                   <thead>
-                    <tr style={{ background: '#f8fafc' }}>
-                      <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600', color: '#475569', fontSize: '0.875rem' }}>Class</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600', color: '#475569', fontSize: '0.875rem' }}>Vouchers</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600', color: '#475569', fontSize: '0.875rem' }}>Generated</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600', color: '#475569', fontSize: '0.875rem' }}>Collected</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600', color: '#475569', fontSize: '0.875rem' }}>Pending</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600', color: '#475569', fontSize: '0.875rem' }}>Rate</th>
+                    <tr style={{ background: '#1e40af', color: '#fff' }}>
+                      <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600', fontSize: '0.875rem' }}>CLASS</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600', fontSize: '0.875rem' }}>VOUCHERS</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600', fontSize: '0.875rem' }}>GENERATED</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600', fontSize: '0.875rem' }}>COLLECTED</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600', fontSize: '0.875rem' }}>PENDING</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600', fontSize: '0.875rem' }}>RATE</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -679,7 +679,7 @@ export default function AnalyticsDashboard() {
                       <tr key={index} style={{ borderBottom: '1px solid #e2e8f0' }}>
                         <td style={{ padding: '0.75rem', fontWeight: '600', color: '#0f172a' }}>{item.class_name}</td>
                         <td style={{ padding: '0.75rem', textAlign: 'right', color: '#64748b' }}>{formatNumber(item.total_vouchers)}</td>
-                        <td style={{ padding: '0.75rem', textAlign: 'right', color: '#64748b' }}>{formatCurrency(item.total_fee_generated)}</td>
+                        <td style={{ padding: '0.75rem', textAlign: 'right', color: '#64748b' }}>{formatCurrency(item.total_generated)}</td>
                         <td style={{ padding: '0.75rem', textAlign: 'right', color: '#10b981', fontWeight: '600' }}>{formatCurrency(item.total_collected)}</td>
                         <td style={{ padding: '0.75rem', textAlign: 'right', color: '#ef4444', fontWeight: '600' }}>{formatCurrency(item.total_pending)}</td>
                         <td style={{ padding: '0.75rem', textAlign: 'right' }}>
