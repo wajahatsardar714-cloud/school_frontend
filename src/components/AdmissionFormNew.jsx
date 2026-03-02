@@ -175,7 +175,8 @@ const AdmissionFormNew = () => {
     
     if (classId) {
       
-      let selectedClassObj = classes.find(c => c.id === parseInt(classId))
+      // Use string comparison to avoid type mismatch (id could be string or number)
+      let selectedClassObj = classes.find(c => String(c.id) === String(classId))
 
       // If class not found locally, fetch from API as single fallback
       if (!selectedClassObj) {
