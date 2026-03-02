@@ -140,7 +140,7 @@ const PrintStudentsModal = ({ isOpen, onClose }) => {
                     <td>${student.name}</td>
                     <td>${student.father_name || '-'}</td>
                     <td style="text-align:center;">${student.phone || '-'}</td>
-                    <td style="text-align:right;">${student.individual_monthly_fee ? `Rs. ${student.individual_monthly_fee}` : '-'}</td>
+                    <td style="text-align:right;">${student.individual_monthly_fee != null ? `Rs. ${student.individual_monthly_fee}` : '-'}</td>
                 </tr>`;
             }).join('');
         };
@@ -442,7 +442,7 @@ const PrintStudentsModal = ({ isOpen, onClose }) => {
                                                             <td>{student.name}</td>
                                                             <td>{student.father_name || '-'}</td>
                                                             <td>{student.phone || '-'}</td>
-                                                            <td>{student.individual_monthly_fee ? `Rs. ${student.individual_monthly_fee}` : '-'}</td>
+                                                            <td>{student.individual_monthly_fee != null ? `Rs. ${student.individual_monthly_fee}` : '-'}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -483,7 +483,7 @@ const PrintStudentsModal = ({ isOpen, onClose }) => {
                                                         <td>{student.name}</td>
                                                         <td>{student.father_name || '-'}</td>
                                                         <td>{student.phone || '-'}</td>
-                                                        <td>{student.individual_monthly_fee ? `Rs. ${student.individual_monthly_fee}` : '-'}</td>
+                                                        <td>{student.individual_monthly_fee != null ? `Rs. ${student.individual_monthly_fee}` : '-'}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>

@@ -22,6 +22,10 @@ const DiscountManagement = () => {
   const [showResults, setShowResults] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState(null)
   const searchRef = useRef(null)
+  
+  // Individual monthly fee state
+  const [individualFee, setIndividualFee] = useState('')
+  const [savingFee, setSavingFee] = useState(false)
 
   // Debug: Component mounted
   useEffect(() => {
@@ -322,6 +326,10 @@ const DiscountManagement = () => {
       father_name: fatherName
     })
     
+    // Initialize individual fee with current student fee
+    const currentFee = student.individual_monthly_fee ?? student.effective_monthly_fee ?? ''
+    setIndividualFee(currentFee !== null && currentFee !== undefined ? currentFee.toString() : '')
+    
     // Auto-populate form with selected student's class and section
     setFormData({
       ...formData,
@@ -345,12 +353,47 @@ const DiscountManagement = () => {
   // Clear selection
   const handleClearSelection = () => {
     setSelectedStudent(null)
+    setIndividualFee('')
     setFormData({
       ...formData,
       student_id: '',
       class_id: ''
     })
     setSearchTerm('')
+  }
+
+  // Save individual monthly fee directly to student record
+  const handleSaveIndividualFee = async () => {
+    if (!selectedStudent) {
+      alert('Please select a student first')
+      return
+    }
+    
+    const feeValue = parseFloat(individualFee)
+    if (isNaN(feeValue) || feeValue < 0) {
+      alert('Please enter a valid monthly fee amount (0 or greater)')
+      return
+    }
+    
+    setSavingFee(true)
+    try {
+      await studentService.updateBasicInfo(selectedStudent.id, {
+        individual_monthly_fee: feeValue
+      })
+      
+      // Update the selected student's fee locally
+      setSelectedStudent({
+        ...selectedStudent,
+        individual_monthly_fee: feeValue
+      })
+      
+      alert(`✅ Monthly fee updated to Rs. ${feeValue.toLocaleString()} for ${selectedStudent.name}`)
+    } catch (error) {
+      console.error('Failed to save individual fee:', error)
+      alert(`❌ Failed to save fee: ${error.message || error}`)
+    } finally {
+      setSavingFee(false)
+    }
   }
 
   // Filtered discounts
@@ -522,9 +565,6 @@ const DiscountManagement = () => {
           >
             🖨️ Print Report
           </button>
-          <button onClick={() => openModal()} className="btn-primary">
-            + Create Discount
-          </button>
         </div>
       </div>
 
@@ -659,6 +699,74 @@ const DiscountManagement = () => {
           </div>
         )}
       </div>
+
+      {/* Set Monthly Fee Section - Only show when student is selected */}
+      {selectedStudent && (
+        <div style={{
+          background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
+          border: '2px solid #10b981',
+          borderRadius: '12px',
+          padding: '20px',
+          marginBottom: '20px'
+        }}>
+          <h3 style={{ margin: '0 0 16px 0', color: '#065f46', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            💰 Set Individual Monthly Fee
+          </h3>
+          <p style={{ margin: '0 0 16px 0', color: '#047857', fontSize: '14px' }}>
+            Set a permanent monthly fee for <strong>{selectedStudent.name}</strong>. 
+            This will override the class default fee and apply to all future vouchers.
+          </p>
+          
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div style={{ flex: '0 0 200px' }}>
+              <label style={{ display: 'block', fontWeight: '600', color: '#065f46', marginBottom: '6px', fontSize: '14px' }}>
+                Current Fee: Rs. {(selectedStudent.individual_monthly_fee ?? 'Not set').toLocaleString()}
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontWeight: '600', color: '#065f46' }}>Rs.</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={individualFee}
+                  onChange={(e) => setIndividualFee(e.target.value)}
+                  placeholder="Enter new monthly fee"
+                  style={{
+                    padding: '12px',
+                    fontSize: '16px',
+                    border: '2px solid #10b981',
+                    borderRadius: '8px',
+                    width: '150px',
+                    fontWeight: '600'
+                  }}
+                />
+              </div>
+              <small style={{ color: '#047857', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                Enter 0 for free students
+              </small>
+            </div>
+            
+            <button
+              onClick={handleSaveIndividualFee}
+              disabled={savingFee || individualFee === ''}
+              style={{
+                padding: '12px 24px',
+                background: savingFee ? '#9ca3af' : 'linear-gradient(135deg, #10b981, #059669)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                fontSize: '14px',
+                cursor: savingFee ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              {savingFee ? '⏳ Saving...' : '💾 Save Monthly Fee'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="filters-section">

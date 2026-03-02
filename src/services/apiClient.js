@@ -167,6 +167,10 @@ class APIClient {
     return this.request(endpoint, { ...options, method: 'PUT', body })
   }
 
+  patch(endpoint, body, options = {}) {
+    return this.request(endpoint, { ...options, method: 'PATCH', body })
+  }
+
   delete(endpoint, options = {}) {
     return this.request(endpoint, { ...options, method: 'DELETE' })
   }

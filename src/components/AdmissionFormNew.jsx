@@ -90,16 +90,7 @@ const AdmissionFormNew = () => {
   const loadClasses = async () => {
     try {
       setLoadingClasses(true)
-      console.log('Loading classes...')
-      
-      // Remove health check to avoid delays in development
       const response = await classService.list()
-      console.log('=== CLASSES API RESPONSE DEBUG ===')
-      console.log('Full response object:', response)
-      console.log('response.success:', response?.success)
-      console.log('response.data type:', typeof response?.data)
-      console.log('response.data is array?:', Array.isArray(response?.data))
-      console.log('First item in response.data:', response?.data?.[0])
       
       if (response && response.data) {
         let classData = response.data
@@ -107,31 +98,13 @@ const AdmissionFormNew = () => {
         // Handle paginated response
         if (response.data.data && Array.isArray(response.data.data)) {
           classData = response.data.data
-          console.log('Using paginated data from response.data.data')
         } else if (Array.isArray(response.data)) {
           classData = response.data
-          console.log('Using direct array from response.data')
         } else if (!Array.isArray(classData)) {
-          console.warn('Data is not an array, setting empty array')
           classData = []
         }
         
-        console.log('=== PROCESSING CLASSES ===')
-        console.log('Number of classes:', classData.length)
-        console.log('Raw classes data:', classData)
-        if (classData.length > 0) {
-          console.log('First class full object:', classData[0])
-          console.log('First class ID:', classData[0]?.id)
-          console.log('First class name:', classData[0]?.name)
-          console.log('First class current_fee_structure:', classData[0]?.current_fee_structure)
-          console.log('First class fee_structure:', classData[0]?.fee_structure)
-        }
-        
-        // Sort classes in proper sequence: PG (Playgroup) to 2nd Year
         const sortedClasses = sortClassesBySequence(classData)
-        console.log('Classes sorted in sequence:', sortedClasses)
-        console.log('First sorted class:', sortedClasses[0])
-        
         setClasses(sortedClasses)
         
         // Clear any previous error
@@ -139,31 +112,13 @@ const AdmissionFormNew = () => {
           setError(null)
         }
       } else {
-        console.warn('No classes data received:', response)
         setClasses([])
-        // Set mock classes for development if backend is not running
-        const mockClasses = [
-          { id: 1, name: 'PG (Playgroup)', class_type: 'SCHOOL', current_fee_structure: { admission_fee: '5000', monthly_fee: '3000', paper_fund: '500' } },
-          { id: 2, name: 'KG', class_type: 'SCHOOL', current_fee_structure: { admission_fee: '5500', monthly_fee: '3200', paper_fund: '500' } },
-          { id: 3, name: 'Class 1', class_type: 'SCHOOL', current_fee_structure: { admission_fee: '6000', monthly_fee: '3500', paper_fund: '600' } }
-        ]
-        console.log('Setting mock classes for development:', mockClasses)
-        setClasses(mockClasses)
-        setError('Backend not available. Using mock data for development.')
+        setError('No classes data received from server.')
       }
     } catch (err) {
       console.error('Failed to load classes:', err)
-      console.error('Error details:', err.response || err)
-      
-      // Set mock classes for development
-      const mockClasses = [
-        { id: 1, name: 'PG (Playgroup)', class_type: 'SCHOOL', current_fee_structure: { admission_fee: '5000', monthly_fee: '3000', paper_fund: '500' } },
-        { id: 2, name: 'KG', class_type: 'SCHOOL', current_fee_structure: { admission_fee: '5500', monthly_fee: '3200', paper_fund: '500' } },
-        { id: 3, name: 'Class 1', class_type: 'SCHOOL', current_fee_structure: { admission_fee: '6000', monthly_fee: '3500', paper_fund: '600' } }
-      ]
-      console.log('API failed, setting mock classes for development:', mockClasses)
-      setClasses(mockClasses)
-      setError(`Backend connection failed: ${err.message || err}. Using mock data for testing.`)
+      setClasses([])
+      setError(`Failed to load classes: ${err.message || err}`)
     } finally {
       setLoadingClasses(false)
     }
@@ -213,42 +168,38 @@ const AdmissionFormNew = () => {
 
   const handleClassChange = async (e) => {
     const classId = e.target.value
-    console.log('=== CLASS CHANGE DEBUG ===')
-    console.log('Selected classId:', classId, typeof classId)
     
     setSelectedClassId(classId)
     setSelectedSectionId('')
     setFormData({ ...formData, section: '' })
     
     if (classId) {
-      console.log('Available classes:', classes)
-      console.log('Looking for class with ID:', classId)
-      console.log('Classes IDs available:', classes.map(c => ({ id: c.id, name: c.name, type: typeof c.id })))
       
-      const selectedClassObj = classes.find(c => c.id === parseInt(classId))
-      console.log('Found class object:', selectedClassObj)
-      
+      let selectedClassObj = classes.find(c => c.id === parseInt(classId))
+
+      // If class not found locally, fetch from API as single fallback
+      if (!selectedClassObj) {
+        try {
+          const classResponse = await classService.getById(classId)
+          if (classResponse.data) {
+            selectedClassObj = classResponse.data
+          }
+        } catch (err) {
+          console.error('Failed to load class details:', err)
+          setError('Failed to load class details.')
+          return
+        }
+      }
+
       if (selectedClassObj) {
         setSelectedClass(selectedClassObj.name)
         setFormData({ ...formData, class: selectedClassObj.name, section: '' })
-        
-        console.log('=== FEE STRUCTURE DEBUG ===')
-        console.log('Selected class object:', selectedClassObj)
-        console.log('current_fee_structure:', selectedClassObj.current_fee_structure)
-        console.log('fee_structure:', selectedClassObj.fee_structure)
-        console.log('All keys in class object:', Object.keys(selectedClassObj))
-        
-        // Load sections for the selected class - this will be handled by useEffect
-        // But we also trigger it manually to be sure
         await loadSections(classId)
-        
-        // Check if fee structure is already available in the class object
-        let feeStruct = selectedClassObj.current_fee_structure || selectedClassObj.fee_structure
-        console.log('Fee structure to use:', feeStruct)
+
+        // Get fee structure from class object (populated by backend list/getById)
+        const feeStruct = selectedClassObj.current_fee_structure
         
         if (feeStruct) {
-          // Use existing fee structure from class object
-          console.log('✅ Using fee structure from class object:', feeStruct)
           const defaults = {
             admissionFee: parseFloat(feeStruct.admission_fee) || 0,
             monthlyFee: parseFloat(feeStruct.monthly_fee) || 0,
@@ -260,106 +211,8 @@ const AdmissionFormNew = () => {
             total: defaults.admissionFee + defaults.monthlyFee + defaults.paperFund
           })
           setShowFeeSchedule(true)
-          console.log('Fee schedule set from class object')
         } else {
-          // Try to load fee structure from API
-          try {
-            console.log('❌ No fee structure in class object. Fetching from API...')
-            const classResponse = await classService.getById(classId)
-            console.log('Class details response:', classResponse)
-            
-            // Check both possible field names
-            feeStruct = classResponse.data?.current_fee_structure || classResponse.data?.fee_structure
-            console.log('Fee structure from API:', feeStruct)
-            
-            if (feeStruct) {
-              console.log('✅ Fee structure found from API:', feeStruct)
-              const defaults = {
-                admissionFee: parseFloat(feeStruct.admission_fee) || 0,
-                monthlyFee: parseFloat(feeStruct.monthly_fee) || 0,
-                paperFund: parseFloat(feeStruct.paper_fund) || 0,
-              }
-              console.log('Parsed fee defaults:', defaults)
-              setClassFeeDefaults(defaults)
-              setFeeSchedule({
-                ...defaults,
-                total: defaults.admissionFee + defaults.monthlyFee + defaults.paperFund
-              })
-              setShowFeeSchedule(true)
-              console.log('Fee schedule updated from API')
-            } else {
-              // Try direct fee structure API endpoint as final fallback
-              console.log('❌ No fee structure from getById. Trying getFeeStructure...')
-              const feeResponse = await classService.getFeeStructure(classId)
-              console.log('Fee structure API response:', feeResponse)
-              
-              const feedData = feeResponse.data
-              if (feedData && (feedData.admission_fee || feedData.monthly_fee || feedData.paper_fund)) {
-                console.log('✅ Fee structure found from getFeeStructure:', feedData)
-                const defaults = {
-                  admissionFee: parseFloat(feedData.admission_fee) || 0,
-                  monthlyFee: parseFloat(feedData.monthly_fee) || 0,
-                  paperFund: parseFloat(feedData.paper_fund) || 0,
-                }
-                console.log('Parsed fee defaults:', defaults)
-                setClassFeeDefaults(defaults)
-                setFeeSchedule({
-                  ...defaults,
-                  total: defaults.admissionFee + defaults.monthlyFee + defaults.paperFund
-                })
-                setShowFeeSchedule(true)
-                console.log('Fee schedule updated from getFeeStructure API')
-              } else {
-                console.warn('❌ No fee structure found anywhere. Showing manual entry form.')
-                showManualFeeEntry(selectedClassObj.name)
-                setError(`⚠️ No fee structure found for ${selectedClassObj.name}. Please set fees in Classes Management first, or enter custom fees below.`)
-              }
-            }
-          } catch (err) {
-            console.error('Failed to load fee structure:', err)
-            showManualFeeEntry(selectedClassObj.name, err)
-            setError(`Failed to load fee structure for ${selectedClassObj.name}. You can enter fees manually below.`)
-          }
-        }
-      } else {
-        // Class not found in array - try direct API approach
-        console.log('❌ Class not found in classes array. Trying direct API approach...')
-        try {
-          const classResponse = await classService.getById(classId)
-          console.log('Direct API class response:', classResponse)
-          
-          if (classResponse.data) {
-            const classData = classResponse.data
-            setSelectedClass(classData.name)
-            setFormData({ ...formData, class: classData.name, section: '' })
-            
-            // Load sections
-            await loadSections(classId)
-            
-            // Get fee structure
-            const feeStruct = classData.current_fee_structure || classData.fee_structure
-            if (feeStruct) {
-              console.log('✅ Fee structure found via direct API:', feeStruct)
-              const defaults = {
-                admissionFee: parseFloat(feeStruct.admission_fee) || 0,
-                monthlyFee: parseFloat(feeStruct.monthly_fee) || 0,
-                paperFund: parseFloat(feeStruct.paper_fund) || 0,
-              }
-              setClassFeeDefaults(defaults)
-              setFeeSchedule({
-                ...defaults,
-                total: defaults.admissionFee + defaults.monthlyFee + defaults.paperFund
-              })
-              setShowFeeSchedule(true)
-              console.log('✅ Fee schedule set via direct API')
-            } else {
-              console.warn('❌ No fee structure in direct API response')
-              showManualFeeEntry(classData.name)
-            }
-          }
-        } catch (err) {
-          console.error('Direct API approach failed:', err)
-          setError('Failed to load class details.')
+          showManualFeeEntry(selectedClassObj.name)
         }
       }
     } else {
@@ -656,7 +509,7 @@ const AdmissionFormNew = () => {
         father_name: formData.father_name || null,
         gender: formData.gender || null,
         is_fee_free: isFreeStudent,
-        individual_monthly_fee: !isFreeStudent && feeSchedule.monthlyFee > 0 ? feeSchedule.monthlyFee : null,
+        individual_monthly_fee: isFreeStudent ? 0 : (feeSchedule.monthlyFee > 0 ? feeSchedule.monthlyFee : null),
         enrollment: {
           class_id: parseInt(selectedClassId),
           section_id: parseInt(selectedSectionId),
@@ -1226,25 +1079,6 @@ const AdmissionFormNew = () => {
                       <span style={{ fontSize: '14px' }}>Mark as Free Student</span>
                     </label>
                   </div>
-
-                  {/* Warning if no fees are set */}
-                  {selectedClassId && feeSchedule.admissionFee === 0 && feeSchedule.monthlyFee === 0 && feeSchedule.paperFund === 0 && !hasCustomFees && !isFreeStudent && (
-                    <div style={{
-                      backgroundColor: '#fef3c7',
-                      border: '1px solid #f59e0b',
-                      borderRadius: '6px',
-                      padding: '12px',
-                      marginBottom: '1rem',
-                      fontSize: '14px',
-                      color: '#92400e'
-                    }}>
-                      <strong>⚠️ No fees set for this class!</strong>
-                      <p style={{ margin: '8px 0 0 0' }}>
-                        Please go to <Link to="/classes" style={{ color: '#2563eb', textDecoration: 'underline' }}>Classes Management</Link> to set fee structures for {selectedClass},
-                        or check "Set Custom Fees for this Student" below to enter fees manually for this student only.
-                      </p>
-                    </div>
-                  )}
 
                   {!isFreeStudent && (
                     <>

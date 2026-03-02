@@ -208,7 +208,7 @@ const ClassStudentList = () => {
             name: student.name,
             father_name: student.father_name || student.father_guardian_name || '',
             phone: student.phone || '',
-            individual_monthly_fee: student.individual_monthly_fee || student.effective_monthly_fee || student.class_monthly_fee || 0
+            individual_monthly_fee: student.individual_monthly_fee ?? student.effective_monthly_fee ?? student.class_monthly_fee ?? 0
         })
     }
     
@@ -437,7 +437,7 @@ const ClassStudentList = () => {
                                             />
                                         ) : (
                                             <span className="student-sub-info" onClick={() => navigate(`/students/${student.id}`)}>
-                                                Rs. {(student.individual_monthly_fee || student.effective_monthly_fee || 0).toLocaleString()}
+                                                Rs. {(student.individual_monthly_fee ?? student.effective_monthly_fee ?? 0).toLocaleString()}
                                             </span>
                                         )}
                                     </td>
@@ -591,7 +591,7 @@ const ClassStudentList = () => {
                                                         />
                                                     ) : (
                                                         <span className="student-sub-info" onClick={() => navigate(`/students/${student.id}`)}>
-                                                            Rs. {(student.individual_monthly_fee || student.effective_monthly_fee || 0).toLocaleString()}
+                                                            Rs. {(student.individual_monthly_fee ?? student.effective_monthly_fee ?? 0).toLocaleString()}
                                                         </span>
                                                     )}
                                                 </td>
