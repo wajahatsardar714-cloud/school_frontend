@@ -135,7 +135,7 @@ const PrintStudentsModal = ({ isOpen, onClose }) => {
             return studentList.map((student, index) => {
                 const bg = index % 2 === 0 ? '#ffffff' : '#f0f4ff';
                 return `<tr style="background:${bg};-webkit-print-color-adjust:exact;print-color-adjust:exact;">
-                    <td style="text-align:center;">${index + 1}</td>
+                    <td style="text-align:center;">${student.serial_number || (index + 1)}</td>
                     <td style="text-align:center;">${student.roll_no || '-'}</td>
                     <td>${student.name}</td>
                     <td>${student.father_name || '-'}</td>

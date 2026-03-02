@@ -97,9 +97,6 @@ const FeeVoucherManagement = () => {
   const [previewData, setPreviewData] = useState(null)
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
-  
-  // Expanded Row State
-  const [expandedRow, setExpandedRow] = useState(null)
 
   // Payment Form State
   const [paymentForm, setPaymentForm] = useState({
@@ -937,7 +934,7 @@ const FeeVoucherManagement = () => {
                 </thead>
                 <tbody>
                   {filteredVouchers.map(voucher => (
-                    <tr key={voucher.id} className={expandedRow === voucher.id ? 'expanded' : ''}>
+                    <tr key={voucher.id}>
                       <td>
                         <input
                           type="checkbox"
@@ -963,74 +960,33 @@ const FeeVoucherManagement = () => {
                       </td>
                       <td>{renderStatusBadge(voucher.status)}</td>
                       <td>
-                        <div className="action-buttons">
-                          {expandedRow === voucher.id ? (
-                            // Expanded view - show all action buttons
-                            <>
-                              <div className="action-row-top">
-                                <button 
-                                  className="btn-action btn-print btn-small"
-                                  onClick={() => handlePrintVoucher(voucher)}
-                                  title="Print Voucher"
-                                >
-                                  Print
-                                </button>
-                                {voucher.status !== VOUCHER_STATUS.PAID && (
-                                  <button 
-                                    className="btn-action btn-edit btn-small"
-                                    onClick={() => openEditItemsModal(voucher)}
-                                    title="Edit Items"
-                                  >
-                                    ✏️
-                                  </button>
-                                )}
-                                {voucher.status === VOUCHER_STATUS.UNPAID && (
-                                  <button 
-                                    className="btn-action btn-delete btn-small"
-                                    onClick={() => handleDelete(voucher)}
-                                    disabled={deleteMutation.loading}
-                                    title="Delete Voucher"
-                                  >
-                                    🗑️
-                                  </button>
-                                )}
-                              </div>
-                              
-                              <div className="action-row-bottom">
-                                <button 
-                                  className="btn-action btn-download btn-large"
-                                  onClick={() => handleDownloadPDF(voucher)}
-                                  title="Download PDF"
-                                >
-                                  Download
-                                </button>
-                                {voucher.status !== VOUCHER_STATUS.PAID && (
-                                  <button 
-                                    className="btn-action btn-pay btn-large"
-                                    onClick={() => openPaymentModal(voucher)}
-                                    title="Record Payment"
-                                  >
-                                    Record Payment
-                                  </button>
-                                )}
-                              </div>
-                              
-                              <button 
-                                className="btn-action btn-collapse btn-small"
-                                onClick={() => setExpandedRow(null)}
-                                title="Collapse"
-                              >
-                                ▲ Collapse
-                              </button>
-                            </>
-                          ) : (
-                            // Collapsed view - show only preview button
+                        <div className="action-buttons" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+                          {voucher.status !== VOUCHER_STATUS.PAID && (
                             <button 
-                              className="btn-action btn-preview btn-large"
-                              onClick={() => setExpandedRow(voucher.id)}
-                              title="Show Actions"
+                              className="btn-action btn-edit btn-small"
+                              onClick={() => openEditItemsModal(voucher)}
+                              title="Edit Items"
+                              style={{ fontSize: '1.1rem', padding: '0.4rem 0.7rem' }}
                             >
-                              ⚙️ Actions
+                              ✏️
+                            </button>
+                          )}
+                          <button 
+                            className="btn-action btn-download btn-small"
+                            onClick={() => handleDownloadPDF(voucher)}
+                            title="Download PDF"
+                            style={{ fontSize: '1.1rem', padding: '0.4rem 0.7rem' }}
+                          >
+                            📥
+                          </button>
+                          {voucher.status !== VOUCHER_STATUS.PAID && (
+                            <button 
+                              className="btn-action btn-pay btn-small"
+                              onClick={() => openPaymentModal(voucher)}
+                              title="Record Payment"
+                              style={{ fontSize: '1.1rem', padding: '0.4rem 0.7rem' }}
+                            >
+                              💰
                             </button>
                           )}
                         </div>

@@ -60,6 +60,21 @@ const ClassStudentList = () => {
         { enabled: !!classId }
     )
 
+    // Debug logging
+    useEffect(() => {
+        console.log('🔍 ClassStudentList Debug:');
+        console.log('  classId:', classId);
+        console.log('  activeSection:', activeSection);
+        console.log('  statusFilter:', statusFilter);
+        console.log('  studentsResponse:', studentsResponse);
+        console.log('  loading:', loading);
+        console.log('  error:', error);
+        if (studentsResponse) {
+            console.log('  studentsResponse.data:', studentsResponse.data);
+            console.log('  students count:', studentsResponse.data?.length || 0);
+        }
+    }, [classId, activeSection, statusFilter, studentsResponse, loading, error])
+
     const sections = sectionsResponse?.data || []
     const students = studentsResponse?.data || []
 
@@ -95,10 +110,10 @@ const ClassStudentList = () => {
             .map(sectionName => ({
                 sectionName,
                 students: groups[sectionName].sort((a, b) => {
-                    // Sort students by roll_no if available
-                    const aRoll = parseInt(a.roll_no) || 999999
-                    const bRoll = parseInt(b.roll_no) || 999999
-                    return aRoll - bRoll
+                    // Sort students by serial_number if available, otherwise by roll_no
+                    const aSerial = a.serial_number || parseInt(a.roll_no) || 999999
+                    const bSerial = b.serial_number || parseInt(b.roll_no) || 999999
+                    return aSerial - bSerial
                 })
             }))
     }, [filteredStudents, activeSection])
@@ -218,59 +233,7 @@ const ClassStudentList = () => {
         }
     }
     
-    const handleMarkFree = async () => {
-        if (selectedStudents.size === 0) return
-        
-        const confirmed = window.confirm(
-            `Are you sure you want to mark ${selectedStudents.size} student(s) as fee-free? ` +
-            `No vouchers will be generated for these students.`
-        )
-        
-        if (!confirmed) return
-        
-        try {
-            const studentIdentifiers = Array.from(selectedStudents).map(key => JSON.parse(key))
-            await studentService.markFree({
-                student_identifiers: studentIdentifiers,
-                class_id: parseInt(classId),
-                section_id: activeSection ? parseInt(activeSection) : null
-            })
-            
-            alert(`Successfully marked ${selectedStudents.size} student(s) as fee-free!`)
-            setSelectedStudents(new Set())
-            window.location.reload()
-        } catch (error) {
-            console.error('Failed to mark students as free:', error)
-            alert('Failed to mark students as free. Please try again.')
-        }
-    }
-    
-    const handleUnmarkFree = async () => {
-        if (selectedStudents.size === 0) return
-        
-        const confirmed = window.confirm(
-            `Are you sure you want to unmark ${selectedStudents.size} student(s) as fee-free? ` +
-            `Vouchers will be generated for these students going forward.`
-        )
-        
-        if (!confirmed) return
-        
-        try {
-            const studentIdentifiers = Array.from(selectedStudents).map(key => JSON.parse(key))
-            await studentService.unmarkFree({
-                student_identifiers: studentIdentifiers,
-                class_id: parseInt(classId),
-                section_id: activeSection ? parseInt(activeSection) : null
-            })
-            
-            alert(`Successfully unmarked ${selectedStudents.size} student(s) as fee-free!`)
-            setSelectedStudents(new Set())
-            window.location.reload()
-        } catch (error) {
-            console.error('Failed to unmark students:', error)
-            alert('Failed to unmark students. Please try again.')
-        }
-    }
+
 
     if (!classId) {
         return (
@@ -310,20 +273,6 @@ const ClassStudentList = () => {
                             <span className="selected-count">
                                 {selectedStudents.size} selected
                             </span>
-                            <button 
-                                className="btn-success"
-                                onClick={handleMarkFree}
-                                style={{ marginRight: '0.5rem', background: 'linear-gradient(135deg, #059669, #047857)' }}
-                            >
-                                ✅ Mark Free
-                            </button>
-                            <button 
-                                className="btn-warning"
-                                onClick={handleUnmarkFree}
-                                style={{ marginRight: '0.5rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}
-                            >
-                                ↩️ Unmark Free
-                            </button>
                             <button 
                                 className="btn-danger"
                                 onClick={() => setShowDeleteModal(true)}
@@ -413,7 +362,6 @@ const ClassStudentList = () => {
                                 <th>Father Name</th>
                                 <th>Father's Contact Number</th>
                                 <th>Monthly Fee</th>
-                                <th>Fee Status</th>
                                 <th style={{ width: '100px' }}>Actions</th>
                             </tr>
                         </thead>
@@ -435,7 +383,7 @@ const ClassStudentList = () => {
                                         />
                                     </td>
                                     <td onClick={() => !isEditing && navigate(`/students/${student.id}`)}>
-                                        <span className="student-name-main">{student.roll_no || '-'}</span>
+                                        <span className="student-name-main">{filteredStudents.indexOf(student) + 1}</span>
                                     </td>
                                     <td onClick={(e) => isEditing && e.stopPropagation()}>
                                         {isEditing ? (
@@ -483,78 +431,10 @@ const ClassStudentList = () => {
                                             />
                                         ) : (
                                             <span className="student-sub-info" onClick={() => navigate(`/students/${student.id}`)}>
-                                                Rs. {(student.individual_monthly_fee || student.effective_monthly_fee || student.class_monthly_fee || 0).toLocaleString()}
+                                                Rs. {(student.individual_monthly_fee || student.effective_monthly_fee || 0).toLocaleString()}
                                             </span>
                                         )}
                                     </td>
-                                    <td onClick={(e) => e.stopPropagation()}>
-                                        {(() => {
-                                            if (student.is_fee_free) {
-                                                return (
-                                                    <span style={{ 
-                                                        background: 'linear-gradient(135deg, #059669, #047857)', 
-                                                        color: 'white', 
-                                                        padding: '0.25rem 0.75rem', 
-                                                        borderRadius: '20px', 
-                                                        fontSize: '0.75rem', 
-                                                        fontWeight: '600',
-                                                        display: 'inline-block'
-                                                    }}>
-                                                        📚 FREE
-                                                    </span>
-                                                )
-                                            }
-                                            
-                                            const studentFee = student.individual_monthly_fee || student.effective_monthly_fee || 0
-                                            const classFee = student.class_monthly_fee || 0
-                                            
-                                            if (studentFee === classFee && classFee > 0) {
-                                                return (
-                                                    <span style={{ 
-                                                        background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', 
-                                                        color: 'white', 
-                                                        padding: '0.25rem 0.75rem', 
-                                                        borderRadius: '20px', 
-                                                        fontSize: '0.75rem', 
-                                                        fontWeight: '600',
-                                                        display: 'inline-block'
-                                                    }}>
-                                                        💰 FULL
-                                                    </span>
-                                                )
-                                            } else if (studentFee < classFee && studentFee > 0) {
-                                                const discountPercent = Math.round(((classFee - studentFee) / classFee) * 100)
-                                                return (
-                                                    <span style={{ 
-                                                        background: 'linear-gradient(135deg, #f59e0b, #d97706)', 
-                                                        color: 'white', 
-                                                        padding: '0.25rem 0.75rem', 
-                                                        borderRadius: '20px', 
-                                                        fontSize: '0.75rem', 
-                                                        fontWeight: '600',
-                                                        display: 'inline-block'
-                                                    }}>
-                                                        🎯 {discountPercent}% OFF
-                                                    </span>
-                                                )
-                                            } else {
-                                                return (
-                                                    <span style={{ 
-                                                        background: 'linear-gradient(135deg, #6b7280, #4b5563)', 
-                                                        color: 'white', 
-                                                        padding: '0.25rem 0.75rem', 
-                                                        borderRadius: '20px', 
-                                                        fontSize: '0.75rem', 
-                                                        fontWeight: '600',
-                                                        display: 'inline-block'
-                                                    }}>
-                                                        ⚙️ CUSTOM
-                                                    </span>
-                                                )
-                                            }
-                                        })()
-                                    }
-                                </td>
                                     <td onClick={(e) => e.stopPropagation()}>
                                         {isEditing ? (
                                             <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
@@ -576,20 +456,20 @@ const ClassStudentList = () => {
                                                 </button>
                                             </div>
                                         ) : (
-                                            <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+                                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                                 <button 
                                                     className="btn-warning"
                                                     onClick={() => handleEditClick(student)}
-                                                    style={{ fontSize: '0.7rem', padding: '0.3rem 0.6rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}
+                                                    style={{ fontSize: '1rem', padding: '0.4rem 0.7rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}
                                                 >
-                                                    ✏️ Edit
+                                                    ✏️
                                                 </button>
                                                 <button 
                                                     className="btn-primary"
                                                     onClick={() => navigate(`/students/${student.id}`)}
-                                                    style={{ fontSize: '0.7rem', padding: '0.3rem 0.6rem' }}
+                                                    style={{ fontSize: '1rem', padding: '0.4rem 0.7rem' }}
                                                 >
-                                                    👁️ Detail
+                                                    👁️
                                                 </button>
                                             </div>
                                         )}
@@ -630,12 +510,11 @@ const ClassStudentList = () => {
                                             <th>Father Name</th>
                                             <th>Father's Contact Number</th>
                                             <th>Monthly Fee</th>
-                                            <th>Fee Status</th>
                                             <th style={{ width: '100px' }}>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {sectionGroup.students.map(student => {
+                                        {sectionGroup.students.map((student, studentIndex) => {
                                             const isEditing = editingStudentId === student.id
                                             return (
                                             <tr
@@ -652,7 +531,7 @@ const ClassStudentList = () => {
                                                     />
                                                 </td>
                                                 <td onClick={() => !isEditing && navigate(`/students/${student.id}`)}>
-                                                    <span className="student-name-main">{student.roll_no || '-'}</span>
+                                                    <span className="student-name-main">{studentIndex + 1}</span>
                                                 </td>
                                                 <td onClick={(e) => isEditing && e.stopPropagation()}>
                                                     {isEditing ? (
@@ -700,77 +579,9 @@ const ClassStudentList = () => {
                                                         />
                                                     ) : (
                                                         <span className="student-sub-info" onClick={() => navigate(`/students/${student.id}`)}>
-                                                            Rs. {(student.individual_monthly_fee || student.effective_monthly_fee || student.class_monthly_fee || 0).toLocaleString()}
+                                                            Rs. {(student.individual_monthly_fee || student.effective_monthly_fee || 0).toLocaleString()}
                                                         </span>
                                                     )}
-                                                </td>
-                                                <td onClick={(e) => e.stopPropagation()}>
-                                                    {(() => {
-                                                        if (student.is_fee_free) {
-                                                            return (
-                                                                <span style={{ 
-                                                                    background: 'linear-gradient(135deg, #059669, #047857)', 
-                                                                    color: 'white', 
-                                                                    padding: '0.25rem 0.75rem', 
-                                                                    borderRadius: '20px', 
-                                                                    fontSize: '0.75rem', 
-                                                                    fontWeight: '600',
-                                                                    display: 'inline-block'
-                                                                }}>
-                                                                    📚 FREE
-                                                                </span>
-                                                            )
-                                                        }
-                                                        
-                                                        const studentFee = student.individual_monthly_fee || student.effective_monthly_fee || 0
-                                                        const classFee = student.class_monthly_fee || 0
-                                                        
-                                                        if (studentFee === classFee && classFee > 0) {
-                                                            return (
-                                                                <span style={{ 
-                                                                    background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', 
-                                                                    color: 'white', 
-                                                                    padding: '0.25rem 0.75rem', 
-                                                                    borderRadius: '20px', 
-                                                                    fontSize: '0.75rem', 
-                                                                    fontWeight: '600',
-                                                                    display: 'inline-block'
-                                                                }}>
-                                                                    💰 FULL
-                                                                </span>
-                                                            )
-                                                        } else if (studentFee < classFee && studentFee > 0) {
-                                                            const discountPercent = Math.round(((classFee - studentFee) / classFee) * 100)
-                                                            return (
-                                                                <span style={{ 
-                                                                    background: 'linear-gradient(135deg, #f59e0b, #d97706)', 
-                                                                    color: 'white', 
-                                                                    padding: '0.25rem 0.75rem', 
-                                                                    borderRadius: '20px', 
-                                                                    fontSize: '0.75rem', 
-                                                                    fontWeight: '600',
-                                                                    display: 'inline-block'
-                                                                }}>
-                                                                    🎯 {discountPercent}% OFF
-                                                                </span>
-                                                            )
-                                                        } else {
-                                                            return (
-                                                                <span style={{ 
-                                                                    background: 'linear-gradient(135deg, #6b7280, #4b5563)', 
-                                                                    color: 'white', 
-                                                                    padding: '0.25rem 0.75rem', 
-                                                                    borderRadius: '20px', 
-                                                                    fontSize: '0.75rem', 
-                                                                    fontWeight: '600',
-                                                                    display: 'inline-block'
-                                                                }}>
-                                                                    ⚙️ CUSTOM
-                                                                </span>
-                                                            )
-                                                        }
-                                                    })()
-                                                }
                                                 </td>
                                                 <td onClick={(e) => e.stopPropagation()}>
                                                     {isEditing ? (
@@ -793,20 +604,20 @@ const ClassStudentList = () => {
                                                             </button>
                                                         </div>
                                                     ) : (
-                                                        <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+                                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                                             <button 
                                                                 className="btn-warning"
                                                                 onClick={() => handleEditClick(student)}
-                                                                style={{ fontSize: '0.7rem', padding: '0.3rem 0.6rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}
+                                                                style={{ fontSize: '1rem', padding: '0.4rem 0.7rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}
                                                             >
-                                                                ✏️ Edit
+                                                                ✏️
                                                             </button>
                                                             <button 
                                                                 className="btn-primary"
                                                                 onClick={() => navigate(`/students/${student.id}`)}
-                                                                style={{ fontSize: '0.7rem', padding: '0.3rem 0.6rem' }}
+                                                                style={{ fontSize: '1rem', padding: '0.4rem 0.7rem' }}
                                                             >
-                                                                👁️ Detail
+                                                                👁️
                                                             </button>
                                                         </div>
                                                     )}

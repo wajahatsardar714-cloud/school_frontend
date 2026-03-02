@@ -33,6 +33,7 @@ const AdmissionFormNew = () => {
   const [formData, setFormData] = useState({
     name: '',
     roll_no: '',
+    email: '',
     date_of_birth: '',
     phone: '',
     caste: '',
@@ -43,6 +44,7 @@ const AdmissionFormNew = () => {
     father_cnic: '',
     father_phone: '',
     father_occupation: '',
+    mother_name: '',
     admission_date: new Date().toISOString().split('T')[0], // Default to today
     class: '',
     section: ''
@@ -101,14 +103,43 @@ const AdmissionFormNew = () => {
       
       // Remove health check to avoid delays in development
       const response = await classService.list()
-      console.log('Classes API response:', response)
+      console.log('=== CLASSES API RESPONSE DEBUG ===')
+      console.log('Full response object:', response)
+      console.log('response.success:', response?.success)
+      console.log('response.data type:', typeof response?.data)
+      console.log('response.data is array?:', Array.isArray(response?.data))
+      console.log('First item in response.data:', response?.data?.[0])
       
       if (response && response.data) {
-        console.log('Classes loaded successfully:', response.data)
+        let classData = response.data
+        
+        // Handle paginated response
+        if (response.data.data && Array.isArray(response.data.data)) {
+          classData = response.data.data
+          console.log('Using paginated data from response.data.data')
+        } else if (Array.isArray(response.data)) {
+          classData = response.data
+          console.log('Using direct array from response.data')
+        } else if (!Array.isArray(classData)) {
+          console.warn('Data is not an array, setting empty array')
+          classData = []
+        }
+        
+        console.log('=== PROCESSING CLASSES ===')
+        console.log('Number of classes:', classData.length)
+        console.log('Raw classes data:', classData)
+        if (classData.length > 0) {
+          console.log('First class full object:', classData[0])
+          console.log('First class ID:', classData[0]?.id)
+          console.log('First class name:', classData[0]?.name)
+          console.log('First class current_fee_structure:', classData[0]?.current_fee_structure)
+          console.log('First class fee_structure:', classData[0]?.fee_structure)
+        }
         
         // Sort classes in proper sequence: PG (Playgroup) to 2nd Year
-        const sortedClasses = sortClassesBySequence(response.data)
+        const sortedClasses = sortClassesBySequence(classData)
         console.log('Classes sorted in sequence:', sortedClasses)
+        console.log('First sorted class:', sortedClasses[0])
         
         setClasses(sortedClasses)
         
@@ -117,13 +148,31 @@ const AdmissionFormNew = () => {
           setError(null)
         }
       } else {
-        console.warn('No classes data received')
+        console.warn('No classes data received:', response)
         setClasses([])
+        // Set mock classes for development if backend is not running
+        const mockClasses = [
+          { id: 1, name: 'PG (Playgroup)', class_type: 'SCHOOL', current_fee_structure: { admission_fee: '5000', monthly_fee: '3000', paper_fund: '500' } },
+          { id: 2, name: 'KG', class_type: 'SCHOOL', current_fee_structure: { admission_fee: '5500', monthly_fee: '3200', paper_fund: '500' } },
+          { id: 3, name: 'Class 1', class_type: 'SCHOOL', current_fee_structure: { admission_fee: '6000', monthly_fee: '3500', paper_fund: '600' } }
+        ]
+        console.log('Setting mock classes for development:', mockClasses)
+        setClasses(mockClasses)
+        setError('Backend not available. Using mock data for development.')
       }
     } catch (err) {
       console.error('Failed to load classes:', err)
-      setError(`Failed to load classes: ${err.message || err}`)
-      setClasses([])
+      console.error('Error details:', err.response || err)
+      
+      // Set mock classes for development
+      const mockClasses = [
+        { id: 1, name: 'PG (Playgroup)', class_type: 'SCHOOL', current_fee_structure: { admission_fee: '5000', monthly_fee: '3000', paper_fund: '500' } },
+        { id: 2, name: 'KG', class_type: 'SCHOOL', current_fee_structure: { admission_fee: '5500', monthly_fee: '3200', paper_fund: '500' } },
+        { id: 3, name: 'Class 1', class_type: 'SCHOOL', current_fee_structure: { admission_fee: '6000', monthly_fee: '3500', paper_fund: '600' } }
+      ]
+      console.log('API failed, setting mock classes for development:', mockClasses)
+      setClasses(mockClasses)
+      setError(`Backend connection failed: ${err.message || err}. Using mock data for testing.`)
     } finally {
       setLoadingClasses(false)
     }
@@ -148,11 +197,23 @@ const AdmissionFormNew = () => {
         setSections(response.data)
       } else {
         console.warn('No sections data received for class', classId)
-        setSections([])
+        // Set mock sections for development
+        const mockSections = [
+          { id: 1, name: 'A', student_count: 25 },
+          { id: 2, name: 'B', student_count: 30 }
+        ]
+        console.log('Setting mock sections for development:', mockSections)
+        setSections(mockSections)
       }
     } catch (err) {
       console.error('Failed to load sections:', err)
-      setSections([])
+      // Set mock sections for development even on error
+      const mockSections = [
+        { id: 1, name: 'A', student_count: 25 },
+        { id: 2, name: 'B', student_count: 30 }
+      ]
+      console.log('API failed, setting mock sections:', mockSections)
+      setSections(mockSections)
       // Don't show error for sections as it's not critical for form functionality
     } finally {
       setLoadingSections(false)
@@ -161,83 +222,153 @@ const AdmissionFormNew = () => {
 
   const handleClassChange = async (e) => {
     const classId = e.target.value
-    console.log('Class selection changed to:', classId)
+    console.log('=== CLASS CHANGE DEBUG ===')
+    console.log('Selected classId:', classId, typeof classId)
     
     setSelectedClassId(classId)
     setSelectedSectionId('')
     setFormData({ ...formData, section: '' })
     
     if (classId) {
+      console.log('Available classes:', classes)
+      console.log('Looking for class with ID:', classId)
+      console.log('Classes IDs available:', classes.map(c => ({ id: c.id, name: c.name, type: typeof c.id })))
+      
       const selectedClassObj = classes.find(c => c.id === parseInt(classId))
+      console.log('Found class object:', selectedClassObj)
+      
       if (selectedClassObj) {
         setSelectedClass(selectedClassObj.name)
         setFormData({ ...formData, class: selectedClassObj.name, section: '' })
         
-        console.log('Loading sections and fee structure for class:', selectedClassObj.name)
+        console.log('=== FEE STRUCTURE DEBUG ===')
+        console.log('Selected class object:', selectedClassObj)
+        console.log('current_fee_structure:', selectedClassObj.current_fee_structure)
+        console.log('fee_structure:', selectedClassObj.fee_structure)
+        console.log('All keys in class object:', Object.keys(selectedClassObj))
         
         // Load sections for the selected class - this will be handled by useEffect
         // But we also trigger it manually to be sure
         await loadSections(classId)
         
-        // Load fee structure using classService.getById
-        try {
-          console.log('Fetching class details for fee structure...')
-          const classResponse = await classService.getById(classId)
-          console.log('Class details response:', classResponse)
-          
-          // Check both possible field names
-          const feeStruct = classResponse.data?.current_fee_structure || classResponse.data?.fee_structure
-          console.log('Fee structure data:', feeStruct)
-          
-          if (feeStruct) {
-            console.log('Fee structure found:', feeStruct)
-            const defaults = {
-              admissionFee: parseFloat(feeStruct.admission_fee) || 0,
-              monthlyFee: parseFloat(feeStruct.monthly_fee) || 0,
-              paperFund: parseFloat(feeStruct.paper_fund) || 0,
-            }
-            console.log('Parsed fee defaults:', defaults)
-            setClassFeeDefaults(defaults)
-            setFeeSchedule({
-              ...defaults,
-              total: defaults.admissionFee + defaults.monthlyFee + defaults.paperFund
-            })
-            setShowFeeSchedule(true)
-            console.log('Fee schedule updated and showFeeSchedule set to true')
-          } else {
-            console.warn('No fee structure found for class. Response data:', classResponse.data)
-            // Still show the fee section but with zero values so user can enter custom fees
-            const defaults = {
-              admissionFee: 0,
-              monthlyFee: 0,
-              paperFund: 0,
-            }
-            setClassFeeDefaults(defaults)
-            setFeeSchedule({
-              ...defaults,
-              total: 0
-            })
-            setShowFeeSchedule(true) // Show it anyway
-            setHasCustomFees(true) // Enable editing
-            console.log('No fee structure, showing empty form for custom fees')
-          }
-        } catch (err) {
-          console.error('Failed to load fee structure:', err)
-          console.error('Error details:', err.response?.data || err.message)
-          // Show fee section anyway so user can enter fees manually
+        // Check if fee structure is already available in the class object
+        let feeStruct = selectedClassObj.current_fee_structure || selectedClassObj.fee_structure
+        console.log('Fee structure to use:', feeStruct)
+        
+        if (feeStruct) {
+          // Use existing fee structure from class object
+          console.log('✅ Using fee structure from class object:', feeStruct)
           const defaults = {
-            admissionFee: 0,
-            monthlyFee: 0,
-            paperFund: 0,
+            admissionFee: parseFloat(feeStruct.admission_fee) || 0,
+            monthlyFee: parseFloat(feeStruct.monthly_fee) || 0,
+            paperFund: parseFloat(feeStruct.paper_fund) || 0,
           }
           setClassFeeDefaults(defaults)
           setFeeSchedule({
             ...defaults,
-            total: 0
+            total: defaults.admissionFee + defaults.monthlyFee + defaults.paperFund
           })
           setShowFeeSchedule(true)
-          setHasCustomFees(true)
-          setError(`Unable to load fee structure for ${selectedClassObj.name}. You can enter fees manually.`)
+          console.log('Fee schedule set from class object')
+        } else {
+          // Try to load fee structure from API
+          try {
+            console.log('❌ No fee structure in class object. Fetching from API...')
+            const classResponse = await classService.getById(classId)
+            console.log('Class details response:', classResponse)
+            
+            // Check both possible field names
+            feeStruct = classResponse.data?.current_fee_structure || classResponse.data?.fee_structure
+            console.log('Fee structure from API:', feeStruct)
+            
+            if (feeStruct) {
+              console.log('✅ Fee structure found from API:', feeStruct)
+              const defaults = {
+                admissionFee: parseFloat(feeStruct.admission_fee) || 0,
+                monthlyFee: parseFloat(feeStruct.monthly_fee) || 0,
+                paperFund: parseFloat(feeStruct.paper_fund) || 0,
+              }
+              console.log('Parsed fee defaults:', defaults)
+              setClassFeeDefaults(defaults)
+              setFeeSchedule({
+                ...defaults,
+                total: defaults.admissionFee + defaults.monthlyFee + defaults.paperFund
+              })
+              setShowFeeSchedule(true)
+              console.log('Fee schedule updated from API')
+            } else {
+              // Try direct fee structure API endpoint as final fallback
+              console.log('❌ No fee structure from getById. Trying getFeeStructure...')
+              const feeResponse = await classService.getFeeStructure(classId)
+              console.log('Fee structure API response:', feeResponse)
+              
+              const feedData = feeResponse.data
+              if (feedData && (feedData.admission_fee || feedData.monthly_fee || feedData.paper_fund)) {
+                console.log('✅ Fee structure found from getFeeStructure:', feedData)
+                const defaults = {
+                  admissionFee: parseFloat(feedData.admission_fee) || 0,
+                  monthlyFee: parseFloat(feedData.monthly_fee) || 0,
+                  paperFund: parseFloat(feedData.paper_fund) || 0,
+                }
+                console.log('Parsed fee defaults:', defaults)
+                setClassFeeDefaults(defaults)
+                setFeeSchedule({
+                  ...defaults,
+                  total: defaults.admissionFee + defaults.monthlyFee + defaults.paperFund
+                })
+                setShowFeeSchedule(true)
+                console.log('Fee schedule updated from getFeeStructure API')
+              } else {
+                console.warn('❌ No fee structure found anywhere. Showing manual entry form.')
+                showManualFeeEntry(selectedClassObj.name)
+                setError(`⚠️ No fee structure found for ${selectedClassObj.name}. Please set fees in Classes Management first, or enter custom fees below.`)
+              }
+            }
+          } catch (err) {
+            console.error('Failed to load fee structure:', err)
+            showManualFeeEntry(selectedClassObj.name, err)
+            setError(`Failed to load fee structure for ${selectedClassObj.name}. You can enter fees manually below.`)
+          }
+        }
+      } else {
+        // Class not found in array - try direct API approach
+        console.log('❌ Class not found in classes array. Trying direct API approach...')
+        try {
+          const classResponse = await classService.getById(classId)
+          console.log('Direct API class response:', classResponse)
+          
+          if (classResponse.data) {
+            const classData = classResponse.data
+            setSelectedClass(classData.name)
+            setFormData({ ...formData, class: classData.name, section: '' })
+            
+            // Load sections
+            await loadSections(classId)
+            
+            // Get fee structure
+            const feeStruct = classData.current_fee_structure || classData.fee_structure
+            if (feeStruct) {
+              console.log('✅ Fee structure found via direct API:', feeStruct)
+              const defaults = {
+                admissionFee: parseFloat(feeStruct.admission_fee) || 0,
+                monthlyFee: parseFloat(feeStruct.monthly_fee) || 0,
+                paperFund: parseFloat(feeStruct.paper_fund) || 0,
+              }
+              setClassFeeDefaults(defaults)
+              setFeeSchedule({
+                ...defaults,
+                total: defaults.admissionFee + defaults.monthlyFee + defaults.paperFund
+              })
+              setShowFeeSchedule(true)
+              console.log('✅ Fee schedule set via direct API')
+            } else {
+              console.warn('❌ No fee structure in direct API response')
+              showManualFeeEntry(classData.name)
+            }
+          }
+        } catch (err) {
+          console.error('Direct API approach failed:', err)
+          setError('Failed to load class details.')
         }
       }
     } else {
@@ -245,6 +376,32 @@ const AdmissionFormNew = () => {
       setSections([])
       setFormData({ ...formData, class: '', section: '' })
       setShowFeeSchedule(false)
+    }
+  }
+  
+  // Helper function to show manual fee entry
+  const showManualFeeEntry = (className, error = null) => {
+    console.log('Showing manual fee entry for class:', className)
+    const defaults = {
+      admissionFee: 0,
+      monthlyFee: 0,
+      paperFund: 0,
+    }
+    setClassFeeDefaults(defaults)
+    setFeeSchedule({
+      ...defaults,
+      total: 0
+    })
+    setShowFeeSchedule(true) // Always show fee section
+    setHasCustomFees(true) // Enable editing
+    
+    if (error) {
+      setError(`Unable to load fee structure for ${className}. You can enter fees manually. (${error.message || error})`)
+    } else {
+      // Clear any previous error
+      if (error && error.includes('fee structure')) {
+        setError(null)
+      }
     }
   }
 
@@ -533,12 +690,16 @@ const AdmissionFormNew = () => {
       const studentData = {
         name: formData.name,
         roll_no: formData.roll_no || null,
+        email: formData.email || null,
         date_of_birth: formData.date_of_birth || null,
         phone: formData.phone || null,
         caste: formData.caste || null,
         address: formData.address || null,
         bay_form: formData.bay_form || null,
         previous_school: formData.previous_school || null,
+        father_name: formData.father_name || null,
+        mother_name: formData.mother_name || null,
+        is_fee_free: isFreeStudent,
         enrollment: {
           class_id: parseInt(selectedClassId),
           section_id: parseInt(selectedSectionId),
@@ -774,8 +935,27 @@ const AdmissionFormNew = () => {
                     />
                   </div>
 
+                  <div className="form-group">
+                    <label>Roll Number</label>
+                    <input
+                      type="text"
+                      placeholder="Enter roll number (optional)"
+                      value={formData.roll_no}
+                      onChange={(e) => handleInputChange('roll_no', e.target.value)}
+                      disabled={submitting}
+                    />
+                  </div>
 
-
+                  <div className="form-group">
+                    <label>Email</label>
+                    <input
+                      type="email"
+                      placeholder="Enter email address (optional)"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      disabled={submitting}
+                    />
+                  </div>
                   <div className="form-group">
                     <label>Date of Birth</label>
                     <input
@@ -867,6 +1047,17 @@ const AdmissionFormNew = () => {
                       placeholder="Enter occupation (optional)"
                       value={formData.father_occupation}
                       onChange={(e) => handleInputChange('father_occupation', e.target.value)}
+                      disabled={submitting}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Mother Name</label>
+                    <input
+                      type="text"
+                      placeholder="Enter mother name (optional)"
+                      value={formData.mother_name}
+                      onChange={(e) => handleInputChange('mother_name', e.target.value)}
                       disabled={submitting}
                     />
                   </div>
@@ -1078,64 +1269,293 @@ const AdmissionFormNew = () => {
                 </div>
               </div>
 
-              {/* Fee Schedule Display */}
-              {showFeeSchedule && (
+              {/* Fee Schedule Display - Always show when class is selected */}
+              {(showFeeSchedule || selectedClassId) && (
                 <div className="form-section fee-schedule-section" style={{
-                  backgroundColor: '#fef9e7',
-                  border: '2px solid #f4d03f',
-                  borderRadius: '8px',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '6px',
                   padding: '1.5rem',
                   marginTop: '1rem'
                 }}>
-                  <div className="fee-header">
-                    <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      💰 Fee Structure for {selectedClass}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#111827' }}>
+                      Fee Schedule for {selectedClass || '(Select a class)'}
                     </h3>
-                    <div className="fee-controls">
-                      <label className="free-student-toggle">
-                        <input
-                          type="checkbox"
-                          checked={isFreeStudent}
-                          onChange={(e) => setIsFreeStudent(e.target.checked)}
-                          disabled={submitting}
-                        />
-                        Mark as Free Student
-                      </label>
-                    </div>
+                    <label className="free-student-toggle" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={isFreeStudent}
+                        onChange={(e) => setIsFreeStudent(e.target.checked)}
+                        disabled={submitting}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      <span style={{ fontSize: '14px' }}>Mark as Free Student</span>
+                    </label>
                   </div>
+
+                  {/* Warning if no fees are set */}
+                  {selectedClassId && feeSchedule.admissionFee === 0 && feeSchedule.monthlyFee === 0 && feeSchedule.paperFund === 0 && !hasCustomFees && !isFreeStudent && (
+                    <div style={{
+                      backgroundColor: '#fef3c7',
+                      border: '1px solid #f59e0b',
+                      borderRadius: '6px',
+                      padding: '12px',
+                      marginBottom: '1rem',
+                      fontSize: '14px',
+                      color: '#92400e'
+                    }}>
+                      <strong>⚠️ No fees set for this class!</strong>
+                      <p style={{ margin: '8px 0 0 0' }}>
+                        Please go to <Link to="/classes" style={{ color: '#2563eb', textDecoration: 'underline' }}>Classes Management</Link> to set fee structures for {selectedClass},
+                        or check "Set Custom Fees for this Student" below to enter fees manually for this student only.
+                      </p>
+                    </div>
+                  )}
 
                   {!isFreeStudent && (
                     <>
-                      {/* Class Default Fees Display */}
-                      <div className="class-defaults-box" style={{
-                        backgroundColor: '#e8f5e9',
-                        padding: '1.25rem',
-                        borderRadius: '8px',
-                        marginBottom: '1rem',
-                        border: '1px solid #66bb6a'
-                      }}>
-                        <h4 style={{ fontSize: '15px', marginBottom: '0.75rem', color: '#2e7d32', fontWeight: '600' }}>
-                          📊 Standard Class Fees:
-                        </h4>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', fontSize: '14px' }}>
-                          <div style={{ padding: '0.5rem', backgroundColor: 'white', borderRadius: '4px', textAlign: 'center' }}>
-                            <div style={{ color: '#666', fontSize: '12px', marginBottom: '0.25rem' }}>Admission Fee</div>
-                            <div style={{ fontWeight: 'bold', color: '#2e7d32', fontSize: '16px' }}>Rs. {classFeeDefaults.admissionFee}</div>
-                          </div>
-                          <div style={{ padding: '0.5rem', backgroundColor: 'white', borderRadius: '4px', textAlign: 'center' }}>
-                            <div style={{ color: '#666', fontSize: '12px', marginBottom: '0.25rem' }}>Monthly Fee</div>
-                            <div style={{ fontWeight: 'bold', color: '#2e7d32', fontSize: '16px' }}>Rs. {classFeeDefaults.monthlyFee}</div>
-                          </div>
-                          <div style={{ padding: '0.5rem', backgroundColor: 'white', borderRadius: '4px', textAlign: 'center' }}>
-                            <div style={{ color: '#666', fontSize: '12px', marginBottom: '0.25rem' }}>Paper Fund</div>
-                            <div style={{ fontWeight: 'bold', color: '#2e7d32', fontSize: '16px' }}>Rs. {classFeeDefaults.paperFund}</div>
-                          </div>
-                        </div>
+                      {/* Compact Fee Table */}
+                      <div style={{ marginBottom: '1rem' }}>
+                        <table style={{ 
+                          width: '100%', 
+                          borderCollapse: 'collapse',
+                          border: '1px solid #e5e7eb'
+                        }}>
+                          <thead>
+                            <tr style={{ backgroundColor: '#f9fafb' }}>
+                              <th style={{ 
+                                padding: '12px', 
+                                textAlign: 'left', 
+                                borderBottom: '1px solid #e5e7eb',
+                                fontWeight: '600',
+                                fontSize: '14px',
+                                color: '#374151'
+                              }}>Fee Type</th>
+                              <th style={{ 
+                                padding: '12px', 
+                                textAlign: 'right', 
+                                borderBottom: '1px solid #e5e7eb',
+                                fontWeight: '600',
+                                fontSize: '14px',
+                                color: '#374151'
+                              }}>Amount (Rs.)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td style={{ 
+                                padding: '12px', 
+                                borderBottom: '1px solid #e5e7eb',
+                                fontSize: '14px',
+                                color: '#111827'
+                              }}>Admission Fee</td>
+                              <td style={{ 
+                                padding: '12px', 
+                                borderBottom: '1px solid #e5e7eb',
+                                textAlign: 'right'
+                              }}>
+                                {hasCustomFees ? (
+                                  <input
+                                    type="number"
+                                    value={feeSchedule.admissionFee}
+                                    onChange={(e) => handleFeeChange('admissionFee', e.target.value)}
+                                    min="0"
+                                    disabled={submitting}
+                                    style={{
+                                      width: '100px',
+                                      padding: '6px 8px',
+                                      border: '1px solid #d1d5db',
+                                      borderRadius: '4px',
+                                      textAlign: 'right',
+                                      fontSize: '14px'
+                                    }}
+                                  />
+                                ) : (
+                                  <span style={{ fontSize: '14px', color: '#111827' }}>
+                                    {feeSchedule.admissionFee?.toLocaleString() || 0}
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style={{ 
+                                padding: '12px', 
+                                borderBottom: '1px solid #e5e7eb',
+                                fontSize: '14px',
+                                color: '#111827'
+                              }}>Monthly Fee</td>
+                              <td style={{ 
+                                padding: '12px', 
+                                borderBottom: '1px solid #e5e7eb',
+                                textAlign: 'right'
+                              }}>
+                                {hasCustomFees ? (
+                                  <input
+                                    type="number"
+                                    value={feeSchedule.monthlyFee}
+                                    onChange={(e) => handleFeeChange('monthlyFee', e.target.value)}
+                                    min="0"
+                                    disabled={submitting}
+                                    style={{
+                                      width: '100px',
+                                      padding: '6px 8px',
+                                      border: '1px solid #d1d5db',
+                                      borderRadius: '4px',
+                                      textAlign: 'right',
+                                      fontSize: '14px'
+                                    }}
+                                  />
+                                ) : (
+                                  <span style={{ fontSize: '14px', color: '#111827' }}>
+                                    {feeSchedule.monthlyFee?.toLocaleString() || 0}
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style={{ 
+                                padding: '12px', 
+                                borderBottom: '1px solid #e5e7eb',
+                                fontSize: '14px',
+                                color: '#111827'
+                              }}>Paper Fund</td>
+                              <td style={{ 
+                                padding: '12px', 
+                                borderBottom: '1px solid #e5e7eb',
+                                textAlign: 'right'
+                              }}>
+                                {hasCustomFees ? (
+                                  <input
+                                    type="number"
+                                    value={feeSchedule.paperFund}
+                                    onChange={(e) => handleFeeChange('paperFund', e.target.value)}
+                                    min="0"
+                                    disabled={submitting}
+                                    style={{
+                                      width: '100px',
+                                      padding: '6px 8px',
+                                      border: '1px solid #d1d5db',
+                                      borderRadius: '4px',
+                                      textAlign: 'right',
+                                      fontSize: '14px'
+                                    }}
+                                  />
+                                ) : (
+                                  <span style={{ fontSize: '14px', color: '#111827' }}>
+                                    {feeSchedule.paperFund?.toLocaleString() || 0}
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                            {customFees.map((fee) => (
+                              <tr key={fee.id}>
+                                <td style={{ 
+                                  padding: '12px', 
+                                  borderBottom: '1px solid #e5e7eb',
+                                  fontSize: '14px'
+                                }}>
+                                  <input
+                                    type="text"
+                                    placeholder="Custom fee name"
+                                    value={fee.name}
+                                    onChange={(e) => updateCustomFee(fee.id, 'name', e.target.value)}
+                                    style={{
+                                      width: '200px',
+                                      padding: '6px 8px',
+                                      border: '1px solid #d1d5db',
+                                      borderRadius: '4px',
+                                      fontSize: '14px'
+                                    }}
+                                  />
+                                </td>
+                                <td style={{ 
+                                  padding: '12px', 
+                                  borderBottom: '1px solid #e5e7eb',
+                                  textAlign: 'right'
+                                }}>
+                                  <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px' }}>
+                                    <input
+                                      type="number"
+                                      value={fee.amount}
+                                      onChange={(e) => updateCustomFee(fee.id, 'amount', parseFloat(e.target.value) || 0)}
+                                      min="0"
+                                      style={{
+                                        width: '100px',
+                                        padding: '6px 8px',
+                                        border: '1px solid #d1d5db',
+                                        borderRadius: '4px',
+                                        textAlign: 'right',
+                                        fontSize: '14px'
+                                      }}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => removeCustomFee(fee.id)}
+                                      style={{
+                                        padding: '4px 8px',
+                                        backgroundColor: '#ef4444',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        fontSize: '14px'
+                                      }}
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                            <tr style={{ backgroundColor: '#f9fafb' }}>
+                              <td style={{ 
+                                padding: '12px', 
+                                fontWeight: '700',
+                                fontSize: '15px',
+                                color: '#111827'
+                              }}>Total Amount</td>
+                              <td style={{ 
+                                padding: '12px', 
+                                textAlign: 'right',
+                                fontWeight: '700',
+                                fontSize: '16px',
+                                color: '#2563eb'
+                              }}>
+                                Rs. {getTotalFees().toLocaleString()}/-
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Add Custom Fee Button */}
+                      <div style={{ marginBottom: '1rem' }}>
+                        <button
+                          type="button"
+                          onClick={addCustomFee}
+                          style={{
+                            padding: '8px 16px',
+                            backgroundColor: '#10b981',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}
+                        >
+                          <span style={{ fontSize: '16px' }}>+</span>
+                          Add Custom Fee
+                        </button>
                       </div>
 
                       {/* Custom Fees Toggle */}
                       <div style={{ marginBottom: '1rem' }}>
-                        <label className="free-student-toggle">
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '14px' }}>
                           <input
                             type="checkbox"
                             checked={hasCustomFees}
@@ -1151,73 +1571,10 @@ const AdmissionFormNew = () => {
                               }
                             }}
                             disabled={submitting}
+                            style={{ cursor: 'pointer' }}
                           />
-                          Set Custom Fees for this Student
+                          <span>Set Custom Fees for this Student</span>
                         </label>
-                      </div>
-
-                      <div className="fee-schedule-box">
-                        <div className="fee-table">
-                          <div className="fee-table-header">
-                            <div className="fee-column">Fee Type</div>
-                            <div className="fee-column">Amount (Rs.)</div>
-                          </div>
-
-                          <div className="fee-row">
-                            <label>Admission Fee</label>
-                            <input
-                              type="number"
-                              value={feeSchedule.admissionFee}
-                              onChange={(e) => handleFeeChange('admissionFee', e.target.value)}
-                              min="0"
-                              disabled={submitting || !hasCustomFees}
-                              style={{
-                                backgroundColor: hasCustomFees ? 'white' : '#f3f4f6',
-                                fontWeight: feeSchedule.admissionFee !== classFeeDefaults.admissionFee ? 'bold' : 'normal',
-                                color: feeSchedule.admissionFee !== classFeeDefaults.admissionFee ? '#059669' : 'inherit'
-                              }}
-                            />
-                          </div>
-
-                          <div className="fee-row">
-                            <label>Monthly Fee</label>
-                            <input
-                              type="number"
-                              value={feeSchedule.monthlyFee}
-                              onChange={(e) => handleFeeChange('monthlyFee', e.target.value)}
-                              min="0"
-                              disabled={submitting || !hasCustomFees}
-                              style={{
-                                backgroundColor: hasCustomFees ? 'white' : '#f3f4f6',
-                                fontWeight: feeSchedule.monthlyFee !== classFeeDefaults.monthlyFee ? 'bold' : 'normal',
-                                color: feeSchedule.monthlyFee !== classFeeDefaults.monthlyFee ? '#059669' : 'inherit'
-                              }}
-                            />
-                          </div>
-
-                          <div className="fee-row">
-                            <label>Paper Fund</label>
-                            <input
-                              type="number"
-                              value={feeSchedule.paperFund}
-                              onChange={(e) => handleFeeChange('paperFund', e.target.value)}
-                              min="0"
-                              disabled={submitting || !hasCustomFees}
-                              style={{
-                                backgroundColor: hasCustomFees ? 'white' : '#f3f4f6',
-                                fontWeight: feeSchedule.paperFund !== classFeeDefaults.paperFund ? 'bold' : 'normal',
-                                color: feeSchedule.paperFund !== classFeeDefaults.paperFund ? '#059669' : 'inherit'
-                              }}
-                            />
-                          </div>
-
-                          <div className="fee-row total-row">
-                            <label><strong>Total Amount</strong></label>
-                            <div className="total-amount">
-                              <strong>Rs. {getTotalFees().toLocaleString()}/-</strong>
-                            </div>
-                          </div>
-                        </div>
                       </div>
 
                       {hasCustomFees && (
@@ -1699,6 +2056,10 @@ const AdmissionFormNew = () => {
                       <span className="review-value">{formData.roll_no || 'N/A'}</span>
                     </div>
                     <div className="review-item">
+                      <span className="review-label">Email:</span>
+                      <span className="review-value">{formData.email || 'N/A'}</span>
+                    </div>
+                    <div className="review-item">
                       <span className="review-label">Date of Birth:</span>
                       <span className="review-value">{formData.date_of_birth || 'N/A'}</span>
                     </div>
@@ -1736,6 +2097,10 @@ const AdmissionFormNew = () => {
                     <div className="review-item">
                       <span className="review-label">Occupation:</span>
                       <span className="review-value">{formData.father_occupation || 'N/A'}</span>
+                    </div>
+                    <div className="review-item">
+                      <span className="review-label">Mother Name:</span>
+                      <span className="review-value">{formData.mother_name || 'N/A'}</span>
                     </div>
                   </div>
                 </div>

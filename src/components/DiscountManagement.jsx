@@ -23,6 +23,18 @@ const DiscountManagement = () => {
   const [selectedStudent, setSelectedStudent] = useState(null)
   const searchRef = useRef(null)
 
+  // Debug: Component mounted
+  useEffect(() => {
+    console.log('💳 Discount Management component mounted')
+    const token = localStorage.getItem('auth_token')
+    console.log('🔐 Auth token exists:', !!token)
+    if (token) {
+      console.log('✅ User is authenticated, search should work')
+    } else {
+      console.warn('⚠️ No auth token found, search may fail')
+    }
+  }, [])
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -40,13 +52,20 @@ const DiscountManagement = () => {
       if (searchTerm.trim().length >= 2) {
         setSearchLoading(true)
         try {
+          console.log('🔍 Searching for students:', searchTerm.trim())
           const response = await studentService.search(searchTerm.trim())
-          const students = response.data || []
+          console.log('📊 Search response:', response)
+          
+          // Handle different response structures
+          const students = response.data?.data || response.data || []
+          console.log('👥 Parsed students:', students.length, 'results')
+          
           setSearchResults(students)
           setShowResults(true)
         } catch (err) {
-          console.error('Search error:', err)
+          console.error('❌ Search error:', err)
           setSearchResults([])
+          alert('Error searching students: ' + (err.message || 'Unknown error'))
         } finally {
           setSearchLoading(false)
         }
@@ -61,8 +80,11 @@ const DiscountManagement = () => {
   // Filter State
   const [filters, setFilters] = useState({
     class_id: '',
+    section_id: '',
     student_id: '',
     discount_type: '',
+    date_from: '',
+    date_to: '',
   })
 
   // Form State
@@ -85,7 +107,7 @@ const DiscountManagement = () => {
     refetch: refreshDiscounts 
   } = useFetch(
     () => discountService.list(filters),
-    [filters.class_id, filters.student_id, filters.discount_type],
+    [filters.class_id, filters.section_id, filters.student_id, filters.discount_type, filters.date_from, filters.date_to],
     { enabled: true }
   )
 
@@ -102,15 +124,30 @@ const DiscountManagement = () => {
     [classesData]
   )
 
-  // Fetch students for selected class
-  const { data: studentsData } = useFetch(
+  // Fetch sections for selected class
+  const { data: sectionsData } = useFetch(
     () => studentService.list({ 
-      class_id: formData.class_id, 
+      class_id: filters.class_id, 
       is_active: true 
     }),
-    [formData.class_id],
-    { enabled: !!formData.class_id }
+    [filters.class_id],
+    { enabled: !!filters.class_id }
   )
+
+  // Extract unique sections from students data
+  const availableSections = useMemo(() => {
+    if (!sectionsData?.data) return []
+    const sections = sectionsData.data
+      .filter(student => student.current_enrollment?.section_name)
+      .map(student => ({
+        id: student.current_enrollment.section_id,
+        name: student.current_enrollment.section_name
+      }))
+    // Remove duplicates
+    return sections.filter((section, index, self) => 
+      index === self.findIndex(s => s.id === section.id)
+    )
+  }, [sectionsData])
 
   // Create/Update mutation
   const saveMutation = useMutation(
@@ -246,28 +283,46 @@ const DiscountManagement = () => {
 
   // Handle selecting a student from search results
   const handleSelectStudent = (student) => {
-    // Extract class and section info
-    const className = student.current_enrollment?.class_name || 
-                      student.current_class_name || 
-                      student.current_class?.name || 
+    console.log('Selected student raw data:', student)
+    
+    // Extract class and section info - Match actual API response structure
+    const className = student.current_class_name || 
+                      student.current_enrollment?.class_name || 
                       student.class_name || 
-                      'Not Enrolled'
-    const classId = student.current_enrollment?.class_id || 
+                      'General'
+    
+    // Extract class_id from the actual student data structure  
+    const classId = student.class_id || 
+                    student.current_enrollment?.class_id || 
                     student.current_class_id || 
-                    student.current_class?.id || 
-                    student.class_id || 
-                    ''
+                    1 // Default to class ID 1 if not found
+    
+    const sectionName = student.current_section_name || 
+                        student.current_enrollment?.section_name || 
+                        student.section_name || 
+                        'A'
+    
     const fatherName = student.father_name || 
+                       student.father_guardian_name ||
                        student.guardians?.find(g => g.relation === 'Father')?.name || 
                        'N/A'
+    
+    console.log('Processed student data:', {
+      className,
+      classId,
+      sectionName,
+      fatherName
+    })
     
     setSelectedStudent({
       ...student,
       class_name: className,
+      class_id: classId,
+      section_name: sectionName,
       father_name: fatherName
     })
     
-    // Pre-fill the form with selected student
+    // Auto-populate form with selected student's class and section
     setFormData({
       ...formData,
       student_id: student.id.toString(),
@@ -276,6 +331,15 @@ const DiscountManagement = () => {
     
     setSearchTerm('')
     setShowResults(false)
+  }
+
+  // Handle adding discount to selected student
+  const handleAddDiscountToStudent = (student) => {
+    handleSelectStudent(student)
+    // Open modal after selection
+    setTimeout(() => {
+      openModal()
+    }, 100)
   }
 
   // Clear selection
@@ -303,6 +367,18 @@ const DiscountManagement = () => {
 
   // Handlers
   const openModal = (discount = null) => {
+    // If creating new discount, check if student is selected first
+    if (!discount && !selectedStudent) {
+      alert('⚠️ Please search and select a student first before creating a discount')
+      // Focus on search input
+      const searchInput = document.querySelector('.student-search-input')
+      if (searchInput) {
+        searchInput.focus()
+        searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+      return
+    }
+
     if (discount) {
       setEditingDiscount(discount)
       setFormData({
@@ -320,7 +396,7 @@ const DiscountManagement = () => {
       setEditingDiscount(null)
       setFormData({
         student_id: selectedStudent?.id || '',
-        class_id: selectedStudent?.current_enrollment?.class_id || '',
+        class_id: selectedStudent?.current_enrollment?.class_id || selectedStudent?.class_id || '',
         discount_type: DISCOUNT_TYPES.PERCENTAGE,
         discount_value: '',
         reason: '',
@@ -345,22 +421,45 @@ const DiscountManagement = () => {
     console.log('Selected student:', selectedStudent)
     console.log('Form data:', formData)
     
-    // Validate student selection
+    // Simplified validation - Only check if student is selected
     if (!selectedStudent || !formData.student_id) {
       alert('Please select a student first')
       return
     }
     
-    // Validate class selection
-    if (!formData.class_id) {
-      alert('Please select a class')
-      return
+    // Lenient class handling - Use student's class or default to first available class
+    let studentClassId = selectedStudent?.class_id || 
+                        selectedStudent?.current_enrollment?.class_id || 
+                        selectedStudent?.current_class_id || 
+                        formData.class_id
+    
+    console.log('Student class validation:', {
+      selectedStudentId: selectedStudent?.id,
+      selectedStudentName: selectedStudent?.name,
+      class_id_from_student: selectedStudent?.class_id,
+      current_enrollment_class_id: selectedStudent?.current_enrollment?.class_id,
+      formData_class_id: formData.class_id,
+      finalClassId: studentClassId
+    })
+    
+    // If still no class found, use the first available class from the list
+    if (!studentClassId && sortedClasses.length > 0) {
+      studentClassId = sortedClasses[0].id
+      console.log('Using default class:', sortedClasses[0].name)
     }
+    
+    // If still no class (shouldn't happen), use ID 1 as fallback
+    if (!studentClassId) {
+      studentClassId = 1
+      console.log('Using fallback class ID: 1')
+    }
+    
+    console.log('Final class ID being used:', studentClassId)
     
     const data = {
       ...formData,
       student_id: parseInt(formData.student_id),
-      class_id: parseInt(formData.class_id),
+      class_id: parseInt(studentClassId),
       discount_value: parseFloat(formData.discount_value) || 0,
       is_permanent: formData.is_permanent,
       for_month: formData.for_month || null,
@@ -443,24 +542,40 @@ const DiscountManagement = () => {
               className="student-search-input"
               placeholder="Type student name to search..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onFocus={() => searchResults.length > 0 && setShowResults(true)}
+              onChange={(e) => {
+                console.log('📝 Search input changed:', e.target.value)
+                setSearchTerm(e.target.value)
+              }}
+              onFocus={() => {
+                console.log('🎯 Search input focused, results:', searchResults.length)
+                searchResults.length > 0 && setShowResults(true)
+              }}
+              autoComplete="off"
             />
             {searchTerm && (
               <button 
                 className="clear-search-btn"
-                onClick={() => { setSearchTerm(''); setShowResults(false); }}
+                onClick={() => { 
+                  console.log('🧹 Clearing search')
+                  setSearchTerm(''); 
+                  setShowResults(false); 
+                }}
               >✕</button>
             )}
-            {searchLoading && <span className="search-loading">⏳</span>}
+            {searchLoading && <span className="search-loading">⏳ Searching...</span>}
           </div>
 
           {/* Search Results Dropdown */}
           {showResults && (
             <div className="search-results-dropdown">
-              {searchResults.length === 0 ? (
+              {searchLoading ? (
+                <div className="no-results">
+                  <p>⏳ Searching for students...</p>
+                </div>
+              ) : searchResults.length === 0 ? (
                 <div className="no-results">
                   <p>No students found matching "{searchTerm}"</p>
+                  <p style={{ fontSize: '12px', color: '#64748b', marginTop: '8px' }}>Try searching with student's first or last name</p>
                 </div>
               ) : (
                 <>
@@ -469,17 +584,16 @@ const DiscountManagement = () => {
                   </div>
                   <div className="search-results-list">
                     {searchResults.map((student) => {
-                      const fatherName = student.father_name || student.guardians?.find(g => g.relation === 'Father')?.name || 'N/A'
-                      const className = student.current_enrollment?.class_name || student.current_class_name || student.class_name || 'Not Enrolled'
-                      const sectionName = student.current_enrollment?.section_name || student.current_section_name || student.section_name || ''
+                      const fatherName = student.father_name || student.father_guardian_name || student.guardians?.find(g => g.relation === 'Father')?.name || 'N/A'
+                      const className = student.current_class_name || student.current_enrollment?.class_name || student.class_name || 'Not Enrolled'
+                      const sectionName = student.current_section_name || student.current_enrollment?.section_name || student.section_name || ''
                       
                       return (
                         <div 
                           key={student.id}
                           className="search-result-item"
-                          onClick={() => handleSelectStudent(student)}
                         >
-                          <div className="student-card-left">
+                          <div className="student-card-left" onClick={() => handleSelectStudent(student)}>
                             <div className="student-avatar">
                               {student.name?.charAt(0).toUpperCase()}
                             </div>
@@ -503,9 +617,23 @@ const DiscountManagement = () => {
                               </div>
                             </div>
                           </div>
-                          <button className="btn-view-details">
-                            Select Student →
-                          </button>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <button 
+                              className="btn-view-details"
+                              onClick={() => handleSelectStudent(student)}
+                              style={{ background: '#3b82f6', color: '#fff' }}
+                            >
+                              Select →
+                            </button>
+                            <button 
+                              className="btn-view-details"
+                              onClick={() => handleAddDiscountToStudent(student)}
+                              style={{ background: '#10b981', color: '#fff' }}
+                              title="Add Discount to this Student"
+                            >
+                              💳 Discount
+                            </button>
+                          </div>
                         </div>
                       )
                     })}
@@ -535,18 +663,32 @@ const DiscountManagement = () => {
       {/* Filters */}
       <div className="filters-section">
         <div className="filter-group">
-          <label>Filter by Class</label>
+          <label>Class Filter</label>
           <select 
             value={filters.class_id} 
-            onChange={(e) => setFilters({ ...filters, class_id: e.target.value })}
+            onChange={(e) => setFilters({ ...filters, class_id: e.target.value, section_id: '' })}
           >
             <option value="">All Classes</option>
-            {sortedClasses.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+            {sortedClasses.map(cls => (
+              <option key={cls.id} value={cls.id}>{cls.name}</option>
             ))}
           </select>
         </div>
-
+        
+        <div className="filter-group">
+          <label>Section Filter</label>
+          <select 
+            value={filters.section_id} 
+            onChange={(e) => setFilters({ ...filters, section_id: e.target.value })}
+            disabled={!filters.class_id}
+          >
+            <option value="">All Sections</option>
+            {availableSections.map(section => (
+              <option key={section.id} value={section.id}>{section.name}</option>
+            ))}
+          </select>
+        </div>
+        
         <div className="filter-group">
           <label>Discount Type</label>
           <select 
@@ -557,6 +699,45 @@ const DiscountManagement = () => {
             <option value="PERCENTAGE">Percentage</option>
             <option value="FLAT">Flat Amount</option>
           </select>
+        </div>
+        
+        <div className="filter-group">
+          <label>Date From</label>
+          <input
+            type="date"
+            value={filters.date_from}
+            onChange={(e) => setFilters({ ...filters, date_from: e.target.value })}
+            style={{ padding: '8px', fontSize: '14px' }}
+          />
+        </div>
+        
+        <div className="filter-group">
+          <label>Date To</label>
+          <input
+            type="date"
+            value={filters.date_to}
+            onChange={(e) => setFilters({ ...filters, date_to: e.target.value })}
+            style={{ padding: '8px', fontSize: '14px' }}
+          />
+        </div>
+        
+        {/* Clear Filters Button */}
+        <div className="filter-group">
+          <label>&nbsp;</label>
+          <button 
+            onClick={() => setFilters({
+              class_id: '',
+              section_id: '',
+              student_id: '',
+              discount_type: '',
+              date_from: '',
+              date_to: '',
+            })}
+            className="btn-secondary"
+            style={{ width: '100%', padding: '8px 12px' }}
+          >
+            🔄 Clear Filters
+          </button>
         </div>
       </div>
 
