@@ -656,6 +656,7 @@ const AdmissionFormNew = () => {
         father_name: formData.father_name || null,
         gender: formData.gender || null,
         is_fee_free: isFreeStudent,
+        individual_monthly_fee: !isFreeStudent && feeSchedule.monthlyFee > 0 ? feeSchedule.monthlyFee : null,
         enrollment: {
           class_id: parseInt(selectedClassId),
           section_id: parseInt(selectedSectionId),
