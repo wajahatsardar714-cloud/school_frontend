@@ -15,7 +15,7 @@
  * - Optimized re-renders
  */
 
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { feeVoucherService, feePaymentService } from '../services/feeService'
 import { studentService } from '../services/studentService'
 import { classService, sectionService } from '../services/classService'
@@ -102,6 +102,14 @@ const FeeVoucherManagement = () => {
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
 
+  // Student Search State (for single voucher generation)
+  const [studentSearchTerm, setStudentSearchTerm] = useState('')
+  const [studentSearchResults, setStudentSearchResults] = useState([])
+  const [studentSearchLoading, setStudentSearchLoading] = useState(false)
+  const [showStudentSearchResults, setShowStudentSearchResults] = useState(false)
+  const [selectedStudentName, setSelectedStudentName] = useState('')
+  const studentSearchRef = useRef(null)
+
   // Payment Form State
   const [paymentForm, setPaymentForm] = useState({
     amount: '',
@@ -112,6 +120,41 @@ const FeeVoucherManagement = () => {
 
   // Debounced search
   const debouncedSearch = useDebounce(searchTerm, 300)
+
+  // Close student search dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (studentSearchRef.current && !studentSearchRef.current.contains(event.target)) {
+        setShowStudentSearchResults(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Student search with debouncing
+  useEffect(() => {
+    const delayDebounce = setTimeout(async () => {
+      if (studentSearchTerm.trim().length >= 2) {
+        setStudentSearchLoading(true)
+        try {
+          const response = await studentService.search(studentSearchTerm.trim())
+          const students = response.data?.data || response.data || []
+          setStudentSearchResults(students)
+          setShowStudentSearchResults(true)
+        } catch (err) {
+          console.error('Student search error:', err)
+          setStudentSearchResults([])
+        } finally {
+          setStudentSearchLoading(false)
+        }
+      } else {
+        setStudentSearchResults([])
+        setShowStudentSearchResults(false)
+      }
+    }, 300)
+    return () => clearTimeout(delayDebounce)
+  }, [studentSearchTerm])
 
   // Data Fetching - classes (fetch once)
   const { 
@@ -150,13 +193,17 @@ const FeeVoucherManagement = () => {
     { enabled: true }
   )
 
-  // Data Fetching - students for generate form
+  // Data Fetching - students for generate form (filtered by class and optionally section)
   const { 
     data: studentsData,
     refetch: refreshStudents 
   } = useFetch(
-    () => studentService.list({ class_id: generateForm.class_id, is_active: true }),
-    [generateForm.class_id],
+    () => studentService.list({ 
+      class_id: generateForm.class_id, 
+      section_id: generateForm.section_id || undefined,
+      is_active: true 
+    }),
+    [generateForm.class_id, generateForm.section_id],
     { enabled: !!generateForm.class_id }
   )
 
@@ -181,12 +228,14 @@ const FeeVoucherManagement = () => {
           class_id: parseInt(data.class_id),
           section_id: data.section_id ? parseInt(data.section_id) : undefined,
           month: monthStr,
+          due_date: data.due_date || undefined,
           fee_types: data.fee_types?.length > 0 ? data.fee_types : undefined,
         })
       } else {
         return feeVoucherService.generate({
           student_id: parseInt(data.student_id),
           month: monthStr,
+          due_date: data.due_date || undefined,
           fee_types: data.fee_types?.length > 0 ? data.fee_types : undefined,
         })
       }
@@ -338,6 +387,22 @@ const FeeVoucherManagement = () => {
     })
   }, [])
 
+  // Handle selecting a student from search results
+  const handleSelectStudentFromSearch = useCallback((student) => {
+    setGenerateForm(prev => ({ ...prev, student_id: student.id }))
+    setSelectedStudentName(student.name)
+    setStudentSearchTerm('')
+    setShowStudentSearchResults(false)
+    setStudentSearchResults([])
+  }, [])
+
+  // Clear selected student
+  const handleClearSelectedStudent = useCallback(() => {
+    setGenerateForm(prev => ({ ...prev, student_id: '' }))
+    setSelectedStudentName('')
+    setStudentSearchTerm('')
+  }, [])
+
   // Add custom charge
   const handleAddCustomCharge = useCallback(() => {
     setGenerateForm(prev => ({
@@ -417,14 +482,17 @@ const FeeVoucherManagement = () => {
   const handleGenerateSubmit = useCallback(async (e) => {
     e.preventDefault()
     
-    // Validation
+    // Validation with user feedback
     if (generateForm.type === 'single' && !generateForm.student_id) {
+      alert('Please select a student')
       return
     }
     if (generateForm.type === 'bulk' && !generateForm.class_id) {
+      alert('Please select a class')
       return
     }
     if (!generateForm.due_date) {
+      alert('Please select a due date')
       return
     }
     if (!generateForm.fee_types || generateForm.fee_types.length === 0) {
@@ -1182,20 +1250,22 @@ const FeeVoucherManagement = () => {
             </div>
 
             <div className="form-row">
-              <div className="form-group">
-                <label>Class *</label>
-                <select
-                  value={generateForm.class_id}
-                  onChange={(e) => handleGenerateFormChange('class_id', e.target.value)}
-                  required
-                  disabled={classesLoading}
-                >
-                  <option value="">Select Class</option>
-                  {classes.map(cls => (
-                    <option key={cls.id} value={cls.id}>{cls.name}</option>
-                  ))}
-                </select>
-              </div>
+              {generateForm.type === 'bulk' && (
+                <div className="form-group">
+                  <label>Class *</label>
+                  <select
+                    value={generateForm.class_id}
+                    onChange={(e) => handleGenerateFormChange('class_id', e.target.value)}
+                    required
+                    disabled={classesLoading}
+                  >
+                    <option value="">Select Class</option>
+                    {classes.map(cls => (
+                      <option key={cls.id} value={cls.id}>{cls.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {generateForm.type === 'bulk' && (
                 <div className="form-group">
@@ -1213,21 +1283,86 @@ const FeeVoucherManagement = () => {
               )}
 
               {generateForm.type === 'single' && (
-                <div className="form-group">
-                  <label>Student *</label>
-                  <select
-                    value={generateForm.student_id}
-                    onChange={(e) => handleGenerateFormChange('student_id', e.target.value)}
-                    required
-                    disabled={!generateForm.class_id}
-                  >
-                    <option value="">Select Student</option>
-                    {students.map(student => (
-                      <option key={student.id} value={student.id}>
-                        {student.name} ({student.roll_no})
-                      </option>
-                    ))}
-                  </select>
+                <div className="form-group student-search-container" ref={studentSearchRef}>
+                  <label>Student * (Search by name)</label>
+                  {selectedStudentName ? (
+                    <div className="selected-student-display">
+                      <span className="selected-student-name">{selectedStudentName}</span>
+                      <button 
+                        type="button" 
+                        className="clear-selection-btn"
+                        onClick={handleClearSelectedStudent}
+                        title="Clear selection"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="student-search-wrapper">
+                      <input
+                        type="text"
+                        placeholder="Type student name to search..."
+                        value={studentSearchTerm}
+                        onChange={(e) => setStudentSearchTerm(e.target.value)}
+                        onFocus={() => studentSearchResults.length > 0 && setShowStudentSearchResults(true)}
+                        className="student-search-input"
+                      />
+                      {studentSearchLoading && <span className="search-loading">Searching...</span>}
+                      {studentSearchTerm && !studentSearchLoading && (
+                        <button 
+                          type="button" 
+                          className="clear-search-btn"
+                          onClick={() => {
+                            setStudentSearchTerm('')
+                            setStudentSearchResults([])
+                            setShowStudentSearchResults(false)
+                          }}
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  
+                  {showStudentSearchResults && studentSearchResults.length > 0 && (
+                    <div className="student-search-results">
+                      <div className="search-results-count">Found {studentSearchResults.length} student{studentSearchResults.length > 1 ? 's' : ''}</div>
+                      {studentSearchResults.map(student => (
+                        <div 
+                          key={student.id} 
+                          className="student-search-card"
+                          onClick={() => handleSelectStudentFromSearch(student)}
+                        >
+                          <div className="student-avatar">
+                            {student.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="student-card-info">
+                            <div className="student-card-name">{student.name}</div>
+                            <div className="student-card-details">
+                              <div className="detail-item">
+                                <span className="detail-label">FATHER</span>
+                                <span className="detail-value">{student.father_name || 'N/A'}</span>
+                              </div>
+                              <div className="detail-item">
+                                <span className="detail-label">CLASS</span>
+                                <span className="detail-value">{student.class_name || 'N/A'}</span>
+                              </div>
+                              <div className="detail-item">
+                                <span className="detail-label">SECTION</span>
+                                <span className="detail-value">{student.section_name || 'N/A'}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {showStudentSearchResults && studentSearchResults.length === 0 && studentSearchTerm.length >= 2 && !studentSearchLoading && (
+                    <div className="student-search-results">
+                      <div className="no-results">No students found</div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

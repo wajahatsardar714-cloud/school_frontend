@@ -37,6 +37,14 @@ export const classService = {
     return await apiClient.get(API_ENDPOINTS.CLASS_FEE_HISTORY(id))
   },
 
+  async updateSingleFeeStructure(classId, feeId, feeStructure) {
+    return await apiClient.put(`/api/classes/${classId}/fee-structure/${feeId}`, feeStructure)
+  },
+
+  async deleteFeeStructure(classId, feeId) {
+    return await apiClient.delete(`/api/classes/${classId}/fee-structure/${feeId}`)
+  },
+
   // Get sections for a specific class
   async getSections(classId) {
     return sectionService.list(classId)

@@ -7346,6 +7346,117 @@ h6 {
   margin-top: 4px;
 }
 
+/* Fee History Actions */
+.fee-history-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.fee-history-actions .btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fee-history-actions .btn-edit {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.fee-history-actions .btn-edit:hover {
+  background-color: #2563eb;
+}
+
+.fee-history-actions .btn-delete {
+  background-color: #ef4444;
+  color: white;
+}
+
+.fee-history-actions .btn-delete:hover {
+  background-color: #dc2626;
+}
+
+.fee-history-actions .btn-sm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Fee Edit Form */
+.fee-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+}
+
+.fee-edit-form .form-group.compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fee-edit-form .form-group.compact label {
+  min-width: 100px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.fee-edit-form .form-group.compact input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.fee-edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.fee-edit-actions .btn-primary {
+  background-color: #10b981;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.fee-edit-actions .btn-primary:hover {
+  background-color: #059669;
+}
+
+.fee-edit-actions .btn-secondary {
+  background-color: #6b7280;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.fee-edit-actions .btn-secondary:hover {
+  background-color: #4b5563;
+}
+
+.fee-edit-actions .btn-sm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ============================================
    DATA TABLE STYLES
    ============================================ */
