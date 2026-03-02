@@ -32,7 +32,6 @@ const AdmissionFormNew = () => {
 
   const [formData, setFormData] = useState({
     name: '',
-    roll_no: '',
     email: '',
     date_of_birth: '',
     phone: '',
@@ -44,7 +43,7 @@ const AdmissionFormNew = () => {
     father_cnic: '',
     father_phone: '',
     father_occupation: '',
-    mother_name: '',
+    gender: '',
     admission_date: new Date().toISOString().split('T')[0], // Default to today
     class: '',
     section: ''
@@ -489,9 +488,17 @@ const AdmissionFormNew = () => {
   
   // Post-admission action handlers
   const handlePrintVoucher = useCallback(async () => {
-    if (admittedStudentData?.voucherGenerated) {
+    if (admittedStudentData?.voucherId) {
+      // Use the stored voucher ID directly
       try {
-        // Get the latest voucher for this student
+        feeVoucherService.printVoucher(admittedStudentData.voucherId)
+      } catch (error) {
+        console.error('Failed to print voucher:', error)
+        alert('Failed to print voucher: ' + error.message)
+      }
+    } else if (admittedStudentData?.voucherGenerated) {
+      // Fallback: try to fetch the voucher
+      try {
         const response = await feeVoucherService.list({
           student_id: admittedStudentData.studentId,
           limit: 1
@@ -507,12 +514,14 @@ const AdmissionFormNew = () => {
         console.error('Failed to print voucher:', error)
         alert('Failed to print voucher: ' + error.message)
       }
+    } else {
+      alert('No voucher available for this student (fee-free student)')
     }
   }, [admittedStudentData])
   
   const handlePayVoucher = useCallback(() => {
     if (admittedStudentData?.studentId) {
-      navigate(`/fees/payment?student_id=${admittedStudentData.studentId}`)
+      navigate(`/fees/payments?student_id=${admittedStudentData.studentId}`)
     }
   }, [admittedStudentData, navigate])
   
@@ -689,7 +698,6 @@ const AdmissionFormNew = () => {
       // Create student with enrollment
       const studentData = {
         name: formData.name,
-        roll_no: formData.roll_no || null,
         email: formData.email || null,
         date_of_birth: formData.date_of_birth || null,
         phone: formData.phone || null,
@@ -698,7 +706,7 @@ const AdmissionFormNew = () => {
         bay_form: formData.bay_form || null,
         previous_school: formData.previous_school || null,
         father_name: formData.father_name || null,
-        mother_name: formData.mother_name || null,
+        gender: formData.gender || null,
         is_fee_free: isFreeStudent,
         enrollment: {
           class_id: parseInt(selectedClassId),
@@ -759,7 +767,6 @@ const AdmissionFormNew = () => {
           discount_type: discountType,
           discount_value: parseFloat(discountValue),
           reason: discountReason || 'Discount applied during admission',
-          effective_from: formData.admission_date,
           is_permanent: discountDuration === 'permanent',
           for_month: discountDuration === 'admission_only' ? formData.admission_date : null
         }
@@ -769,6 +776,7 @@ const AdmissionFormNew = () => {
       }
 
       // Generate voucher for admission (includes all fees on first admission)
+      let generatedVoucherId = null
       if (!isFreeStudent && selectedClassId) {
         try {
           // For first admission, include ADMISSION, MONTHLY, and PAPER_FUND fees
@@ -790,7 +798,9 @@ const AdmissionFormNew = () => {
           }
           
           console.log('Generating admission voucher with all fees:', voucherData)
-          await feeService.generateVoucher(voucherData)
+          const voucherResponse = await feeService.generateVoucher(voucherData)
+          generatedVoucherId = voucherResponse?.data?.voucher?.id || voucherResponse?.data?.id
+          console.log('Generated voucher ID:', generatedVoucherId)
         } catch (voucherError) {
           console.error('Voucher generation failed:', voucherError)
           // Don't block admission if voucher fails, but log to user
@@ -805,7 +815,8 @@ const AdmissionFormNew = () => {
         className: selectedClass,
         sectionName: sections.find(s => s.id === parseInt(selectedSectionId))?.name,
         totalFees: getTotalFees(),
-        voucherGenerated: !isFreeStudent
+        voucherGenerated: !isFreeStudent,
+        voucherId: generatedVoucherId
       })
 
       setSuccess(true)
@@ -936,17 +947,6 @@ const AdmissionFormNew = () => {
                   </div>
 
                   <div className="form-group">
-                    <label>Roll Number</label>
-                    <input
-                      type="text"
-                      placeholder="Enter roll number (optional)"
-                      value={formData.roll_no}
-                      onChange={(e) => handleInputChange('roll_no', e.target.value)}
-                      disabled={submitting}
-                    />
-                  </div>
-
-                  <div className="form-group">
                     <label>Email</label>
                     <input
                       type="email"
@@ -964,6 +964,21 @@ const AdmissionFormNew = () => {
                       onChange={(e) => handleInputChange('date_of_birth', e.target.value)}
                       disabled={submitting}
                     />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Gender <span style={{color: 'red'}}>*</span></label>
+                    <select
+                      value={formData.gender}
+                      onChange={(e) => handleInputChange('gender', e.target.value)}
+                      disabled={submitting}
+                      required
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
                   </div>
 
                   <div className="form-group">
@@ -1047,17 +1062,6 @@ const AdmissionFormNew = () => {
                       placeholder="Enter occupation (optional)"
                       value={formData.father_occupation}
                       onChange={(e) => handleInputChange('father_occupation', e.target.value)}
-                      disabled={submitting}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Mother Name</label>
-                    <input
-                      type="text"
-                      placeholder="Enter mother name (optional)"
-                      value={formData.mother_name}
-                      onChange={(e) => handleInputChange('mother_name', e.target.value)}
                       disabled={submitting}
                     />
                   </div>
@@ -1885,140 +1889,184 @@ const AdmissionFormNew = () => {
               {showVoucherPreview && voucherPreview && (
                 <div className="form-section voucher-preview-section">
                   <h3>📋 Voucher Preview</h3>
-                  <div className="voucher-preview">
-                    <div className="voucher-header">
-                      <h4>ADMISSION FEE VOUCHER</h4>
-                      <div className="voucher-meta">
-                        <span>Voucher #: {voucherPreview.voucherNumber}</span>
-                        <span>Issue Date: {voucherPreview.issueDate}</span>
-                        <span>Due Date: {voucherPreview.dueDate}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="voucher-body">
-                      <div className="student-info">
-                        <div className="info-row">
-                          <span>Student Name:</span>
-                          <span>{voucherPreview.studentName}</span>
-                        </div>
-                        <div className="info-row">
-                          <span>Father Name:</span>
-                          <span>{voucherPreview.fatherName}</span>
-                        </div>
-                        <div className="info-row">
-                          <span>Class:</span>
-                          <span>{voucherPreview.className}</span>
-                        </div>
-                        <div className="info-row">
-                          <span>Section:</span>
-                          <span>{voucherPreview.sectionName}</span>
-                        </div>
-                        <div className="info-row">
-                          <span>Admission Date:</span>
-                          <span>{voucherPreview.admissionDate}</span>
-                        </div>
+                  <div className="voucher-container">
+                    <div className="fee-voucher">
+                      {/* School Header */}
+                      <div className="school-header">
+                        <div className="school-name">COMBINE MUSLIM SCHOOL</div>
+                        <div className="voucher-title">ADMISSION FEE VOUCHER</div>
                       </div>
                       
-                      <div className="fee-breakdown">
-                        <h5>Fee Breakdown: <small style={{fontWeight: 'normal', color: '#6b7280'}}>(Click to edit amounts)</small></h5>
-                        <div className="fee-items">
-                          <div className="fee-item editable">
-                            <span>Admission Fee:</span>
-                            <div className="editable-amount">
-                              <span>Rs. </span>
-                              <input
-                                type="number"
-                                value={feeSchedule.admissionFee}
-                                onChange={(e) => handleFeeChange('admissionFee', e.target.value)}
-                                className="inline-fee-input"
-                                min="0"
-                                step="50"
-                              />
-                              <span>/-</span>
-                            </div>
-                          </div>
-                          <div className="fee-item editable">
-                            <span>Monthly Fee:</span>
-                            <div className="editable-amount">
-                              <span>Rs. </span>
-                              <input
-                                type="number"
-                                value={feeSchedule.monthlyFee}
-                                onChange={(e) => handleFeeChange('monthlyFee', e.target.value)}
-                                className="inline-fee-input"
-                                min="0"
-                                step="50"
-                              />
-                              <span>/-</span>
-                            </div>
-                          </div>
-                          <div className="fee-item editable">
-                            <span>Paper Fund:</span>
-                            <div className="editable-amount">
-                              <span>Rs. </span>
-                              <input
-                                type="number"
-                                value={feeSchedule.paperFund}
-                                onChange={(e) => handleFeeChange('paperFund', e.target.value)}
-                                className="inline-fee-input"
-                                min="0"
-                                step="25"
-                              />
-                              <span>/-</span>
-                            </div>
-                          </div>
-                          {customFees.map((fee, index) => (
-                            <div key={fee.id || index} className="fee-item custom-fee-item">
-                              <input
-                                type="text"
-                                placeholder="Enter fee name"
-                                value={fee.name}
-                                onChange={(e) => updateCustomFee(fee.id || index, 'name', e.target.value)}
-                                className="custom-fee-name-input"
-                              />
-                              <div className="editable-amount">
-                                <span>Rs. </span>
+                      {/* Student Information */}
+                      <div className="student-info">
+                        <table>
+                          <tbody>
+                            <tr>
+                              <td><strong>Voucher #:</strong></td>
+                              <td>{voucherPreview.voucherNumber}</td>
+                              <td><strong>Issue Date:</strong></td>
+                              <td>{voucherPreview.issueDate}</td>
+                            </tr>
+                            <tr>
+                              <td><strong>Due Date:</strong></td>
+                              <td>{voucherPreview.dueDate}</td>
+                              <td><strong>Admission Date:</strong></td>
+                              <td>{voucherPreview.admissionDate}</td>
+                            </tr>
+                            <tr>
+                              <td><strong>Student Name:</strong></td>
+                              <td>{voucherPreview.studentName}</td>
+                              <td><strong>Father Name:</strong></td>
+                              <td>{voucherPreview.fatherName}</td>
+                            </tr>
+                            <tr>
+                              <td><strong>Class:</strong></td>
+                              <td>{voucherPreview.className}</td>
+                              <td><strong>Section:</strong></td>
+                              <td>{voucherPreview.sectionName}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      
+                      {/* Fee Items */}
+                      <div className="fee-items-section">
+                        <h5 style={{marginBottom: '10px'}}>Fee Breakdown: <small style={{fontWeight: 'normal', color: '#6b7280'}}>(Click to edit amounts)</small></h5>
+                        <table className="fee-items-table">
+                          <thead>
+                            <tr>
+                              <th>Description</th>
+                              <th className="amount">Amount</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td>Admission Fee</td>
+                              <td className="amount editable">
+                                Rs. 
                                 <input
                                   type="number"
-                                  value={fee.amount}
-                                  onChange={(e) => updateCustomFee(fee.id || index, 'amount', parseFloat(e.target.value) || 0)}
+                                  value={feeSchedule.admissionFee}
+                                  onChange={(e) => handleFeeChange('admissionFee', e.target.value)}
                                   className="inline-fee-input"
                                   min="0"
                                   step="50"
-                                />
-                                <span>/-</span>
-                                <button
-                                  type="button"
-                                  onClick={() => removeCustomFee(fee.id || index)}
-                                  className="remove-fee-btn"
-                                  title="Remove fee"
-                                >
-                                  ×
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                          <div className="add-custom-fee">
-                            <button
-                              type="button"
-                              onClick={addCustomFee}
-                              className="add-fee-btn"
-                            >
-                              + Add Custom Fee
-                            </button>
-                          </div>
-                          <div className="fee-item total">
-                            <strong>
-                              <span>Total Amount:</span>
-                              <span>Rs. {getTotalFees()}/-</span>
-                            </strong>
-                          </div>
+                                  style={{width: '80px', marginLeft: '5px'}}
+                                />/-
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>Monthly Fee</td>
+                              <td className="amount editable">
+                                Rs. 
+                                <input
+                                  type="number"
+                                  value={feeSchedule.monthlyFee}
+                                  onChange={(e) => handleFeeChange('monthlyFee', e.target.value)}
+                                  className="inline-fee-input"
+                                  min="0"
+                                  step="50"
+                                  style={{width: '80px', marginLeft: '5px'}}
+                                />/-
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>Paper Fund</td>
+                              <td className="amount editable">
+                                Rs. 
+                                <input
+                                  type="number"
+                                  value={feeSchedule.paperFund}
+                                  onChange={(e) => handleFeeChange('paperFund', e.target.value)}
+                                  className="inline-fee-input"
+                                  min="0"
+                                  step="25"
+                                  style={{width: '80px', marginLeft: '5px'}}
+                                />/-
+                              </td>
+                            </tr>
+                            {customFees.map((fee, index) => (
+                              <tr key={fee.id || index}>
+                                <td>
+                                  <input
+                                    type="text"
+                                    placeholder="Enter fee name"
+                                    value={fee.name}
+                                    onChange={(e) => updateCustomFee(fee.id || index, 'name', e.target.value)}
+                                    className="custom-fee-name-input"
+                                    style={{border: '1px solid #ccc', padding: '2px 5px', width: '100%'}}
+                                  />
+                                </td>
+                                <td className="amount editable">
+                                  Rs. 
+                                  <input
+                                    type="number"
+                                    value={fee.amount}
+                                    onChange={(e) => updateCustomFee(fee.id || index, 'amount', parseFloat(e.target.value) || 0)}
+                                    className="inline-fee-input"
+                                    min="0"
+                                    step="50"
+                                    style={{width: '60px', marginLeft: '5px'}}
+                                  />/-
+                                  <button
+                                    type="button"
+                                    onClick={() => removeCustomFee(fee.id || index)}
+                                    className="remove-fee-btn no-print"
+                                    title="Remove fee"
+                                    style={{marginLeft: '5px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '3px', padding: '2px 6px'}}
+                                  >
+                                    ×
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        
+                        <div className="add-custom-fee no-print" style={{margin: '10px 0'}}>
+                          <button
+                            type="button"
+                            onClick={addCustomFee}
+                            className="add-fee-btn"
+                            style={{background: '#28a745', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '3px'}}
+                          >
+                            + Add Custom Fee
+                          </button>
                         </div>
                       </div>
-                    </div>
-                    
-                    <div className="voucher-footer">
-                      <p><strong>Note:</strong> This is a preview. The actual voucher will be generated after submission.</p>
+                      
+                      {/* Total Section */}
+                      <div className="total-section">
+                        <div className="total-amount">
+                          <strong>Total Amount: Rs. {getTotalFees()}/-</strong>
+                        </div>
+                      </div>
+                      
+                      {/* Payment Info */}
+                      <div className="payment-info">
+                        <p><strong>Payment Instructions:</strong></p>
+                        <p>• Please pay before the due date to avoid late fee charges</p>
+                        <p>• Keep this voucher for your records</p>
+                        <p>• For any queries, contact the school office</p>
+                      </div>
+                      
+                      <div className="voucher-footer no-print">
+                        <p><strong>Note:</strong> This is a preview. The actual voucher will be generated after submission.</p>
+                        <button 
+                          type="button" 
+                          onClick={() => window.print()}
+                          style={{
+                            background: '#007bff', 
+                            color: 'white', 
+                            border: 'none', 
+                            padding: '8px 15px', 
+                            borderRadius: '4px',
+                            marginTop: '10px'
+                          }}
+                        >
+                          🖨️ Print Preview
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2099,8 +2147,8 @@ const AdmissionFormNew = () => {
                       <span className="review-value">{formData.father_occupation || 'N/A'}</span>
                     </div>
                     <div className="review-item">
-                      <span className="review-label">Mother Name:</span>
-                      <span className="review-value">{formData.mother_name || 'N/A'}</span>
+                      <span className="review-label">Gender:</span>
+                      <span className="review-value">{formData.gender || 'N/A'}</span>
                     </div>
                   </div>
                 </div>

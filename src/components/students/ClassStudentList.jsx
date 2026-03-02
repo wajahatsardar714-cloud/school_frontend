@@ -268,6 +268,7 @@ const ClassStudentList = () => {
                     <p className="student-sub-info">Viewing students for {classData?.data?.name}. Total: {students.length}</p>
                 </div>
                 <div className="header-actions">
+                    {/* Checkbox & Delete functionality commented out
                     {selectedStudents.size > 0 && (
                         <>
                             <span className="selected-count">
@@ -282,6 +283,7 @@ const ClassStudentList = () => {
                             </button>
                         </>
                     )}
+                    */}
                     {activeSection && (
                         <button 
                             className="btn-secondary"
@@ -349,6 +351,7 @@ const ClassStudentList = () => {
                     <table className="student-table">
                         <thead>
                             <tr>
+                                {/* Checkbox column commented out
                                 <th style={{ width: '50px' }}>
                                     <input 
                                         type="checkbox"
@@ -357,6 +360,7 @@ const ClassStudentList = () => {
                                         style={{ transform: 'scale(1.2)' }}
                                     />
                                 </th>
+                                */}
                                 <th>Sr No</th>
                                 <th>Name</th>
                                 <th>Father Name</th>
@@ -373,6 +377,7 @@ const ClassStudentList = () => {
                                     key={`${student.name}-${student.roll_no}`}
                                     className={`student-row ${selectedStudents.has(JSON.stringify({name: student.name, roll_no: student.roll_no, phone: student.phone})) ? 'selected' : ''}`}
                                 >
+                                    {/* Checkbox cell commented out
                                     <td onClick={(e) => e.stopPropagation()}>
                                         <input 
                                             type="checkbox"
@@ -382,6 +387,7 @@ const ClassStudentList = () => {
                                             disabled={isEditing}
                                         />
                                     </td>
+                                    */}
                                     <td onClick={() => !isEditing && navigate(`/students/${student.id}`)}>
                                         <span className="student-name-main">{filteredStudents.indexOf(student) + 1}</span>
                                     </td>
@@ -457,6 +463,7 @@ const ClassStudentList = () => {
                                             </div>
                                         ) : (
                                             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                {/* Edit button commented out
                                                 <button 
                                                     className="btn-warning"
                                                     onClick={() => handleEditClick(student)}
@@ -464,12 +471,13 @@ const ClassStudentList = () => {
                                                 >
                                                     ✏️
                                                 </button>
+                                                */}
                                                 <button 
                                                     className="btn-primary"
                                                     onClick={() => navigate(`/students/${student.id}`)}
                                                     style={{ fontSize: '1rem', padding: '0.4rem 0.7rem' }}
                                                 >
-                                                    👁️
+                                                    Detail
                                                 </button>
                                             </div>
                                         )}
@@ -491,6 +499,7 @@ const ClassStudentList = () => {
                                 <table className="student-table">
                                     <thead>
                                         <tr>
+                                            {/* Checkbox column commented out
                                             <th style={{ width: '50px' }}>
                                                 <input 
                                                     type="checkbox"
@@ -505,6 +514,7 @@ const ClassStudentList = () => {
                                                     style={{ transform: 'scale(1.2)' }}
                                                 />
                                             </th>
+                                            */}
                                             <th>Sr No</th>
                                             <th>Name</th>
                                             <th>Father Name</th>
@@ -521,6 +531,7 @@ const ClassStudentList = () => {
                                                 key={`${student.name}-${student.roll_no}`}
                                                 className={`student-row ${selectedStudents.has(JSON.stringify({name: student.name, roll_no: student.roll_no, phone: student.phone})) ? 'selected' : ''}`}
                                             >
+                                                {/* Checkbox cell commented out
                                                 <td onClick={(e) => e.stopPropagation()}>
                                                     <input 
                                                         type="checkbox"
@@ -530,6 +541,7 @@ const ClassStudentList = () => {
                                                         disabled={isEditing}
                                                     />
                                                 </td>
+                                                */}
                                                 <td onClick={() => !isEditing && navigate(`/students/${student.id}`)}>
                                                     <span className="student-name-main">{studentIndex + 1}</span>
                                                 </td>
@@ -605,6 +617,7 @@ const ClassStudentList = () => {
                                                         </div>
                                                     ) : (
                                                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                            {/* Edit button commented out
                                                             <button 
                                                                 className="btn-warning"
                                                                 onClick={() => handleEditClick(student)}
@@ -612,12 +625,13 @@ const ClassStudentList = () => {
                                                             >
                                                                 ✏️
                                                             </button>
+                                                            */}
                                                             <button 
                                                                 className="btn-primary"
                                                                 onClick={() => navigate(`/students/${student.id}`)}
                                                                 style={{ fontSize: '1rem', padding: '0.4rem 0.7rem' }}
                                                             >
-                                                                👁️
+                                                                Detail
                                                             </button>
                                                         </div>
                                                     )}

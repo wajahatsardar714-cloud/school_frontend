@@ -127,6 +127,15 @@ const AdmissionList = () => {
       <div className="page-header">
         <h2>Admission List</h2>
         <div className="header-actions">
+          <button 
+            onClick={loadStudents}
+            className="btn-secondary"
+            disabled={loading}
+            style={{ marginRight: '10px' }}
+            title="Refresh student list"
+          >
+            {loading ? '🔄 Refreshing...' : '🔄 Refresh'}
+          </button>
           <Link to="/admission/new-form" className="btn-primary">
             + New Admission
           </Link>

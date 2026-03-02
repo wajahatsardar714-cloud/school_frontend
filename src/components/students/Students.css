@@ -146,6 +146,43 @@
     margin-top: var(--spacing-lg);
 }
 
+/* ============================================
+   TOTAL STUDENTS COUNT BAR
+   ============================================ */
+
+.total-students-bar {
+    width: 100%;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    padding: 0.75rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+    border-radius: var(--radius-md);
+}
+
+.total-students-text {
+    color: white;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-bold);
+    letter-spacing: 0.025em;
+    text-align: center;
+}
+
+/* Responsive adjustments for total students bar */
+@media (max-width: 768px) {
+    .total-students-bar {
+        padding: 0.6rem 1rem;
+    }
+    
+    .total-students-text {
+        font-size: var(--font-size-base);
+        font-weight: var(--font-semibold);
+    }
+}
+
 .class-card-compact.student-card {
     background: white;
     border-radius: var(--radius-lg);

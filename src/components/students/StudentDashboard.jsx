@@ -26,6 +26,11 @@ const StudentDashboard = () => {
 
     const classes = classesResponse?.data || []
     
+    // Calculate total students count
+    const totalStudents = useMemo(() => {
+        return classes.reduce((sum, cls) => sum + (parseInt(cls.student_count) || 0), 0)
+    }, [classes])
+    
     // Filter and sort classes
     const filteredClasses = useMemo(() => {
         let filtered = classes
@@ -126,6 +131,11 @@ const StudentDashboard = () => {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
+            </div>
+
+            {/* Total Students Count Bar */}
+            <div className="total-students-bar">
+                <span className="total-students-text">Total Students: {totalStudents}</span>
             </div>
 
             {/* Class Grid - Always visible below filters */}

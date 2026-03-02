@@ -154,6 +154,13 @@ export default function FeePaymentManagement() {
   const handlePaymentFormChange = useCallback((key, value) => {
     setPaymentForm(prev => ({ ...prev, [key]: value }));
   }, []);
+
+  // Get selected voucher details
+  const selectedVoucher = unpaidVouchers.find(v => v.voucher_id === paymentForm.voucherId);
+  const dueAmount = selectedVoucher ? parseFloat(selectedVoucher.due_amount) : 0;
+  const paymentAmount = parseFloat(paymentForm.amount) || 0;
+  const isFullPayment = paymentAmount >= dueAmount && dueAmount > 0;
+  const isPartialPayment = paymentAmount > 0 && paymentAmount < dueAmount;
   
   // Submit payment
   const handleSubmitPayment = useCallback(async (e) => {
@@ -162,9 +169,32 @@ export default function FeePaymentManagement() {
     if (!paymentForm.voucherId || !paymentForm.amount) {
       return;
     }
+
+    const paymentAmount = parseFloat(paymentForm.amount);
+    const selectedVoucher = unpaidVouchers.find(v => v.voucher_id === paymentForm.voucherId);
+    const dueAmount = selectedVoucher ? parseFloat(selectedVoucher.due_amount) : 0;
+    
+    // Prevent overpayment
+    if (paymentAmount > dueAmount) {
+      alert(`Payment amount (Rs. ${paymentAmount.toLocaleString()}) cannot exceed due amount (Rs. ${dueAmount.toLocaleString()})`);
+      return;
+    }
+
+    // Confirm partial payment
+    if (paymentAmount < dueAmount) {
+      const remainingAmount = dueAmount - paymentAmount;
+      const confirmed = window.confirm(
+        `This is a partial payment of Rs. ${paymentAmount.toLocaleString()}.\n` +
+        `Remaining amount of Rs. ${remainingAmount.toLocaleString()} will stay in dues.\n\n` +
+        `Do you want to continue?`
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
     
     await recordPayment(paymentForm);
-  }, [paymentForm, recordPayment]);
+  }, [paymentForm, recordPayment, unpaidVouchers]);
   
   // View payment details
   const handleViewPayment = useCallback((payment) => {
@@ -676,18 +706,60 @@ export default function FeePaymentManagement() {
                     ))}
                   </select>
                 </div>
+
+                {selectedVoucher && (
+                  <div className="voucher-info" style={{ 
+                    background: '#f8f9fa', 
+                    padding: '12px', 
+                    borderRadius: '4px',
+                    margin: '10px 0',
+                    border: '1px solid #dee2e6'
+                  }}>
+                    <div style={{ fontSize: '14px', marginBottom: '5px' }}>
+                      <strong>Selected Voucher:</strong> #{selectedVoucher.voucher_id}
+                    </div>
+                    <div style={{ fontSize: '14px', marginBottom: '5px' }}>
+                      <strong>Student:</strong> {selectedVoucher.student_name}
+                    </div>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#dc3545' }}>
+                      <strong>Due Amount: Rs. {dueAmount.toLocaleString()}</strong>
+                    </div>
+                  </div>
+                )}
                 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Amount *</label>
+                    <label>Payment Amount *</label>
                     <input
                       type="number"
                       value={paymentForm.amount}
                       onChange={(e) => handlePaymentFormChange('amount', e.target.value)}
                       required
                       min="1"
-                      placeholder="Enter amount"
+                      max={selectedVoucher ? dueAmount : undefined}
+                      placeholder={selectedVoucher ? `Enter amount (Max: Rs. ${dueAmount.toLocaleString()})` : "Enter amount"}
                     />
+                    {selectedVoucher && paymentAmount > 0 && (
+                      <div style={{ 
+                        marginTop: '5px', 
+                        fontSize: '13px', 
+                        padding: '6px 8px',
+                        borderRadius: '3px',
+                        backgroundColor: isFullPayment ? '#d4edda' : isPartialPayment ? '#fff3cd' : '#f8d7da',
+                        color: isFullPayment ? '#155724' : isPartialPayment ? '#856404' : '#721c24',
+                        border: `1px solid ${isFullPayment ? '#c3e6cb' : isPartialPayment ? '#ffeaa7' : '#f5c6cb'}`
+                      }}>
+                        {isFullPayment && (
+                          <>✓ <strong>Full Payment</strong> - This voucher will be marked as PAID</>
+                        )}
+                        {isPartialPayment && (
+                          <>⚠ <strong>Partial Payment</strong> - Remaining Rs. {(dueAmount - paymentAmount).toLocaleString()} will stay in dues</>
+                        )}
+                        {paymentAmount > dueAmount && (
+                          <>❌ <strong>Amount Exceeds Due</strong> - Maximum allowed: Rs. {dueAmount.toLocaleString()}</>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="form-group">
                     <label>Payment Date *</label>
@@ -711,9 +783,18 @@ export default function FeePaymentManagement() {
                   <button
                     type="submit"
                     className="btn-primary"
-                    disabled={recordingPayment || !paymentForm.voucherId || !paymentForm.amount}
+                    disabled={
+                      recordingPayment || 
+                      !paymentForm.voucherId || 
+                      !paymentForm.amount || 
+                      paymentAmount <= 0 ||
+                      (selectedVoucher && paymentAmount > dueAmount)
+                    }
                   >
-                    {recordingPayment ? 'Recording...' : 'Record Payment'}
+                    {recordingPayment ? 'Recording...' : 
+                     isFullPayment ? 'Record Full Payment' : 
+                     isPartialPayment ? 'Record Partial Payment' : 
+                     'Record Payment'}
                   </button>
                 </div>
               </form>
