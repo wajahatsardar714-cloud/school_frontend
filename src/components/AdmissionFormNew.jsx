@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { studentService } from '../services/studentService'
 import { guardianService } from '../services/guardianService'
 import { classService, sectionService } from '../services/classService'
-import { feeOverrideService, feeService, discountService, feeVoucherService } from '../services/feeService'
+import { feeOverrideService, feeService, feeVoucherService } from '../services/feeService'
 import { documentService } from '../services/documentService'
 import { apiHealthCheck } from '../utils/apiHealthCheck'
 import { sortClassesBySequence } from '../utils/classSorting'
@@ -64,18 +64,10 @@ const AdmissionFormNew = () => {
   const [customFees, setCustomFees] = useState([])
   const [isFreeStudent, setIsFreeStudent] = useState(false)
   const [showFeeSchedule, setShowFeeSchedule] = useState(false)
-  const [showVoucherPreview, setShowVoucherPreview] = useState(false)
-  const [voucherPreview, setVoucherPreview] = useState(null)
+
   const [hasCustomFees, setHasCustomFees] = useState(false)
   const [feeOverrideReason, setFeeOverrideReason] = useState('')
   const [discountDescription, setDiscountDescription] = useState('')
-  
-  // Discount integration states
-  const [hasDiscount, setHasDiscount] = useState(false)
-  const [discountType, setDiscountType] = useState('PERCENTAGE')
-  const [discountValue, setDiscountValue] = useState('')
-  const [discountReason, setDiscountReason] = useState('')
-  const [discountDuration, setDiscountDuration] = useState('permanent') // 'permanent' or 'admission_only'
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [admittedStudentData, setAdmittedStudentData] = useState(null)
 
@@ -410,8 +402,7 @@ const AdmissionFormNew = () => {
     const selectedSection = sections.find(s => s.id === parseInt(sectionId))
     setFormData({ ...formData, section: selectedSection?.name || '' })
     
-    // Generate voucher preview when both class and section are selected
-    setTimeout(() => generateVoucherPreview(), 100) // Small delay to ensure state updates
+
   }
 
   const handleInputChange = (field, value) => {
@@ -447,8 +438,7 @@ const AdmissionFormNew = () => {
     }
     setFeeSchedule(newFeeSchedule)
     
-    // Regenerate voucher preview when fees change
-    setTimeout(() => generateVoucherPreview(), 100)
+
   }
 
   const addCustomFee = () => {
@@ -459,14 +449,10 @@ const AdmissionFormNew = () => {
     setCustomFees(customFees.map(fee => 
       fee.id === id ? { ...fee, [field]: value } : fee
     ))
-    // Regenerate voucher preview when custom fees change
-    setTimeout(() => generateVoucherPreview(), 100)
   }
 
   const removeCustomFee = (id) => {
     setCustomFees(customFees.filter(fee => fee.id !== id))
-    // Regenerate voucher preview when custom fees change
-    setTimeout(() => generateVoucherPreview(), 100)
   }
 
   const getTotalFees = () => {
@@ -474,14 +460,6 @@ const AdmissionFormNew = () => {
     const baseFees = feeSchedule.admissionFee + feeSchedule.monthlyFee + feeSchedule.paperFund
     const customFeesTotal = customFees.reduce((total, fee) => total + (fee.amount || 0), 0)
     let total = baseFees + customFeesTotal
-    
-    // Apply discount if enabled
-    if (hasDiscount && discountValue) {
-      const discountAmount = discountType === 'PERCENTAGE' 
-        ? (total * parseFloat(discountValue)) / 100
-        : parseFloat(discountValue)
-      total = Math.max(0, total - discountAmount)
-    }
     
     return Math.round(total)
   }
@@ -614,37 +592,7 @@ const AdmissionFormNew = () => {
     return results.filter(r => r !== null)
   }
 
-  // Generate instant voucher preview
-  const generateVoucherPreview = () => {
-    if (!selectedClassId || !selectedSectionId || isFreeStudent) {
-      setVoucherPreview(null)
-      setShowVoucherPreview(false)
-      return
-    }
 
-    const totalFees = getTotalFees()
-    const currentDate = new Date()
-    const voucherData = {
-      studentName: formData.name || 'Student Name',
-      fatherName: formData.father_name || 'Father Name',
-      className: selectedClass,
-      sectionName: sections.find(s => s.id === parseInt(selectedSectionId))?.name || '',
-      admissionDate: formData.admission_date || currentDate.toISOString().split('T')[0],
-      fees: {
-        admissionFee: feeSchedule.admissionFee,
-        monthlyFee: feeSchedule.monthlyFee,
-        paperFund: feeSchedule.paperFund,
-        customFees: customFees,
-        total: totalFees
-      },
-      voucherNumber: `ADM-${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${Math.random().toString().substr(2, 6)}`,
-      issueDate: currentDate.toLocaleDateString('en-US'),
-      dueDate: new Date(currentDate.getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US') // 30 days from now
-    }
-    
-    setVoucherPreview(voucherData)
-    setShowVoucherPreview(true)
-  }
 
   // Main submission handler
   const handleSubmission = async (e) => {
@@ -753,22 +701,6 @@ const AdmissionFormNew = () => {
           console.log('Saving fee overrides:', overrideData)
           await feeOverrideService.create(overrideData)
         }
-      }
-
-      // Apply discount if enabled (permanent or admission-only)
-      if (hasDiscount && discountValue && !isFreeStudent) {
-        const discountData = {
-          student_id: studentId,
-          class_id: parseInt(selectedClassId),
-          discount_type: discountType,
-          discount_value: parseFloat(discountValue),
-          reason: discountReason || 'Discount applied during admission',
-          is_permanent: discountDuration === 'permanent',
-          for_month: discountDuration === 'admission_only' ? formData.admission_date : null
-        }
-        
-        console.log('Applying discount:', discountData)
-        await discountService.create(discountData)
       }
 
       // Generate voucher for admission (includes all fees on first admission)
@@ -1615,117 +1547,6 @@ const AdmissionFormNew = () => {
                           </small>
                         </div>
                       )}
-
-                      {/* Discount Section */}
-                      {!isFreeStudent && (
-                        <div className="form-group" style={{ marginTop: '2rem' }}>
-                          <div className="checkbox-wrapper">
-                            <input
-                              type="checkbox"
-                              id="hasDiscount"
-                              checked={hasDiscount}
-                              onChange={(e) => setHasDiscount(e.target.checked)}
-                              disabled={submitting}
-                            />
-                            <label htmlFor="hasDiscount" style={{ marginLeft: '0.5rem' }}>
-                              🎯 Apply Discount
-                            </label>
-                          </div>
-
-                          {hasDiscount && (
-                            <div style={{ marginTop: '1rem', padding: '1rem', border: '2px solid #3b82f6', borderRadius: '8px', background: '#f0f9ff' }}>
-                              <div className="discount-options">
-                                <div className="form-row">
-                                  <div className="form-group" style={{ flex: 1 }}>
-                                    <label>Discount Type</label>
-                                    <select
-                                      value={discountType}
-                                      onChange={(e) => setDiscountType(e.target.value)}
-                                      disabled={submitting}
-                                    >
-                                      <option value="PERCENTAGE">Percentage (%)</option>
-                                      <option value="FLAT">Fixed Amount (Rs.)</option>
-                                    </select>
-                                  </div>
-                                  <div className="form-group" style={{ flex: 1 }}>
-                                    <label>Discount Value</label>
-                                    <input
-                                      type="number"
-                                      placeholder={discountType === 'PERCENTAGE' ? '10' : '500'}
-                                      value={discountValue}
-                                      onChange={(e) => setDiscountValue(e.target.value)}
-                                      min="0"
-                                      max={discountType === 'PERCENTAGE' ? '100' : undefined}
-                                      disabled={submitting}
-                                    />
-                                  </div>
-                                </div>
-
-                                <div className="form-group">
-                                  <label>Duration</label>
-                                  <div className="radio-group">
-                                    <div className="radio-option">
-                                      <input
-                                        type="radio"
-                                        id="permanent"
-                                        name="discountDuration"
-                                        value="permanent"
-                                        checked={discountDuration === 'permanent'}
-                                        onChange={(e) => setDiscountDuration(e.target.value)}
-                                        disabled={submitting}
-                                      />
-                                      <label htmlFor="permanent">🔄 Permanent (All future vouchers)</label>
-                                    </div>
-                                    <div className="radio-option">
-                                      <input
-                                        type="radio"
-                                        id="admission_only"
-                                        name="discountDuration"
-                                        value="admission_only"
-                                        checked={discountDuration === 'admission_only'}
-                                        onChange={(e) => setDiscountDuration(e.target.value)}
-                                        disabled={submitting}
-                                      />
-                                      <label htmlFor="admission_only">📅 Admission Only (This voucher only)</label>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="form-group">
-                                  <label>Discount Reason</label>
-                                  <input
-                                    type="text"
-                                    placeholder="e.g., Staff child, Sibling discount, Financial hardship"
-                                    value={discountReason}
-                                    onChange={(e) => setDiscountReason(e.target.value)}
-                                    disabled={submitting}
-                                  />
-                                </div>
-
-                                {discountValue && (
-                                  <div className="discount-preview" style={{ marginTop: '1rem', padding: '0.75rem', background: '#dcfce7', borderRadius: '6px' }}>
-                                    <div style={{ fontSize: '0.875rem', color: '#059669' }}>
-                                      💰 Discount Preview:
-                                      {(() => {
-                                        const baseFees = feeSchedule.admissionFee + feeSchedule.monthlyFee + feeSchedule.paperFund
-                                        const customFeesTotal = customFees.reduce((total, fee) => total + (fee.amount || 0), 0)
-                                        const totalBeforeDiscount = baseFees + customFeesTotal
-                                        
-                                        if (discountType === 'PERCENTAGE') {
-                                          const discountAmount = Math.round((totalBeforeDiscount * parseFloat(discountValue || 0)) / 100)
-                                          return ` ${discountValue}% off = Rs. ${discountAmount.toLocaleString()} discount`
-                                        } else {
-                                          return ` Rs. ${parseFloat(discountValue || 0).toLocaleString()} off`
-                                        }
-                                      })()}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </>
                   )}
 
@@ -1881,192 +1702,7 @@ const AdmissionFormNew = () => {
                 </div>
               </div>
 
-              {/* Voucher Preview Section */}
-              {showVoucherPreview && voucherPreview && (
-                <div className="form-section voucher-preview-section">
-                  <h3>📋 Voucher Preview</h3>
-                  <div className="voucher-container">
-                    <div className="fee-voucher">
-                      {/* School Header */}
-                      <div className="school-header">
-                        <div className="school-name">COMBINE MUSLIM SCHOOL</div>
-                        <div className="voucher-title">ADMISSION FEE VOUCHER</div>
-                      </div>
-                      
-                      {/* Student Information */}
-                      <div className="student-info">
-                        <table>
-                          <tbody>
-                            <tr>
-                              <td><strong>Voucher #:</strong></td>
-                              <td>{voucherPreview.voucherNumber}</td>
-                              <td><strong>Issue Date:</strong></td>
-                              <td>{voucherPreview.issueDate}</td>
-                            </tr>
-                            <tr>
-                              <td><strong>Due Date:</strong></td>
-                              <td>{voucherPreview.dueDate}</td>
-                              <td><strong>Admission Date:</strong></td>
-                              <td>{voucherPreview.admissionDate}</td>
-                            </tr>
-                            <tr>
-                              <td><strong>Student Name:</strong></td>
-                              <td>{voucherPreview.studentName}</td>
-                              <td><strong>Father Name:</strong></td>
-                              <td>{voucherPreview.fatherName}</td>
-                            </tr>
-                            <tr>
-                              <td><strong>Class:</strong></td>
-                              <td>{voucherPreview.className}</td>
-                              <td><strong>Section:</strong></td>
-                              <td>{voucherPreview.sectionName}</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                      
-                      {/* Fee Items */}
-                      <div className="fee-items-section">
-                        <h5 style={{marginBottom: '10px'}}>Fee Breakdown: <small style={{fontWeight: 'normal', color: '#6b7280'}}>(Click to edit amounts)</small></h5>
-                        <table className="fee-items-table">
-                          <thead>
-                            <tr>
-                              <th>Description</th>
-                              <th className="amount">Amount</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr>
-                              <td>Admission Fee</td>
-                              <td className="amount editable">
-                                Rs. 
-                                <input
-                                  type="number"
-                                  value={feeSchedule.admissionFee}
-                                  onChange={(e) => handleFeeChange('admissionFee', e.target.value)}
-                                  className="inline-fee-input"
-                                  min="0"
-                                  step="50"
-                                  style={{width: '80px', marginLeft: '5px'}}
-                                />/-
-                              </td>
-                            </tr>
-                            <tr>
-                              <td>Monthly Fee</td>
-                              <td className="amount editable">
-                                Rs. 
-                                <input
-                                  type="number"
-                                  value={feeSchedule.monthlyFee}
-                                  onChange={(e) => handleFeeChange('monthlyFee', e.target.value)}
-                                  className="inline-fee-input"
-                                  min="0"
-                                  step="50"
-                                  style={{width: '80px', marginLeft: '5px'}}
-                                />/-
-                              </td>
-                            </tr>
-                            <tr>
-                              <td>Paper Fund</td>
-                              <td className="amount editable">
-                                Rs. 
-                                <input
-                                  type="number"
-                                  value={feeSchedule.paperFund}
-                                  onChange={(e) => handleFeeChange('paperFund', e.target.value)}
-                                  className="inline-fee-input"
-                                  min="0"
-                                  step="25"
-                                  style={{width: '80px', marginLeft: '5px'}}
-                                />/-
-                              </td>
-                            </tr>
-                            {customFees.map((fee, index) => (
-                              <tr key={fee.id || index}>
-                                <td>
-                                  <input
-                                    type="text"
-                                    placeholder="Enter fee name"
-                                    value={fee.name}
-                                    onChange={(e) => updateCustomFee(fee.id || index, 'name', e.target.value)}
-                                    className="custom-fee-name-input"
-                                    style={{border: '1px solid #ccc', padding: '2px 5px', width: '100%'}}
-                                  />
-                                </td>
-                                <td className="amount editable">
-                                  Rs. 
-                                  <input
-                                    type="number"
-                                    value={fee.amount}
-                                    onChange={(e) => updateCustomFee(fee.id || index, 'amount', parseFloat(e.target.value) || 0)}
-                                    className="inline-fee-input"
-                                    min="0"
-                                    step="50"
-                                    style={{width: '60px', marginLeft: '5px'}}
-                                  />/-
-                                  <button
-                                    type="button"
-                                    onClick={() => removeCustomFee(fee.id || index)}
-                                    className="remove-fee-btn no-print"
-                                    title="Remove fee"
-                                    style={{marginLeft: '5px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '3px', padding: '2px 6px'}}
-                                  >
-                                    ×
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                        
-                        <div className="add-custom-fee no-print" style={{margin: '10px 0'}}>
-                          <button
-                            type="button"
-                            onClick={addCustomFee}
-                            className="add-fee-btn"
-                            style={{background: '#28a745', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '3px'}}
-                          >
-                            + Add Custom Fee
-                          </button>
-                        </div>
-                      </div>
-                      
-                      {/* Total Section */}
-                      <div className="total-section">
-                        <div className="total-amount">
-                          <strong>Total Amount: Rs. {getTotalFees()}/-</strong>
-                        </div>
-                      </div>
-                      
-                      {/* Payment Info */}
-                      <div className="payment-info">
-                        <p><strong>Payment Instructions:</strong></p>
-                        <p>• Please pay before the due date to avoid late fee charges</p>
-                        <p>• Keep this voucher for your records</p>
-                        <p>• For any queries, contact the school office</p>
-                      </div>
-                      
-                      <div className="voucher-footer no-print">
-                        <p><strong>Note:</strong> This is a preview. The actual voucher will be generated after submission.</p>
-                        <button 
-                          type="button" 
-                          onClick={() => window.print()}
-                          style={{
-                            background: '#007bff', 
-                            color: 'white', 
-                            border: 'none', 
-                            padding: '8px 15px', 
-                            borderRadius: '4px',
-                            marginTop: '10px'
-                          }}
-                        >
-                          🖨️ Print Preview
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+
 
               <div className="form-actions">
                 <button
@@ -2295,43 +1931,6 @@ const AdmissionFormNew = () => {
             </div>
             
             <div className="action-buttons" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
-              {admittedStudentData.voucherGenerated && (
-                <>
-                  <button
-                    onClick={handlePrintVoucher}
-                    className="btn-action"
-                    style={{
-                      padding: '0.75rem 1rem',
-                      background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '0.9rem',
-                      fontWeight: '600'
-                    }}
-                  >
-                    🖨️ Print Voucher
-                  </button>
-                  <button
-                    onClick={handlePayVoucher}
-                    className="btn-action"
-                    style={{
-                      padding: '0.75rem 1rem',
-                      background: 'linear-gradient(135deg, #10b981, #047857)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '0.9rem',
-                      fontWeight: '600'
-                    }}
-                  >
-                    💳 Pay Now
-                  </button>
-                </>
-              )}
-              
               <button
                 onClick={handleViewStudent}
                 className="btn-action"
@@ -2343,31 +1942,28 @@ const AdmissionFormNew = () => {
                   borderRadius: '8px',
                   cursor: 'pointer',
                   fontSize: '0.9rem',
-                  fontWeight: '600',
-                  gridColumn: admittedStudentData.voucherGenerated ? 'auto' : '1 / -1'
+                  fontWeight: '600'
                 }}
               >
                 👤 View Student
               </button>
               
-              {!admittedStudentData.voucherGenerated && (
-                <button
-                  onClick={handleGoToAdmissionList}
-                  className="btn-action"
-                  style={{
-                    padding: '0.75rem 1rem',
-                    background: 'linear-gradient(135deg, #6b7280, #4b5563)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem',
-                    fontWeight: '600'
-                  }}
-                >
-                  📋 View All Admissions
-                </button>
-              )}
+              <button
+                onClick={() => navigate('/fees/vouchers')}
+                className="btn-action"
+                style={{
+                  padding: '0.75rem 1rem',
+                  background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  fontWeight: '600'
+                }}
+              >
+                📋 Voucher
+              </button>
             </div>
             
             <div style={{ textAlign: 'center' }}>
@@ -2383,7 +1979,7 @@ const AdmissionFormNew = () => {
                   fontSize: '0.875rem'
                 }}
               >
-                {admittedStudentData.voucherGenerated ? "📋 View All Admissions" : "Close"}
+                Close
               </button>
             </div>
           </div>
