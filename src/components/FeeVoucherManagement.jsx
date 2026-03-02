@@ -5,7 +5,7 @@
  * - Generate single/bulk fee vouchers
  * - List and filter vouchers
  * - View voucher details
- * - Download PDF
+ * - Edit voucher items
  * - Record payments inline
  * 
  * Security & Performance:
@@ -526,14 +526,6 @@ const FeeVoucherManagement = () => {
     await paymentMutation.mutate(paymentForm)
   }, [paymentForm, paymentMutation])
 
-  const handleDownloadPDF = useCallback(async (voucher) => {
-    try {
-      await feeVoucherService.downloadPDF(voucher.id)
-    } catch (error) {
-      console.error('Download failed:', error)
-    }
-  }, [])
-
   // Handle print voucher (NEW - Issue #3)
   const handlePrintVoucher = useCallback((voucher) => {
     try {
@@ -1033,34 +1025,52 @@ const FeeVoucherManagement = () => {
                       </td>
                       <td>{renderStatusBadge(voucher.status)}</td>
                       <td>
-                        <div className="action-buttons" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+                        <div className="action-buttons" style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'center' }}>
                           {voucher.status !== VOUCHER_STATUS.PAID && (
-                            <button 
-                              className="btn-action btn-edit btn-small"
-                              onClick={() => openEditItemsModal(voucher)}
-                              title="Edit Items"
-                              style={{ fontSize: '1.1rem', padding: '0.4rem 0.7rem' }}
-                            >
-                              ✏️
-                            </button>
-                          )}
-                          <button 
-                            className="btn-action btn-download btn-small"
-                            onClick={() => handleDownloadPDF(voucher)}
-                            title="Download PDF"
-                            style={{ fontSize: '1.1rem', padding: '0.4rem 0.7rem' }}
-                          >
-                            📥
-                          </button>
-                          {voucher.status !== VOUCHER_STATUS.PAID && (
-                            <button 
-                              className="btn-action btn-pay btn-small"
-                              onClick={() => openPaymentModal(voucher)}
-                              title="Record Payment"
-                              style={{ fontSize: '1.1rem', padding: '0.4rem 0.7rem' }}
-                            >
-                              💰
-                            </button>
+                            <>
+                              <button 
+                                className="btn-action btn-edit btn-small"
+                                onClick={() => openEditItemsModal(voucher)}
+                                title="Edit voucher items"
+                                style={{ 
+                                  fontSize: '0.95rem', 
+                                  padding: '0.3rem 0.45rem',
+                                  background: '#3b82f6',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s',
+                                  lineHeight: '1',
+                                  minWidth: 'auto'
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.background = '#2563eb'}
+                                onMouseOut={(e) => e.currentTarget.style.background = '#3b82f6'}
+                              >
+                                ✏️
+                              </button>
+                              <button 
+                                className="btn-action btn-pay btn-small"
+                                onClick={() => openPaymentModal(voucher)}
+                                title="Record a payment for this voucher"
+                                style={{ 
+                                  fontSize: '0.95rem', 
+                                  padding: '0.3rem 0.45rem',
+                                  background: '#10b981',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s',
+                                  lineHeight: '1',
+                                  minWidth: 'auto'
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.background = '#059669'}
+                                onMouseOut={(e) => e.currentTarget.style.background = '#10b981'}
+                              >
+                                💰
+                              </button>
+                            </>
                           )}
                         </div>
                       </td>
