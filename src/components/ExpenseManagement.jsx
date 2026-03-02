@@ -2,8 +2,12 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { expenseService } from '../services/expenseService'
 import { PrintReportHeader, ReportTable, ReportActions } from './PrintReport'
+import { useAuth } from '../context/AuthContext'
 
 const ExpenseManagement = () => {
+  // Auth
+  const { isAdmin } = useAuth()
+  
   const [expenses, setExpenses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -349,7 +353,7 @@ const ExpenseManagement = () => {
             { key: "title",      label: "Title",       printWidth: "44%", printAlign: "left"   },
             { key: "amount",     label: "Amount",      printWidth: "17%", printAlign: "right"  },
             { key: "recordedOn", label: "Recorded On", printWidth: "15%", printAlign: "center" },
-            { key: "actions",    label: "Actions",     printHide: true },
+            ...(isAdmin() ? [{ key: "actions",    label: "Actions",     printHide: true }] : []),
           ]}
           rows={expenses.map((expense, index) => ({
             id: expense.id,
@@ -358,16 +362,56 @@ const ExpenseManagement = () => {
             title: <strong>{expense.title}</strong>,
             amount: `Rs. ${parseFloat(expense.amount).toLocaleString()}`,
             recordedOn: new Date(expense.created_at).toLocaleDateString("en-GB"),
-            actions: (
-              <div className="action-buttons">
-                <button onClick={() => openModal(expense)} className="btn-edit">
-                  Edit
-                </button>
-                <button onClick={() => handleDelete(expense.id)} className="btn-delete">
-                  Delete
-                </button>
-              </div>
-            ),
+            ...(isAdmin() && {
+              actions: (
+                <div className="action-buttons" style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'center', height: '100%' }}>
+                  <button 
+                    onClick={() => openModal(expense)} 
+                    className="btn-edit"
+                    title="Edit expense"
+                    style={{ 
+                      fontSize: '0.9rem', 
+                      padding: '0.25rem 0.4rem',
+                      background: '#3b82f6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      transition: 'background 0.2s',
+                      lineHeight: '1',
+                      minWidth: 'auto',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    ✏️
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(expense.id)} 
+                    className="btn-delete"
+                    title="Delete expense"
+                    style={{ 
+                      fontSize: '0.9rem', 
+                      padding: '0.25rem 0.4rem',
+                      background: '#ef4444',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      transition: 'background 0.2s',
+                      lineHeight: '1',
+                      minWidth: 'auto',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    🗑️
+                  </button>
+                </div>
+              ),
+            }),
           }))}
           footerCells={[
             { colSpan: 5, content: `Grand Total: Rs. ${totalExpenses.toLocaleString()}`, align: "center" },

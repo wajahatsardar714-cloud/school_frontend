@@ -7362,7 +7362,7 @@ h6 {
 }
 
 .data-table thead {
-  background-color: #f9fafb;
+  background-color: #1e3a8a;
 }
 
 .data-table th {
@@ -7370,10 +7370,10 @@ h6 {
   text-align: left;
   font-size: 12px;
   font-weight: 600;
-  color: #6b7280;
+  color: #ffffff;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 2px solid #1e3a8a;
 }
 
 .data-table td {

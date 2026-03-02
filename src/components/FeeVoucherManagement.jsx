@@ -21,6 +21,7 @@ import { studentService } from '../services/studentService'
 import { classService, sectionService } from '../services/classService'
 import { useFetch, useMutation, useDebounce } from '../hooks/useApi'
 import { sortClassesBySequence } from '../utils/classSorting'
+import { useAuth } from '../context/AuthContext'
 import '../fee.css'
 
 // Constants
@@ -58,6 +59,9 @@ const FEE_TYPES = [
 ]
 
 const FeeVoucherManagement = () => {
+  // Auth
+  const { isAdmin } = useAuth()
+  
   // UI State
   const [activeTab, setActiveTab] = useState('list')
   const [showPaymentModal, setShowPaymentModal] = useState(false)
@@ -545,6 +549,46 @@ const FeeVoucherManagement = () => {
     await deleteMutation.mutate(voucher.id)
   }, [deleteMutation])
 
+  // Handle undo payments (convert PAID back to UNPAID)
+  const handleUndoPayments = useCallback(async (voucher) => {
+    if (!confirm(`Are you sure you want to undo all payments for voucher V-${voucher.id}?\n\nThis will mark the voucher as unpaid again.`)) {
+      return
+    }
+
+    try {
+      // Fetch all payments for this voucher
+      const response = await feePaymentService.getVoucherPayments(voucher.id)
+      const payments = response.data.payments || []
+
+      if (payments.length === 0) {
+        alert('No payments found for this voucher')
+        return
+      }
+
+      // Delete all payments
+      let deletedCount = 0
+      for (const payment of payments) {
+        try {
+          await feePaymentService.delete(payment.id)
+          deletedCount++
+        } catch (error) {
+          console.error(`Failed to delete payment ${payment.id}:`, error)
+        }
+      }
+
+      if (deletedCount > 0) {
+        // Refresh the vouchers list
+        refreshVouchers()
+        alert(`Successfully undone ${deletedCount} payment(s). Voucher is now unpaid.`)
+      } else {
+        alert('Failed to delete payments')
+      }
+    } catch (error) {
+      console.error('Failed to undo payments:', error)
+      alert('Failed to undo payments. Please try again.')
+    }
+  }, [refreshVouchers])
+
   // Checkbox selection handlers
   const handleSelectVoucher = useCallback((voucherId) => {
     setSelectedVouchers(prev => {
@@ -1028,27 +1072,29 @@ const FeeVoucherManagement = () => {
                         <div className="action-buttons" style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'center' }}>
                           {voucher.status !== VOUCHER_STATUS.PAID && (
                             <>
-                              <button 
-                                className="btn-action btn-edit btn-small"
-                                onClick={() => openEditItemsModal(voucher)}
-                                title="Edit voucher items"
-                                style={{ 
-                                  fontSize: '0.95rem', 
-                                  padding: '0.3rem 0.45rem',
-                                  background: '#3b82f6',
-                                  color: 'white',
-                                  border: 'none',
-                                  borderRadius: '4px',
-                                  cursor: 'pointer',
-                                  transition: 'all 0.2s',
-                                  lineHeight: '1',
-                                  minWidth: 'auto'
-                                }}
-                                onMouseOver={(e) => e.currentTarget.style.background = '#2563eb'}
-                                onMouseOut={(e) => e.currentTarget.style.background = '#3b82f6'}
-                              >
-                                ✏️
-                              </button>
+                              {isAdmin() && (
+                                <button 
+                                  className="btn-action btn-edit btn-small"
+                                  onClick={() => openEditItemsModal(voucher)}
+                                  title="Edit voucher items"
+                                  style={{ 
+                                    fontSize: '0.95rem', 
+                                    padding: '0.3rem 0.45rem',
+                                    background: '#3b82f6',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                    lineHeight: '1',
+                                    minWidth: 'auto'
+                                  }}
+                                  onMouseOver={(e) => e.currentTarget.style.background = '#2563eb'}
+                                  onMouseOut={(e) => e.currentTarget.style.background = '#3b82f6'}
+                                >
+                                  ✏️
+                                </button>
+                              )}
                               <button 
                                 className="btn-action btn-pay btn-small"
                                 onClick={() => openPaymentModal(voucher)}
@@ -1071,6 +1117,29 @@ const FeeVoucherManagement = () => {
                                 💰
                               </button>
                             </>
+                          )}
+                          {voucher.status === VOUCHER_STATUS.PAID && isAdmin() && (
+                            <button 
+                              className="btn-action btn-undo btn-small"
+                              onClick={() => handleUndoPayments(voucher)}
+                              title="Undo all payments and mark as unpaid"
+                              style={{ 
+                                fontSize: '0.95rem', 
+                                padding: '0.3rem 0.45rem',
+                                background: '#f59e0b',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                lineHeight: '1',
+                                minWidth: 'auto'
+                              }}
+                              onMouseOver={(e) => e.currentTarget.style.background = '#d97706'}
+                              onMouseOut={(e) => e.currentTarget.style.background = '#f59e0b'}
+                            >
+                              ↩️
+                            </button>
                           )}
                         </div>
                       </td>

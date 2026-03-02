@@ -145,6 +145,18 @@ export default function AnalyticsDashboard() {
   // Performance metrics - backend returns { data: { current_month, last_month, growth } }
   const performance = performanceData?.data || performanceData || {};
   
+  // Ensure we have default values for performance metrics
+  const performanceMetrics = {
+    current_month: {
+      revenue: performance.current_month?.revenue || 0,
+      expenses: performance.current_month?.expenses || 0,
+      profit: performance.current_month?.profit || 0,
+    },
+    growth: {
+      fee_collections: performance.growth?.fee_collections || 0,
+    }
+  };
+  
   // Calculate derived metrics from dashboard response
   const metrics = useMemo(() => {
     return {
@@ -764,47 +776,49 @@ export default function AnalyticsDashboard() {
           </div>
 
           {/* Performance Insights */}
-          {performance.current_month && (
-            <div style={{
-              background: '#fff',
-              padding: '1.5rem',
-              borderRadius: '12px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-              border: '1px solid #e2e8f0',
-              marginBottom: '2rem'
-            }}>
-              <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#0f172a', marginBottom: '1rem' }}>
-                📈 Performance Metrics
-              </h3>
+          <div style={{
+            background: '#fff',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            border: '1px solid #e2e8f0',
+            marginBottom: '2rem'
+          }}>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#0f172a', marginBottom: '1rem' }}>
+              📈 Performance Metrics
+            </h3>
+            {performanceLoading ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>Loading performance data...</div>
+            ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                 <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', textAlign: 'center' }}>
                   <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>This Month Revenue</div>
                   <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#2563eb' }}>
-                    {formatCurrency(performance.current_month?.revenue)}
+                    {formatCurrency(performanceMetrics.current_month.revenue)}
                   </div>
                 </div>
                 <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', textAlign: 'center' }}>
                   <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>This Month Expenses</div>
                   <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#ef4444' }}>
-                    {formatCurrency(performance.current_month?.expenses)}
+                    {formatCurrency(performanceMetrics.current_month.expenses)}
                   </div>
                 </div>
                 <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', textAlign: 'center' }}>
                   <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>Net Profit</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: (performance.current_month?.profit || 0) >= 0 ? '#10b981' : '#ef4444' }}>
-                    {formatCurrency(performance.current_month?.profit)}
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: performanceMetrics.current_month.profit >= 0 ? '#10b981' : '#ef4444' }}>
+                    {formatCurrency(performanceMetrics.current_month.profit)}
                   </div>
                 </div>
                 <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', textAlign: 'center' }}>
                   <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>Collection Growth</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: (performance.growth?.fee_collections || 0) >= 0 ? '#10b981' : '#ef4444' }}>
-                    {(performance.growth?.fee_collections || 0) >= 0 ? '+' : ''}
-                    {formatPercent(performance.growth?.fee_collections)}
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: performanceMetrics.growth.fee_collections >= 0 ? '#10b981' : '#ef4444' }}>
+                    {performanceMetrics.growth.fee_collections >= 0 ? '+' : ''}
+                    {formatPercent(performanceMetrics.growth.fee_collections)}
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </>
       )}
     </div>
