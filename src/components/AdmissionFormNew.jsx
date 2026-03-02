@@ -746,12 +746,8 @@ const AdmissionFormNew = () => {
             admission_fee: feeSchedule.admissionFee,
             monthly_fee: feeSchedule.monthlyFee,
             paper_fund: feeSchedule.paperFund,
-            reason: feeOverrideReason || 'Fee set during admission'
-          }
-          
-          // Add discount description if monthly fee is reduced
-          if (feeSchedule.monthlyFee < classFeeDefaults.monthlyFee && discountDescription) {
-            overrideData.discount_description = discountDescription
+            reason: feeOverrideReason?.trim() || 'Fee set during admission',
+            discount_description: discountDescription?.trim() || null
           }
           
           console.log('Saving fee overrides:', overrideData)
@@ -779,22 +775,22 @@ const AdmissionFormNew = () => {
       let generatedVoucherId = null
       if (!isFreeStudent && selectedClassId) {
         try {
+          // Backend expects month in YYYY-MM-01 format
+          const admissionDate = new Date(formData.admission_date || new Date())
+          const voucherMonth = `${admissionDate.getFullYear()}-${String(admissionDate.getMonth() + 1).padStart(2, '0')}-01`
+
           // For first admission, include ADMISSION, MONTHLY, and PAPER_FUND fees
           const feeTypes = ['ADMISSION', 'MONTHLY', 'PAPER_FUND']
           
           const voucherData = {
             student_id: studentId,
-            month: formData.admission_date || new Date().toISOString().split('T')[0],
+            month: voucherMonth,
             fee_types: feeTypes,
             custom_items: customFees.filter(fee => fee.name && fee.amount > 0).map(fee => ({
               item_type: fee.name,
               amount: parseFloat(fee.amount)
             })),
-            due_date: (() => {
-              const admissionDate = new Date(formData.admission_date || new Date())
-              // Set due date to 10th of admission month
-              return new Date(admissionDate.getFullYear(), admissionDate.getMonth(), 10).toISOString().split('T')[0]
-            })()
+            due_date: new Date(admissionDate.getFullYear(), admissionDate.getMonth(), 10).toISOString().split('T')[0]
           }
           
           console.log('Generating admission voucher with all fees:', voucherData)
