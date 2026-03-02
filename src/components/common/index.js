@@ -22,3 +22,6 @@ export {
 export { default as CompactClassCard } from './CompactClassCard'
 export { default as FilterBar } from './FilterBar'
 // Add CSVImportModal if needed: export { default as CSVImportModal } from './CSVImportModal'
+
+// Deep linking helpers (re-exported for convenience)
+export { useDeepLink, useDeepLinks, buildDeepLink } from '../../hooks/useDeepLink'

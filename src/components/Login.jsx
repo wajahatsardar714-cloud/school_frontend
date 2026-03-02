@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { RETURN_TO_KEY } from './ProtectedRoute'
 import logo from '../assets/logo.png'
 
 const Login = () => {
@@ -13,7 +14,9 @@ const Login = () => {
 
   useEffect(() => {
     if (isAuthenticated()) {
-      navigate('/dashboard')
+      const returnTo = sessionStorage.getItem(RETURN_TO_KEY)
+      sessionStorage.removeItem(RETURN_TO_KEY)
+      navigate(returnTo || '/dashboard', { replace: true })
     }
   }, [isAuthenticated, navigate])
 
@@ -34,7 +37,9 @@ const Login = () => {
 
     try {
       await login(email, password)
-      navigate('/dashboard')
+      const returnTo = sessionStorage.getItem(RETURN_TO_KEY)
+      sessionStorage.removeItem(RETURN_TO_KEY)
+      navigate(returnTo || '/dashboard', { replace: true })
     } catch (error) {
       setErrors({ general: error.message || 'Login failed. Please check your credentials.' })
     } finally {

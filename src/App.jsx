@@ -40,6 +40,7 @@ const StudentDetail = lazy(() => import('./components/students/StudentDetail'))
 const Profile = lazy(() => import('./components/Profile'))
 const BulkStudentImport = lazy(() => import('./components/students/BulkStudentImport'))
 const TestReport = lazy(() => import('./components/TestReport'))
+const NotFound = lazy(() => import('./components/NotFound'))
 
 // Loading fallback component
 const PageLoader = () => (
@@ -168,6 +169,9 @@ function AppLayout() {
               } />
 
               <Route path="/profile" element={<Profile />} />
+
+              {/* 404 – must be last */}
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
           </ErrorBoundary>
