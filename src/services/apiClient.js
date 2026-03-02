@@ -70,8 +70,11 @@ class APIClient {
       ...headers,
     }
     
-    // Only set Content-Type for non-blob requests with body
-    if (responseType !== 'blob') {
+    // Check if body is FormData (for file uploads)
+    const isFormData = body instanceof FormData
+    
+    // Only set Content-Type for non-blob and non-FormData requests
+    if (responseType !== 'blob' && !isFormData) {
       requestHeaders['Content-Type'] = 'application/json'
     }
 
@@ -86,7 +89,8 @@ class APIClient {
     }
 
     if (body && method !== 'GET' && method !== 'HEAD') {
-      config.body = JSON.stringify(body)
+      // Don't stringify FormData - send it as-is
+      config.body = isFormData ? body : JSON.stringify(body)
     }
 
     try {
