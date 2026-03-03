@@ -266,7 +266,7 @@ const ExpenseManagement = () => {
   }
 
   return (
-    <div className="page-content">
+    <div className="page-content expense-management">
       <div className="page-header">
         <div>
           <h2>Expense Management</h2>

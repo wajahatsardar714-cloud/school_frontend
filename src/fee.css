@@ -900,6 +900,60 @@
   transform: translateY(-1px);
 }
 
+/* ============================================
+   EXPENSE MANAGEMENT SPECIFIC STYLES
+   ============================================ */
+
+/* Make expense page headings white */
+.expense-management .page-header h2,
+.expense-management .page-header h3 {
+  color: white !important;
+}
+
+.expense-management .page-header {
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  padding: var(--spacing-xl);
+  border-radius: var(--radius-lg);
+  color: white;
+}
+
+.expense-management .page-header p.text-muted {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* ============================================
+   GUARDIAN MANAGEMENT ACTION BUTTONS
+   ============================================ */
+
+.guardian-management .action-buttons {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.guardian-management .btn-action {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.guardian-management .btn-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+}
+
 .btn-delete:disabled {
   opacity: 0.5;
   cursor: not-allowed;

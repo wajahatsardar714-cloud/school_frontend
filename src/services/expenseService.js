@@ -10,8 +10,8 @@ export const expenseService = {
     const params = new URLSearchParams()
     
     if (filters.category) params.append('category', filters.category)
-    if (filters.start_date) params.append('start_date', filters.start_date)
-    if (filters.end_date) params.append('end_date', filters.end_date)
+    if (filters.start_date) params.append('from_date', filters.start_date)
+    if (filters.end_date) params.append('to_date', filters.end_date)
     
     const query = params.toString() ? `?${params.toString()}` : ''
     return await apiClient.get(`${API_ENDPOINTS.EXPENSES}${query}`)
@@ -32,8 +32,8 @@ export const expenseService = {
   async getSummary(filters = {}) {
     const params = new URLSearchParams()
     
-    if (filters.start_date) params.append('start_date', filters.start_date)
-    if (filters.end_date) params.append('end_date', filters.end_date)
+    if (filters.start_date) params.append('from_date', filters.start_date)
+    if (filters.end_date) params.append('to_date', filters.end_date)
     if (filters.group_by) params.append('group_by', filters.group_by)
     
     const query = params.toString() ? `?${params.toString()}` : ''

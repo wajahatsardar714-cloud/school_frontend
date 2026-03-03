@@ -54,6 +54,9 @@ export default function GuardianManagement() {
   const [selectedGuardian, setSelectedGuardian] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   
+  // Delete error state
+  const [deleteError, setDeleteError] = useState(null);
+  
   // Fetch guardians
   const {
     data: guardiansData,
@@ -209,7 +212,15 @@ export default function GuardianManagement() {
     );
     
     if (confirmDelete) {
-      await deleteGuardian(guardian._id || guardian.id);
+      setDeleteError(null);
+      try {
+        await deleteGuardian(guardian._id || guardian.id);
+        alert(`Guardian "${guardian.name}" deleted successfully.`);
+      } catch (err) {
+        const msg = err?.response?.data?.message || err?.message || 'Failed to delete guardian. They may have linked students.';
+        setDeleteError(msg);
+        alert(msg);
+      }
     }
   }, [deleteGuardian]);
   
@@ -317,6 +328,9 @@ export default function GuardianManagement() {
           {/* Error Display */}
           {guardiansError && (
             <div className="alert alert-error">{guardiansError}</div>
+          )}
+          {deleteError && (
+            <div className="alert alert-error">{deleteError}</div>
           )}
           
           {/* Guardians Table */}
