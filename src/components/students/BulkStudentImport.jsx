@@ -5,7 +5,8 @@ import 'ag-grid-community/styles/ag-grid.css'
 import 'ag-grid-community/styles/ag-theme-alpine.css'
 import './BulkStudentImport.css'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+// Use same base URL as the rest of the app (Render by default)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://school-backend-onou.onrender.com'
 
 const BulkStudentImport = () => {
   const [gridData, setGridData] = useState([])
