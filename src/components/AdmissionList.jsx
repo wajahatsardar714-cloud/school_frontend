@@ -109,7 +109,7 @@ const AdmissionList = () => {
     }
 
     return matchesSearch && matchesClass && matchesDate
-  })
+  }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))  // Sort by newest first
 
   if (loading) {
     return (
@@ -300,8 +300,6 @@ const AdmissionList = () => {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {filteredStudents.map(student => {
-            const fatherGuardian = student.guardians?.find(g => g.relation === 'Father')
-            
             return (
               <div
                 key={student.id}
@@ -349,7 +347,7 @@ const AdmissionList = () => {
                 <div style={{ minWidth: '170px', flex: '1' }}>
                   <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Father</div>
                   <div style={{ fontSize: '0.9rem', color: '#475569', fontWeight: '500' }}>
-                    {fatherGuardian?.name || 'N/A'}
+                    {student.father_guardian_name || student.father_name || 'N/A'}
                   </div>
                 </div>
                 

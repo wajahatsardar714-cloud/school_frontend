@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { RETURN_TO_KEY } from './ProtectedRoute'
 import logo from '../assets/logo.png'
-import LoginDebug from './LoginDebug'
 
 const Login = () => {
   const [email, setEmail] = useState('')
@@ -181,9 +180,6 @@ const Login = () => {
           )}
         </div>
       </div>
-      
-      {/* Debug Panel - Remove in production */}
-      {import.meta.env.DEV && <LoginDebug />}
     </div>
   )
 }
