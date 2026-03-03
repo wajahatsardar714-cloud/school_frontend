@@ -12,13 +12,6 @@ const Login = () => {
   const navigate = useNavigate()
   const { login, isAuthenticated } = useAuth()
 
-  // Auto-fill test credentials in development
-  const fillTestCredentials = () => {
-    setEmail('admin@school.com')
-    setPassword('admin123')
-    setErrors({})
-  }
-
   useEffect(() => {
     if (isAuthenticated()) {
       const returnTo = sessionStorage.getItem(RETURN_TO_KEY)
@@ -155,29 +148,6 @@ const Login = () => {
         
         <div className="login-footer">
           <p>Don't have an account? <span className="signup-link">Contact Administrator</span></p>
-          {import.meta.env.DEV && (
-            <div style={{ marginTop: '12px', padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '6px', fontSize: '12px' }}>
-              <strong>🔧 Development Mode - Try these credentials:</strong><br/>
-              admin@school.com / admin123<br/>
-              test@test.com / test123<br/>
-              <button 
-                type="button" 
-                onClick={fillTestCredentials}
-                style={{
-                  marginTop: '8px',
-                  padding: '4px 8px',
-                  fontSize: '11px',
-                  background: '#007bff',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
-              >
-                Fill Admin Credentials
-              </button>
-            </div>
-          )}
         </div>
       </div>
     </div>

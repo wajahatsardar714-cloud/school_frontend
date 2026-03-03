@@ -119,17 +119,20 @@ const StudentSearchBar = ({ isCompact = false }) => {
                 {searchResults.map((student) => {
                   // Extract father name from guardians array or direct field
                   const fatherName = student.father_name || 
+                                   student.father_guardian_name ||
                                    student.guardians?.find(g => g.relation === 'Father')?.name || 
                                    'N/A'
                   
-                  // Extract class name - try multiple possible structures
-                  const className = student.current_enrollment?.class_name || 
+                  // Extract class name - try multiple possible structures (backend returns flat class_name)
+                  const className = student.class_name ||
+                                  student.current_enrollment?.class_name || 
                                   student.current_class_name || 
                                   student.current_class?.name || 
                                   'Not Enrolled'
                   
-                  // Extract section name - try multiple possible structures
-                  const sectionName = student.current_enrollment?.section_name || 
+                  // Extract section name - try multiple possible structures (backend returns flat section_name)
+                  const sectionName = student.section_name ||
+                                    student.current_enrollment?.section_name || 
                                     student.current_section_name || 
                                     student.current_section?.name || 
                                     'N/A'

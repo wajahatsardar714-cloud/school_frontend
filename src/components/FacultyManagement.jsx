@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import { facultyService } from '../services/facultyService'
 
 const FacultyManagement = () => {
@@ -261,21 +260,36 @@ const FacultyManagement = () => {
                     </span>
                   </td>
                   <td>
-                    <div className="action-buttons">
-                      <button onClick={() => openModal(member)} className="btn-secondary btn-sm">
-                        Edit
+                    <div className="action-buttons" style={{ display: 'flex', flexDirection: 'row', gap: '0.5rem', justifyContent: 'center' }}>
+                      <button 
+                        onClick={() => openModal(member)} 
+                        title="Edit"
+                        style={{ 
+                          padding: '0.4rem 0.6rem', 
+                          background: '#3b82f6', 
+                          color: 'white', 
+                          border: 'none', 
+                          borderRadius: '4px', 
+                          cursor: 'pointer',
+                          fontSize: '1rem'
+                        }}
+                      >
+                        ✏️
                       </button>
                       <button 
-                        onClick={() => handleToggleActive(member.id, member.is_active)} 
-                        className={`btn-sm ${member.is_active ? 'btn-warning' : 'btn-success'}`}
+                        onClick={() => handleDelete(member.id)} 
+                        title="Delete"
+                        style={{ 
+                          padding: '0.4rem 0.6rem', 
+                          background: '#ef4444', 
+                          color: 'white', 
+                          border: 'none', 
+                          borderRadius: '4px', 
+                          cursor: 'pointer',
+                          fontSize: '1rem'
+                        }}
                       >
-                        {member.is_active ? 'Deactivate' : 'Activate'}
-                      </button>
-                      <Link to={`/faculty/${member.id}/salary`} className="btn-secondary btn-sm">
-                        Salary
-                      </Link>
-                      <button onClick={() => handleDelete(member.id)} className="btn-danger btn-sm">
-                        Delete
+                        🗑️
                       </button>
                     </div>
                   </td>
