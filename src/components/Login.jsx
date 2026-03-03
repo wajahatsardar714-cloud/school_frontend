@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { RETURN_TO_KEY } from './ProtectedRoute'
 import logo from '../assets/logo.png'
+import LoginDebug from './LoginDebug'
 
 const Login = () => {
   const [email, setEmail] = useState('')
@@ -11,6 +12,13 @@ const Login = () => {
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const { login, isAuthenticated } = useAuth()
+
+  // Auto-fill test credentials in development
+  const fillTestCredentials = () => {
+    setEmail('admin@school.com')
+    setPassword('admin123')
+    setErrors({})
+  }
 
   useEffect(() => {
     if (isAuthenticated()) {
@@ -41,7 +49,25 @@ const Login = () => {
       sessionStorage.removeItem(RETURN_TO_KEY)
       navigate(returnTo || '/dashboard', { replace: true })
     } catch (error) {
-      setErrors({ general: error.message || 'Login failed. Please check your credentials.' })
+      console.error('Login error:', error)
+      
+      // Provide more specific error messages
+      let errorMessage = 'Login failed. Please check your credentials.'
+      
+      if (error.message.includes('fetch')) {
+        errorMessage = 'Unable to connect to server. Please check your internet connection or try again later.'
+      } else if (error.message.includes('401')) {
+        errorMessage = 'Invalid email or password. Please try again.'
+      } else if (error.message.includes('500')) {
+        errorMessage = 'Server error. Please try again later or contact administrator.'
+      } else if (error.message.includes('CORS')) {
+        errorMessage = 'Network configuration issue. Please contact administrator.'
+      }
+      
+      setErrors({ 
+        general: error.message || errorMessage,
+        backend: import.meta.env.VITE_API_BASE_URL ? 'Backend: ' + import.meta.env.VITE_API_BASE_URL : 'Backend URL not configured'
+      })
     } finally {
       setLoading(false)
     }
@@ -68,6 +94,11 @@ const Login = () => {
           <div className="error-alert">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             {errors.general}
+            {errors.backend && (
+              <div style={{ fontSize: '12px', marginTop: '8px', opacity: 0.8 }}>
+                {errors.backend}
+              </div>
+            )}
           </div>
         )}
         
@@ -125,8 +156,34 @@ const Login = () => {
         
         <div className="login-footer">
           <p>Don't have an account? <span className="signup-link">Contact Administrator</span></p>
+          {import.meta.env.DEV && (
+            <div style={{ marginTop: '12px', padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '6px', fontSize: '12px' }}>
+              <strong>🔧 Development Mode - Try these credentials:</strong><br/>
+              admin@school.com / admin123<br/>
+              test@test.com / test123<br/>
+              <button 
+                type="button" 
+                onClick={fillTestCredentials}
+                style={{
+                  marginTop: '8px',
+                  padding: '4px 8px',
+                  fontSize: '11px',
+                  background: '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Fill Admin Credentials
+              </button>
+            </div>
+          )}
         </div>
       </div>
+      
+      {/* Debug Panel - Remove in production */}
+      {import.meta.env.DEV && <LoginDebug />}
     </div>
   )
 }

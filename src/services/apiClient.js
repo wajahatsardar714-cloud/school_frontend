@@ -96,6 +96,21 @@ class APIClient {
     try {
       const response = await fetch(url, config)
       
+      // Debug logging in development
+      if (import.meta.env.VITE_DEBUG_API === 'true') {
+        console.log('🌐 API Request:', {
+          url,
+          method,
+          headers: requestHeaders,
+          body: body && method !== 'GET' ? body : null
+        })
+        console.log('📡 API Response:', {
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries())
+        })
+      }
+      
       if (response.status === HTTP_STATUS.UNAUTHORIZED) {
         // Only trigger auth handlers for requests that require authentication
         if (requiresAuth) {
