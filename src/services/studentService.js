@@ -115,7 +115,7 @@ export const studentService = {
     console.log('🚀 Calling bulk create with data:', {
       studentsData,
       url: `${API_ENDPOINTS.STUDENTS_BULK}`,
-      baseUrl: 'http://localhost:5001'
+      baseUrl: apiClient.baseURL
     })
     return await apiClient.post(API_ENDPOINTS.STUDENTS_BULK, studentsData, { 
       requiresAuth: false // Disable auth for testing
