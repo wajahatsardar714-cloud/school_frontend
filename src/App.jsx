@@ -76,10 +76,11 @@ function AppLayout() {
 
   return (
     <div className="app-layout">
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
       <div className="main-content">
         <Header onMenuClick={openSidebar} />
-        <main className="content">
+        <main className="content" id="main-content">
           <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
             <Routes>

@@ -1,0 +1,26 @@
+# Apache .htaccess for SPA routing - Enhanced
+Options -MultiViews
+RewriteEngine On
+
+# Handle Angular and React Router - Comprehensive SPA support
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|map|json)$ [NC]
+RewriteRule ^ index.html [QSA,L]
+
+# Fallback for any remaining routes
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.html [L]
+
+# Cache static assets
+<FilesMatch "\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$">
+  ExpiresActive On
+  ExpiresDefault "access plus 1 month"
+  Header append Cache-Control "public"
+</FilesMatch>
+
+# Security headers
+Header always set X-Content-Type-Options nosniff
+Header always set X-Frame-Options DENY
+Header always set X-XSS-Protection "1; mode=block"

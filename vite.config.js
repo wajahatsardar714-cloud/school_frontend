@@ -4,12 +4,42 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  base: '/',
   server: {
-    // Serve index.html for every 404 so that React Router handles the URL
-    historyApiFallback: true,
+    port: 5173,
+    strictPort: false,
+    host: true,
+    // This is the key fix for SPA routing in development
+    historyApiFallback: {
+      index: '/index.html',
+      rewrites: [
+        { from: /^\/api/, to: function(context) { return context.parsedUrl.pathname } },
+        { from: /./, to: '/index.html' }
+      ]
+    }
   },
   preview: {
-    // Same fallback for `vite preview`
-    historyApiFallback: true,
+    port: 4173,
+    host: true,
+    // Same fallback for production preview
+    historyApiFallback: {
+      index: '/index.html',
+      rewrites: [
+        { from: /^\/api/, to: function(context) { return context.parsedUrl.pathname } },
+        { from: /./, to: '/index.html' }
+      ]
+    }
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          router: ['react-router-dom']
+        }
+      }
+    },
+    sourcemap: false,
+    minify: 'terser'
+  }
 })
