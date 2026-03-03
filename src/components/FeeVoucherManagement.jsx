@@ -20,7 +20,7 @@ import { feeVoucherService, feePaymentService } from '../services/feeService'
 import { studentService } from '../services/studentService'
 import { classService, sectionService } from '../services/classService'
 import { useFetch, useMutation, useDebounce } from '../hooks/useApi'
-import { sortClassesBySequence } from '../utils/classSorting'
+import { sortClassesBySequence, getClassSortOrder } from '../utils/classSorting'
 import { useAuth } from '../context/AuthContext'
 import '../fee.css'
 
@@ -83,6 +83,9 @@ const FeeVoucherManagement = () => {
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear(),
   })
+
+  // Amount sort order state
+  const [amountSortOrder, setAmountSortOrder] = useState('')
 
   // Generate Form State
   const [generateForm, setGenerateForm] = useState({
@@ -223,6 +226,11 @@ const FeeVoucherManagement = () => {
       // Backend expects month in format "2026-02-01"
       const monthStr = `${data.year}-${String(data.month).padStart(2, '0')}-01`
       
+      // Filter valid custom charges (non-empty description and positive amount)
+      const validCustomCharges = (data.custom_charges || []).filter(
+        c => c.description && c.description.trim() && parseFloat(c.amount) > 0
+      ).map(c => ({ description: c.description.trim(), amount: parseFloat(c.amount) }))
+
       if (data.type === 'bulk') {
         return feeVoucherService.bulkGenerate({
           class_id: parseInt(data.class_id),
@@ -230,6 +238,7 @@ const FeeVoucherManagement = () => {
           month: monthStr,
           due_date: data.due_date || undefined,
           fee_types: data.fee_types?.length > 0 ? data.fee_types : undefined,
+          custom_charges: validCustomCharges.length > 0 ? validCustomCharges : undefined,
         })
       } else {
         return feeVoucherService.generate({
@@ -237,6 +246,7 @@ const FeeVoucherManagement = () => {
           month: monthStr,
           due_date: data.due_date || undefined,
           fee_types: data.fee_types?.length > 0 ? data.fee_types : undefined,
+          custom_items: validCustomCharges.length > 0 ? validCustomCharges : undefined,
         })
       }
     },
@@ -335,6 +345,29 @@ const FeeVoucherManagement = () => {
       }
     })
 
+    // Sort by class sequence, then section name, then roll number
+    mappedVouchers.sort((a, b) => {
+      const classOrderA = getClassSortOrder(a.class_name)
+      const classOrderB = getClassSortOrder(b.class_name)
+      if (classOrderA !== classOrderB) return classOrderA - classOrderB
+      
+      const secA = (a.section_name || '').toLowerCase()
+      const secB = (b.section_name || '').toLowerCase()
+      if (secA !== secB) return secA.localeCompare(secB)
+
+      // Sort by roll number numerically
+      const rollA = parseInt(a.student_roll_no) || 0
+      const rollB = parseInt(b.student_roll_no) || 0
+      return rollA - rollB
+    })
+
+    // Apply amount sorting if set
+    if (amountSortOrder === 'low-to-high') {
+      mappedVouchers.sort((a, b) => a.total_amount - b.total_amount)
+    } else if (amountSortOrder === 'high-to-low') {
+      mappedVouchers.sort((a, b) => b.total_amount - a.total_amount)
+    }
+
     if (!debouncedSearch) return mappedVouchers
     
     const searchLower = debouncedSearch.toLowerCase()
@@ -343,7 +376,7 @@ const FeeVoucherManagement = () => {
       v.student_roll_no?.toLowerCase().includes(searchLower) ||
       v.voucher_no?.toLowerCase().includes(searchLower)
     )
-  }, [vouchersData, debouncedSearch, parseVoucherMonth])
+  }, [vouchersData, debouncedSearch, parseVoucherMonth, amountSortOrder])
 
   // Clear selection when filters change or tab changes
   useEffect(() => {
@@ -513,12 +546,17 @@ const FeeVoucherManagement = () => {
     setIsPreviewLoading(true)
     try {
       const monthStr = `${generateForm.year}-${String(generateForm.month).padStart(2, '0')}-01`
+      const validCustomCharges = (generateForm.custom_charges || []).filter(
+        c => c.description && c.description.trim() && parseFloat(c.amount) > 0
+      ).map(c => ({ description: c.description.trim(), amount: parseFloat(c.amount) }))
+
       const result = await feeVoucherService.previewBulk({
         class_id: parseInt(generateForm.class_id),
         section_id: generateForm.section_id ? parseInt(generateForm.section_id) : undefined,
         month: monthStr,
         due_date: generateForm.due_date || undefined,
         fee_types: generateForm.fee_types?.length > 0 ? generateForm.fee_types : undefined,
+        custom_charges: validCustomCharges.length > 0 ? validCustomCharges : undefined,
       })
       
       setPreviewData(result?.data || result)
@@ -613,7 +651,8 @@ const FeeVoucherManagement = () => {
       alert('Cannot delete voucher with payments')
       return
     }
-    if (!confirm('Are you sure you want to delete this voucher?')) return
+    const monthLabel = MONTHS.find(m => m.value === voucher.month)?.label || ''
+    if (!confirm(`Are you sure you want to delete voucher ${voucher.voucher_no} for "${voucher.student_name}" (${monthLabel} ${voucher.year})?\n\nOnly this specific month's voucher will be deleted.`)) return
     await deleteMutation.mutate(voucher.id)
   }, [deleteMutation])
 
@@ -981,6 +1020,16 @@ const FeeVoucherManagement = () => {
             </select>
 
             <select
+              value={amountSortOrder}
+              onChange={(e) => setAmountSortOrder(e.target.value)}
+              className="filter-select"
+            >
+              <option value="">Sort by Amount</option>
+              <option value="low-to-high">Amount: Low to High</option>
+              <option value="high-to-low">Amount: High to Low</option>
+            </select>
+
+            <select
               value={filters.month}
               onChange={(e) => handleFilterChange('month', parseInt(e.target.value))}
               className="filter-select"
@@ -1137,7 +1186,7 @@ const FeeVoucherManagement = () => {
                       </td>
                       <td>{renderStatusBadge(voucher.status)}</td>
                       <td>
-                        <div className="action-buttons" style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'center' }}>
+                        <div className="action-buttons" style={{ display: 'flex', flexDirection: 'row', gap: '0.35rem', alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'center', whiteSpace: 'nowrap' }}>
                           {voucher.status !== VOUCHER_STATUS.PAID && (
                             <>
                               {isAdmin() && (
@@ -1207,6 +1256,29 @@ const FeeVoucherManagement = () => {
                               onMouseOut={(e) => e.currentTarget.style.background = '#f59e0b'}
                             >
                               ↩️
+                            </button>
+                          )}
+                          {voucher.status === VOUCHER_STATUS.UNPAID && isAdmin() && (
+                            <button 
+                              className="btn-action btn-delete btn-small"
+                              onClick={() => handleDelete(voucher)}
+                              title={`Delete this voucher (${MONTHS.find(m => m.value === voucher.month)?.label || ''} ${voucher.year})`}
+                              style={{ 
+                                fontSize: '0.95rem', 
+                                padding: '0.3rem 0.45rem',
+                                background: '#ef4444',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                lineHeight: '1',
+                                minWidth: 'auto'
+                              }}
+                              onMouseOver={(e) => e.currentTarget.style.background = '#dc2626'}
+                              onMouseOut={(e) => e.currentTarget.style.background = '#ef4444'}
+                            >
+                              🗑️
                             </button>
                           )}
                         </div>

@@ -1568,10 +1568,6 @@ const AdmissionFormNew = () => {
                       <span className="review-value">{formData.name}</span>
                     </div>
                     <div className="review-item">
-                      <span className="review-label">Roll Number:</span>
-                      <span className="review-value">{formData.roll_no || 'N/A'}</span>
-                    </div>
-                    <div className="review-item">
                       <span className="review-label">Email:</span>
                       <span className="review-value">{formData.email || 'N/A'}</span>
                     </div>
