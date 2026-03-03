@@ -109,6 +109,7 @@ export const API_ENDPOINTS = {
   ANALYTICS_FACULTY_STATS: '/api/analytics/faculty-stats',
   ANALYTICS_EXPENSE_ANALYSIS: '/api/analytics/expense-analysis',
   ANALYTICS_PERFORMANCE: '/api/analytics/performance',
+  ANALYTICS_FINANCIAL_SUMMARY: '/api/analytics/financial-summary',
 
   // Documents
   DOCUMENTS: '/api/documents',

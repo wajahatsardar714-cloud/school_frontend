@@ -71,4 +71,17 @@ export const analyticsService = {
   async getPerformance() {
     return await apiClient.get(API_ENDPOINTS.ANALYTICS_PERFORMANCE)
   },
+
+  /**
+   * Financial summary for Accounts Overview
+   * GET /api/analytics/financial-summary?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
+   * Response: { summary, monthly_breakdown, expense_distribution, collection_matrix }
+   */
+  async getFinancialSummary(startDate, endDate) {
+    const params = new URLSearchParams()
+    if (startDate) params.append('startDate', startDate)
+    if (endDate) params.append('endDate', endDate)
+    const query = params.toString() ? `?${params.toString()}` : ''
+    return await apiClient.get(`${API_ENDPOINTS.ANALYTICS_FINANCIAL_SUMMARY}${query}`)
+  },
 }

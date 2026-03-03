@@ -155,6 +155,11 @@ function AppLayout() {
                   <AnalyticsDashboard />
                 </ProtectedRoute>
               } />
+              <Route path="/analytics/accounts-overview" element={
+                <ProtectedRoute requireAdmin={true}>
+                  <AnalyticsDashboard defaultSubpage="accounts" />
+                </ProtectedRoute>
+              } />
 
               {/* Test Report */}
               <Route path="/test-report" element={<TestReport />} />

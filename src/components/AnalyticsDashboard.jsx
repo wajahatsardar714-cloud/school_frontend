@@ -12,9 +12,11 @@
  * - GET /api/analytics/performance
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useFetch } from '../hooks/useApi';
 import { analyticsService } from '../services/analyticsService';
+import AccountsOverview from './AccountsOverview';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -43,7 +45,23 @@ ChartJS.register(
   Filler
 );
 
-export default function AnalyticsDashboard() {
+export default function AnalyticsDashboard({ defaultSubpage = 'analytics' }) {
+  const navigate = useNavigate();
+  
+  // Subpage state
+  const [activeSubpage, setActiveSubpage] = useState(defaultSubpage);
+  
+  // Sync with prop when navigated via sidebar
+  useEffect(() => {
+    setActiveSubpage(defaultSubpage);
+  }, [defaultSubpage]);
+
+  // Navigate between subpages
+  const switchSubpage = useCallback((subpage) => {
+    setActiveSubpage(subpage);
+    navigate(subpage === 'accounts' ? '/analytics/accounts-overview' : '/analytics', { replace: true });
+  }, [navigate]);
+  
   // Filter state
   const [revenueMonths, setRevenueMonths] = useState(1);
   const [selectedPeriod, setSelectedPeriod] = useState('this_month');
@@ -349,8 +367,60 @@ export default function AnalyticsDashboard() {
     cutout: '70%',
   };
   
+  // If Accounts Overview subpage is active, render it
+  if (activeSubpage === 'accounts') {
+    return <AccountsOverview onBack={() => switchSubpage('analytics')} />;
+  }
+
   return (
     <div className="fee-management analytics-dashboard">
+      {/* Subpage Navigation Tabs */}
+      <div className="analytics-subpage-tabs" style={{
+        display: 'flex',
+        gap: '0',
+        marginBottom: '1.5rem',
+        background: 'rgba(37, 99, 235, 0.08)',
+        borderRadius: '12px',
+        padding: '4px',
+        width: 'fit-content',
+        border: '1px solid rgba(37, 99, 235, 0.15)',
+      }}>
+        <button
+          onClick={() => switchSubpage('analytics')}
+          style={{
+            padding: '0.65rem 1.5rem',
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            border: 'none',
+            borderRadius: '10px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            background: activeSubpage === 'analytics' ? '#2563eb' : 'transparent',
+            color: activeSubpage === 'analytics' ? '#fff' : '#1e40af',
+            boxShadow: activeSubpage === 'analytics' ? '0 2px 8px rgba(37, 99, 235, 0.3)' : 'none',
+          }}
+        >
+          📊 Fee Analytics
+        </button>
+        <button
+          onClick={() => switchSubpage('accounts')}
+          style={{
+            padding: '0.65rem 1.5rem',
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            border: 'none',
+            borderRadius: '10px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            background: activeSubpage === 'accounts' ? '#2563eb' : 'transparent',
+            color: activeSubpage === 'accounts' ? '#fff' : '#1e40af',
+            boxShadow: activeSubpage === 'accounts' ? '0 2px 8px rgba(37, 99, 235, 0.3)' : 'none',
+          }}
+        >
+          💰 Accounts Overview
+        </button>
+      </div>
+
       {/* Header */}
       <div className="analytics-header" style={{
         background: 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)',

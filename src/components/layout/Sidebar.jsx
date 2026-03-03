@@ -112,14 +112,19 @@ const navigationItems = [
     path: '/fees', label: 'Fee Management', icon: <IconFees />, roles: ['ADMIN', 'ACCOUNTANT'], subItems: [
       { path: '/fees/vouchers', label: 'Fee Vouchers', roles: ['ADMIN', 'ACCOUNTANT'] },
       { path: '/fees/payments', label: 'Payments', roles: ['ADMIN', 'ACCOUNTANT'] },
-      { path: '/fees/discounts', label: 'Discounts', roles: ['ADMIN', 'ACCOUNTANT'] },
+      { path: '/fees/discounts', label: 'Discounts', roles: ['ADMIN'] },
       { path: '/fees/defaulters', label: 'Defaulters', roles: ['ADMIN', 'ACCOUNTANT'] },
-      { path: '/fees/statistics', label: 'Statistics', roles: ['ADMIN', 'ACCOUNTANT'] },
+      { path: '/fees/statistics', label: 'Statistics', roles: ['ADMIN'] },
       { path: '/fees/student-history', label: 'Student History', roles: ['ADMIN', 'ACCOUNTANT'] }
     ]
   },
   { path: '/expenses', label: 'Expenses', icon: <IconExpenses />, roles: ['ADMIN', 'ACCOUNTANT'] },
-  { path: '/analytics', label: 'Analytics', icon: <IconAnalytics />, roles: ['ADMIN'] },
+  {
+    path: '/analytics', label: 'Analytics', icon: <IconAnalytics />, roles: ['ADMIN'], subItems: [
+      { path: '/analytics', label: 'Fee Analytics', roles: ['ADMIN'] },
+      { path: '/analytics/accounts-overview', label: 'Accounts Overview', roles: ['ADMIN'] }
+    ]
+  },
   { path: '/test-report', label: 'Test Report', icon: <IconTestReport />, roles: ['ADMIN', 'ACCOUNTANT'] },
   { path: '/users', label: 'Users', icon: <IconUsers />, roles: ['ADMIN'] },
 ]
@@ -254,7 +259,7 @@ const Sidebar = memo(function Sidebar({ isOpen, onClose }) {
                   </div>
                   {!isCollapsed && expandedItems[item.path] && (
                     <div className="sub-nav">
-                      {item.subItems.map((subItem) => (
+                      {item.subItems.filter(subItem => subItem.roles.includes(user?.role?.toUpperCase())).map((subItem) => (
                         <Link
                           key={subItem.path}
                           to={subItem.path}
