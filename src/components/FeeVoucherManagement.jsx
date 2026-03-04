@@ -87,6 +87,9 @@ const FeeVoucherManagement = () => {
   // Amount sort order state
   const [amountSortOrder, setAmountSortOrder] = useState('')
 
+  // Display limit for progressive rendering (Show More)
+  const [displayLimit, setDisplayLimit] = useState(100)
+
   // Generate Form State
   const [generateForm, setGenerateForm] = useState({
     type: 'single', // 'single' | 'bulk'
@@ -335,6 +338,7 @@ const FeeVoucherManagement = () => {
         class_name: v.class_name,
         section_id: v.section_id,
         section_name: v.section_name,
+        father_name: v.father_name,
         month,
         year,
         total_amount: parseFloat(v.total_fee) || 0,
@@ -382,6 +386,11 @@ const FeeVoucherManagement = () => {
   useEffect(() => {
     setSelectedVouchers([])
   }, [filters, activeTab])
+
+  // Reset display limit when filters or search change
+  useEffect(() => {
+    setDisplayLimit(100)
+  }, [filters, debouncedSearch, amountSortOrder])
 
   // Handlers
   const handleFilterChange = useCallback((key, value) => {
@@ -1149,7 +1158,9 @@ const FeeVoucherManagement = () => {
                     </th>
                     <th>Voucher #</th>
                     <th>Student</th>
+                    <th>Father Name</th>
                     <th>Class</th>
+                    <th>Section</th>
                     <th>Month/Year</th>
                     <th>Total</th>
                     <th>Paid</th>
@@ -1159,7 +1170,7 @@ const FeeVoucherManagement = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredVouchers.map(voucher => (
+                  {filteredVouchers.slice(0, displayLimit).map(voucher => (
                     <tr key={voucher.id}>
                       <td>
                         <input
@@ -1177,7 +1188,9 @@ const FeeVoucherManagement = () => {
                           <span className="student-roll">{voucher.student_roll_no}</span>
                         </div>
                       </td>
+                      <td>{voucher.father_name || '-'}</td>
                       <td>{voucher.class_name}</td>
+                      <td>{voucher.section_name || '-'}</td>
                       <td>{voucher.month && voucher.year ? `${MONTHS.find(m => m.value === voucher.month)?.label || ''} ${voucher.year}` : '-'}</td>
                       <td>{formatCurrency(voucher.total_amount)}</td>
                       <td>{formatCurrency(voucher.paid_amount)}</td>
@@ -1287,6 +1300,28 @@ const FeeVoucherManagement = () => {
                   ))}
                 </tbody>
               </table>
+              {filteredVouchers.length > displayLimit && (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '1.2rem 0 0.5rem' }}>
+                  <button
+                    onClick={() => setDisplayLimit(prev => prev + 100)}
+                    style={{
+                      padding: '0.55rem 2rem',
+                      background: '#3b82f6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      fontSize: '0.95rem',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.background = '#2563eb'}
+                    onMouseOut={(e) => e.currentTarget.style.background = '#3b82f6'}
+                  >
+                    Show More ({filteredVouchers.length - displayLimit} remaining)
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
