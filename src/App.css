@@ -7917,11 +7917,12 @@ h6 {
 
 .mission-statement {
   background: linear-gradient(135deg, #f1f5f9 0%, white 100%);
-  padding: 40px;
+  padding: 40px 48px;
   border-radius: 16px;
   border-left: 5px solid #3b82f6;
   position: relative;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  text-align: left;
 }
 
 .quote-icon {
@@ -7938,7 +7939,7 @@ h6 {
   font-weight: 600;
   margin: 0 0 12px 0;
   line-height: 1.6;
-  padding-left: 50px;
+  padding-left: 0;
 }
 
 .mission-tagline {
@@ -7946,7 +7947,17 @@ h6 {
   color: #64748b;
   font-style: italic;
   margin: 0;
-  padding-left: 50px;
+  padding-left: 0;
+}
+
+/* Dashboard welcome title used inside mission-statement (Dashboard.jsx uses <h2>) */
+.mission-statement h2 {
+  margin: 0 0 14px 0;
+  color: #1e3a8a;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
 }
 
 .section-title {

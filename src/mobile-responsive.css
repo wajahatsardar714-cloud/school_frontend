@@ -752,6 +752,15 @@ body {
   .mission-text {
     font-size: var(--font-mobile-base);
   }
+
+  .mission-statement {
+    text-align: left;
+  }
+
+  .mission-statement h2 {
+    font-size: var(--font-mobile-2xl);
+    margin: 0 0 var(--spacing-mobile-md) 0;
+  }
   
   .mission-tagline {
     font-size: var(--font-mobile-sm);
