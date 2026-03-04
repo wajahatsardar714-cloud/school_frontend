@@ -195,7 +195,7 @@ const AdmissionFormNew = () => {
       if (selectedClassObj) {
         setSelectedClass(selectedClassObj.name)
         setFormData({ ...formData, class: selectedClassObj.name, section: '' })
-        await loadSections(classId)
+        // Sections are loaded reactively via the selectedClassId useEffect — no duplicate call needed
 
         // Get fee structure from class object (populated by backend list/getById)
         const feeStruct = selectedClassObj.current_fee_structure
