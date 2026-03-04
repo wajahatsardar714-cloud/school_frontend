@@ -30,7 +30,7 @@
 
 .header-container {
   max-width: 100%;
-  padding: var(--spacing-md) var(--spacing-xl);
+  padding: calc(var(--spacing-md) * 1.25) var(--spacing-xl);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -48,8 +48,8 @@
 }
 
 .header-logo {
-  width: 56px;
-  height: 56px;
+  width: 64px;
+  height: 64px;
   border-radius: var(--radius-lg);
   flex-shrink: 0;
   object-fit: cover;

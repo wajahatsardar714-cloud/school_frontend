@@ -31,7 +31,7 @@
   --sidebar-collapsed-width: 72px;
   --sidebar-mobile-width: 260px;
   --header-height: 60px;
-  --header-mobile-height: 52px;
+  --header-mobile-height: 64px;
   
   /* Compact mode toggle (set via JS) */
   --compact-mode: 0;
