@@ -611,7 +611,7 @@
 
 .header-container {
   max-width: 100%;
-  padding: 20px 24px;
+  padding: 24px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -629,8 +629,8 @@
 }
 
 .header-logo {
-  width: 58px;
-  height: 58px;
+  width: 66px;
+  height: 66px;
   border-radius: 8px;
   flex-shrink: 0;
 }
