@@ -5,10 +5,11 @@
  * Uses robust hooks for race condition prevention and optimized performance.
  */
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useFetch, useMutation, useDebounce } from '../hooks/useApi';
 import { feeService } from '../services/feeService';
+import { studentService } from '../services/studentService';
 import { PrintReportHeader, ReportTable, ReportActions } from './PrintReport';
 import '../fee.css';
 
@@ -65,6 +66,16 @@ export default function FeePaymentManagement() {
     amount: '',
     paymentDate: new Date().toISOString().split('T')[0],
   });
+
+  // Student search state for record payment modal
+  const [studentSearchTerm, setStudentSearchTerm] = useState('');
+  const [studentSearchResults, setStudentSearchResults] = useState([]);
+  const [studentSearchLoading, setStudentSearchLoading] = useState(false);
+  const [showStudentResults, setShowStudentResults] = useState(false);
+  const [selectedPaymentStudent, setSelectedPaymentStudent] = useState(null);
+  const [studentVouchers, setStudentVouchers] = useState([]);
+  const [studentVouchersLoading, setStudentVouchersLoading] = useState(false);
+  const studentSearchRef = useRef(null);
   
   // Build query params for API - using backend format
   const queryParams = useMemo(() => {
@@ -85,17 +96,64 @@ export default function FeePaymentManagement() {
     [queryParams]
   );
   
-  // Fetch unpaid vouchers for recording payments
-  const {
-    data: unpaidVouchersData,
-    loading: vouchersLoading,
-  } = useFetch(
-    () => feeService.getVouchers({ status: 'UNPAID' }),
-    [],
-    { enabled: showRecordModal }
-  );
+  // Close student search dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (studentSearchRef.current && !studentSearchRef.current.contains(event.target)) {
+        setShowStudentResults(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Debounced student search
+  useEffect(() => {
+    const delay = setTimeout(async () => {
+      if (studentSearchTerm.trim().length >= 2) {
+        setStudentSearchLoading(true);
+        try {
+          const response = await studentService.search(studentSearchTerm.trim());
+          const students = response.data?.data || response.data || [];
+          setStudentSearchResults(students);
+          setShowStudentResults(true);
+        } catch (err) {
+          setStudentSearchResults([]);
+        } finally {
+          setStudentSearchLoading(false);
+        }
+      } else {
+        setStudentSearchResults([]);
+        setShowStudentResults(false);
+      }
+    }, 300);
+    return () => clearTimeout(delay);
+  }, [studentSearchTerm]);
+
+  // Select a student for payment — fetch their unpaid vouchers
+  const handleSelectPaymentStudent = useCallback(async (student) => {
+    setSelectedPaymentStudent(student);
+    setStudentSearchTerm('');
+    setShowStudentResults(false);
+    setStudentVouchers([]);
+    setPaymentForm(prev => ({ ...prev, voucherId: '' }));
+    setStudentVouchersLoading(true);
+    try {
+      const response = await feeService.getVouchers({ status: 'UNPAID', student_id: student.id });
+      const vouchers = response.data?.vouchers || response.data || response.vouchers || [];
+      setStudentVouchers(vouchers);
+      if (vouchers.length === 1) {
+        setPaymentForm(prev => ({ ...prev, voucherId: vouchers[0].voucher_id }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch student vouchers:', err);
+    } finally {
+      setStudentVouchersLoading(false);
+    }
+  }, []);
+
   
-  // Fetch fee defaulters
+  // Fetch fee defaulters — eagerly loaded so data is ready when tab is clicked
   const {
     data: defaultersData,
     loading: defaultersLoading,
@@ -104,7 +162,7 @@ export default function FeePaymentManagement() {
   } = useFetch(
     () => feeService.getDefaulters(),
     [],
-    { enabled: activeTab === 'defaulters' }
+    { enabled: true }
   );
   
   // Record payment mutation
@@ -133,6 +191,10 @@ export default function FeePaymentManagement() {
       amount: '',
       paymentDate: new Date().toISOString().split('T')[0],
     });
+    setSelectedPaymentStudent(null);
+    setStudentSearchTerm('');
+    setStudentVouchers([]);
+    setShowStudentResults(false);
   }, []);
   
   // Handle filter change
@@ -155,11 +217,8 @@ export default function FeePaymentManagement() {
     setPaymentForm(prev => ({ ...prev, [key]: value }));
   }, []);
 
-  // Extract unpaid vouchers - must be declared before use
-  const unpaidVouchers = unpaidVouchersData?.data || unpaidVouchersData?.vouchers || [];
-
-  // Get selected voucher details
-  const selectedVoucher = unpaidVouchers.find(v => v.voucher_id === paymentForm.voucherId);
+  // Get selected voucher details from the student's fetched vouchers
+  const selectedVoucher = studentVouchers.find(v => String(v.voucher_id) === String(paymentForm.voucherId));
   const dueAmount = selectedVoucher ? parseFloat(selectedVoucher.due_amount) : 0;
   const paymentAmount = parseFloat(paymentForm.amount) || 0;
   const isFullPayment = paymentAmount >= dueAmount && dueAmount > 0;
@@ -174,7 +233,7 @@ export default function FeePaymentManagement() {
     }
 
     const paymentAmount = parseFloat(paymentForm.amount);
-    const selectedVoucher = unpaidVouchers.find(v => v.voucher_id === paymentForm.voucherId);
+    const selectedVoucher = studentVouchers.find(v => String(v.voucher_id) === String(paymentForm.voucherId));
     const dueAmount = selectedVoucher ? parseFloat(selectedVoucher.due_amount) : 0;
     
     // Prevent overpayment
@@ -197,7 +256,7 @@ export default function FeePaymentManagement() {
     }
     
     await recordPayment(paymentForm);
-  }, [paymentForm, recordPayment, unpaidVouchers]);
+  }, [paymentForm, recordPayment, studentVouchers]);
   
   // View payment details
   const handleViewPayment = useCallback((payment) => {
@@ -689,25 +748,115 @@ export default function FeePaymentManagement() {
               )}
               
               <form onSubmit={handleSubmitPayment}>
-                <div className="form-group">
-                  <label>Select Voucher *</label>
-                  <select
-                    value={paymentForm.voucherId}
-                    onChange={(e) => handlePaymentFormChange('voucherId', e.target.value)}
-                    required
-                    disabled={vouchersLoading}
-                  >
-                    <option value="">
-                      {vouchersLoading ? 'Loading vouchers...' : 'Select a voucher'}
-                    </option>
-                    {unpaidVouchers.map(voucher => (
-                      <option key={voucher.voucher_id} value={voucher.voucher_id}>
-                        #{voucher.voucher_id} - {voucher.student_name} ({voucher.class_name}) - 
-                        Due: Rs. {parseFloat(voucher.due_amount).toLocaleString()}
-                      </option>
-                    ))}
-                  </select>
+                {/* Student Search */}
+                <div className="form-group" ref={studentSearchRef} style={{ position: 'relative' }}>
+                  <label>Search Student *</label>
+                  {!selectedPaymentStudent ? (
+                    <>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type="text"
+                          placeholder="Type student name to search..."
+                          value={studentSearchTerm}
+                          onChange={(e) => setStudentSearchTerm(e.target.value)}
+                          onFocus={() => studentSearchResults.length > 0 && setShowStudentResults(true)}
+                          autoComplete="off"
+                          style={{ width: '100%', padding: '0.5rem', border: '1px solid #ced4da', borderRadius: '4px' }}
+                        />
+                        {studentSearchTerm && (
+                          <button
+                            type="button"
+                            onClick={() => { setStudentSearchTerm(''); setShowStudentResults(false); }}
+                            style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#6c757d', fontSize: '16px' }}
+                          >✕</button>
+                        )}
+                      </div>
+                      {studentSearchLoading && <div style={{ fontSize: '13px', color: '#6c757d', marginTop: '4px' }}>⏳ Searching...</div>}
+                      {showStudentResults && (
+                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1000, background: '#fff', border: '1px solid #dee2e6', borderRadius: '4px', maxHeight: '260px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+                          {studentSearchResults.length === 0 ? (
+                            <div style={{ padding: '12px', color: '#6c757d', fontSize: '13px' }}>No students found matching "{studentSearchTerm}"</div>
+                          ) : studentSearchResults.map((student) => {
+                            const fatherName = student.father_name || student.father_guardian_name || 'N/A';
+                            const className = student.current_class_name || student.current_enrollment?.class_name || student.class_name || 'N/A';
+                            const sectionName = student.current_section_name || student.current_enrollment?.section_name || student.section_name || '';
+                            return (
+                              <div
+                                key={student.id}
+                                onClick={() => handleSelectPaymentStudent(student)}
+                                style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', gap: '10px' }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = '#f0f4ff'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}
+                              >
+                                <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#3b82f6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px', flexShrink: 0 }}>
+                                  {student.name?.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <div style={{ fontWeight: '600', fontSize: '14px' }}>{student.name}</div>
+                                  <div style={{ fontSize: '12px', color: '#6c757d', marginTop: '2px' }}>
+                                    <span style={{ marginRight: '10px' }}>Father: {fatherName}</span>
+                                    <span style={{ marginRight: '10px' }}>Class: {className}</span>
+                                    {sectionName && <span>Section: {sectionName}</span>}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#e8f4fd', border: '1px solid #bee3f8', borderRadius: '4px', padding: '8px 12px' }}>
+                      <div>
+                        <strong>{selectedPaymentStudent.name}</strong>
+                        <span style={{ marginLeft: '10px', color: '#4a5568', fontSize: '13px' }}>
+                          {selectedPaymentStudent.current_class_name || selectedPaymentStudent.current_enrollment?.class_name || selectedPaymentStudent.class_name || ''}
+                          {(selectedPaymentStudent.current_section_name || selectedPaymentStudent.current_enrollment?.section_name || selectedPaymentStudent.section_name) && 
+                            ` - ${selectedPaymentStudent.current_section_name || selectedPaymentStudent.current_enrollment?.section_name || selectedPaymentStudent.section_name}`}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedPaymentStudent(null); setStudentVouchers([]); setPaymentForm(prev => ({ ...prev, voucherId: '' })); }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#e53e3e', fontSize: '18px', lineHeight: 1 }}
+                      >✕</button>
+                    </div>
+                  )}
                 </div>
+
+                {/* Voucher selection for selected student */}
+                {selectedPaymentStudent && (
+                  <div className="form-group">
+                    <label>Select Voucher *</label>
+                    {studentVouchersLoading ? (
+                      <div style={{ padding: '8px', color: '#6c757d' }}>⏳ Loading vouchers...</div>
+                    ) : studentVouchers.length === 0 ? (
+                      <div style={{ padding: '8px', color: '#dc3545', fontSize: '13px' }}>No unpaid vouchers found for this student.</div>
+                    ) : studentVouchers.length === 1 ? (
+                      <div style={{ background: '#f8f9fa', padding: '8px 12px', borderRadius: '4px', border: '1px solid #dee2e6', fontSize: '14px' }}>
+                        ✅ Auto-selected: <strong>#{studentVouchers[0].voucher_id}</strong> — 
+                        {studentVouchers[0].month ? ` ${new Date(studentVouchers[0].month).toLocaleDateString('en-PK', { year: 'numeric', month: 'short' })}` : ''} — 
+                        Due: Rs. {parseFloat(studentVouchers[0].due_amount).toLocaleString()}
+                      </div>
+                    ) : (
+                      <select
+                        value={paymentForm.voucherId}
+                        onChange={(e) => handlePaymentFormChange('voucherId', e.target.value)}
+                        required
+                        style={{ width: '100%', padding: '0.5rem', border: '1px solid #ced4da', borderRadius: '4px' }}
+                      >
+                        <option value="">— Select a voucher —</option>
+                        {studentVouchers.map(voucher => (
+                          <option key={voucher.voucher_id} value={voucher.voucher_id}>
+                            #{voucher.voucher_id} —
+                            {voucher.month ? ` ${new Date(voucher.month).toLocaleDateString('en-PK', { year: 'numeric', month: 'short' })}` : ''} — 
+                            Due: Rs. {parseFloat(voucher.due_amount).toLocaleString()}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                )}
 
                 {selectedVoucher && (
                   <div className="voucher-info" style={{ 
@@ -787,6 +936,7 @@ export default function FeePaymentManagement() {
                     className="btn-primary"
                     disabled={
                       recordingPayment || 
+                      !selectedPaymentStudent ||
                       !paymentForm.voucherId || 
                       !paymentForm.amount || 
                       paymentAmount <= 0 ||

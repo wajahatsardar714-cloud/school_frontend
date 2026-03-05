@@ -13,6 +13,7 @@ const AdmissionList = () => {
   const [filterClass, setFilterClass] = useState('')
   const [filterStatus, setFilterStatus] = useState('active') // active, inactive, expelled, all
   const [isClearing, setIsClearing] = useState(false)
+  const [sortOrder, setSortOrder] = useState('new-to-old')
   
   // Date range filter - default to last 3 days
   const getDefaultStartDate = () => {
@@ -109,7 +110,10 @@ const AdmissionList = () => {
     }
 
     return matchesSearch && matchesClass && matchesDate
-  }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))  // Sort by newest first
+  }).sort((a, b) => {
+    if (sortOrder === 'old-to-new') return new Date(a.created_at) - new Date(b.created_at)
+    return new Date(b.created_at) - new Date(a.created_at) // new-to-old default
+  })
 
   if (loading) {
     return (
@@ -139,14 +143,6 @@ const AdmissionList = () => {
           <Link to="/admission/new-form" className="btn-primary">
             + New Admission
           </Link>
-          <button 
-            onClick={handleClearAdmissionList}
-            className="btn-danger"
-            disabled={isClearing || filteredStudents.filter(s => s.is_active).length === 0}
-            style={{ marginLeft: '10px' }}
-          >
-            {isClearing ? 'Clearing...' : 'Clear Admission List'}
-          </button>
         </div>
       </div>
 
@@ -237,6 +233,21 @@ const AdmissionList = () => {
             </select>
           </div>
           
+          {/* Sort Order */}
+          <div className="form-group" style={{ minWidth: '160px' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>
+              Sort Order
+            </label>
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              style={{ width: '100%', padding: '0.6rem', border: '1px solid #cbd5e0', borderRadius: '4px' }}
+            >
+              <option value="new-to-old">New to Old</option>
+              <option value="old-to-new">Old to New</option>
+            </select>
+          </div>
+
           {/* Quick filters */}
           <div className="form-group" style={{ minWidth: '200px' }}>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>

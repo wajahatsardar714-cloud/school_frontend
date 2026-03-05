@@ -58,6 +58,16 @@ const FEE_TYPES = [
   { value: 'OTHER', label: 'Other Charges', description: 'Add custom fees with name and amount' },
 ]
 
+// Valid item types for the edit voucher modal (matches DB constraint)
+const EDIT_FEE_TYPES = [
+  { value: 'MONTHLY',    label: 'Monthly Fee' },
+  { value: 'ADMISSION',  label: 'Admission Fee' },
+  { value: 'PAPER_FUND', label: 'Paper Fund' },
+  { value: 'TRANSPORT',  label: 'Transport Fee' },
+  { value: 'ARREARS',    label: 'Arrears' },
+  { value: 'CUSTOM',     label: 'Custom Charge' },
+]
+
 const FeeVoucherManagement = () => {
   // Auth
   const { isAdmin } = useAuth()
@@ -87,6 +97,14 @@ const FeeVoucherManagement = () => {
   // Amount sort order state
   const [amountSortOrder, setAmountSortOrder] = useState('')
 
+  // Voucher list student search (replaces plain text search)
+  const [listSearchTerm, setListSearchTerm] = useState('')
+  const [listSearchResults, setListSearchResults] = useState([])
+  const [listSearchLoading, setListSearchLoading] = useState(false)
+  const [showListSearchResults, setShowListSearchResults] = useState(false)
+  const [selectedListStudent, setSelectedListStudent] = useState(null)
+  const listSearchRef = useRef(null)
+
   // Display limit for progressive rendering (Show More)
   const [displayLimit, setDisplayLimit] = useState(100)
 
@@ -107,6 +125,7 @@ const FeeVoucherManagement = () => {
   const [previewData, setPreviewData] = useState(null)
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [previewDisplayLimit, setPreviewDisplayLimit] = useState(100)
 
   // Student Search State (for single voucher generation)
   const [studentSearchTerm, setStudentSearchTerm] = useState('')
@@ -127,7 +146,7 @@ const FeeVoucherManagement = () => {
   // Debounced search
   const debouncedSearch = useDebounce(searchTerm, 300)
 
-  // Close student search dropdown when clicking outside
+  // Close generate-form student search dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (studentSearchRef.current && !studentSearchRef.current.contains(event.target)) {
@@ -137,6 +156,40 @@ const FeeVoucherManagement = () => {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  // Close list student search dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (listSearchRef.current && !listSearchRef.current.contains(event.target)) {
+        setShowListSearchResults(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Debounced list student search
+  useEffect(() => {
+    const delay = setTimeout(async () => {
+      if (listSearchTerm.trim().length >= 2) {
+        setListSearchLoading(true)
+        try {
+          const response = await studentService.search(listSearchTerm.trim())
+          const students = response.data?.data || response.data || []
+          setListSearchResults(students)
+          setShowListSearchResults(true)
+        } catch (err) {
+          setListSearchResults([])
+        } finally {
+          setListSearchLoading(false)
+        }
+      } else {
+        setListSearchResults([])
+        setShowListSearchResults(false)
+      }
+    }, 300)
+    return () => clearTimeout(delay)
+  }, [listSearchTerm])
 
   // Student search with debouncing
   useEffect(() => {
@@ -189,13 +242,16 @@ const FeeVoucherManagement = () => {
     refetch: refreshVouchers 
   } = useFetch(
     () => feeVoucherService.list({
-      month: filters.month,
-      year: filters.year,
+      // When a student is selected, fetch ALL their vouchers regardless of month/year
+      ...(selectedListStudent
+        ? { student_id: selectedListStudent.id }
+        : { month: filters.month, year: filters.year }
+      ),
       class_id: filters.class_id || undefined,
       section_id: filters.section_id || undefined,
       status: filters.status || undefined,
     }),
-    [filters.month, filters.year, filters.class_id, filters.section_id, filters.status],
+    [filters.month, filters.year, filters.class_id, filters.section_id, filters.status, selectedListStudent?.id],
     { enabled: true }
   )
 
@@ -372,6 +428,17 @@ const FeeVoucherManagement = () => {
       mappedVouchers.sort((a, b) => b.total_amount - a.total_amount)
     }
 
+    // When student is selected, API already filters by student_id server-side.
+    // Still apply text search if manually typed.
+    if (selectedListStudent) {
+      if (!debouncedSearch) return mappedVouchers
+      const searchLower = debouncedSearch.toLowerCase()
+      return mappedVouchers.filter(v =>
+        v.student_name?.toLowerCase().includes(searchLower) ||
+        v.voucher_no?.toLowerCase().includes(searchLower)
+      )
+    }
+
     if (!debouncedSearch) return mappedVouchers
     
     const searchLower = debouncedSearch.toLowerCase()
@@ -380,17 +447,17 @@ const FeeVoucherManagement = () => {
       v.student_roll_no?.toLowerCase().includes(searchLower) ||
       v.voucher_no?.toLowerCase().includes(searchLower)
     )
-  }, [vouchersData, debouncedSearch, parseVoucherMonth, amountSortOrder])
+  }, [vouchersData, debouncedSearch, parseVoucherMonth, amountSortOrder, selectedListStudent])
 
   // Clear selection when filters change or tab changes
   useEffect(() => {
     setSelectedVouchers([])
   }, [filters, activeTab])
 
-  // Reset display limit when filters or search change
+  // Reset display limit when filters, search or selected student change
   useEffect(() => {
     setDisplayLimit(100)
-  }, [filters, debouncedSearch, amountSortOrder])
+  }, [filters, debouncedSearch, amountSortOrder, selectedListStudent])
 
   // Handlers
   const handleFilterChange = useCallback((key, value) => {
@@ -478,10 +545,20 @@ const FeeVoucherManagement = () => {
       const response = await feeVoucherService.getById(voucher.id)
       const fullVoucher = response?.data || response
       setEditingVoucher(fullVoucher)
-      setEditItems(fullVoucher.items || [])
+      // Normalize items: map any 'OTHER' type (legacy) to 'CUSTOM', skip DISCOUNT items
+      const items = (fullVoucher.items || [])
+        .filter(item => item.item_type !== 'DISCOUNT')
+        .map(item => ({
+          ...item,
+          item_type: item.item_type === 'OTHER' ? 'CUSTOM' : item.item_type,
+          description: item.description || '',
+          amount: parseFloat(item.amount) || 0,
+        }))
+      setEditItems(items)
       setShowEditItemsModal(true)
     } catch (error) {
       console.error('Failed to load voucher details:', error)
+      alert('Failed to load voucher details. Please try again.')
     }
   }, [])
 
@@ -496,14 +573,21 @@ const FeeVoucherManagement = () => {
   const handleEditItemChange = useCallback((index, field, value) => {
     setEditItems(prev => {
       const newItems = [...prev]
-      newItems[index] = { ...newItems[index], [field]: field === 'amount' ? parseFloat(value) || 0 : value }
+      if (field === 'amount') {
+        newItems[index] = { ...newItems[index], amount: parseFloat(value) || 0 }
+      } else if (field === 'item_type') {
+        // Clear description when switching away from CUSTOM
+        newItems[index] = { ...newItems[index], item_type: value, description: value === 'CUSTOM' ? (newItems[index].description || '') : '' }
+      } else {
+        newItems[index] = { ...newItems[index], [field]: value }
+      }
       return newItems
     })
   }, [])
 
   // Add new item
   const handleAddItem = useCallback(() => {
-    setEditItems(prev => [...prev, { item_type: 'OTHER', amount: 0 }])
+    setEditItems(prev => [...prev, { item_type: 'CUSTOM', amount: 0, description: '' }])
   }, [])
 
   // Remove item
@@ -515,9 +599,20 @@ const FeeVoucherManagement = () => {
   const handleEditItemsSubmit = useCallback(async (e) => {
     e.preventDefault()
     if (!editingVoucher || editItems.length === 0) return
+    // Validate all CUSTOM items have a description
+    const missingDesc = editItems.some(item => item.item_type === 'CUSTOM' && !item.description?.trim())
+    if (missingDesc) {
+      alert('Please enter a custom name for all "Custom Charge" items.')
+      return
+    }
+    const itemsToSave = editItems.map(item => ({
+      item_type: item.item_type,
+      amount: item.amount,
+      ...(item.item_type === 'CUSTOM' && item.description ? { description: item.description.trim() } : {})
+    }))
     await editItemsMutation.mutate({
       voucher_id: editingVoucher.voucher_id || editingVoucher.id,
-      items: editItems,
+      items: itemsToSave,
     })
   }, [editingVoucher, editItems, editItemsMutation])
 
@@ -569,6 +664,7 @@ const FeeVoucherManagement = () => {
       })
       
       setPreviewData(result?.data || result)
+      setPreviewDisplayLimit(100)
       setShowPreview(true)
     } catch (error) {
       console.error('Failed to preview vouchers:', error)
@@ -615,6 +711,7 @@ const FeeVoucherManagement = () => {
   const handleCancelPreview = useCallback(() => {
     setShowPreview(false)
     setPreviewData(null)
+    setPreviewDisplayLimit(100)
   }, [])
 
   const openPaymentModal = useCallback((voucher) => {
@@ -986,13 +1083,66 @@ const FeeVoucherManagement = () => {
         <div className="voucher-list-section">
           {/* Filters */}
           <div className="filters-section">
-            <input
-              type="text"
-              placeholder="Search by student name, roll no, or voucher no..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-            />
+            {/* Student name search dropdown (replaces plain text search) */}
+            <div ref={listSearchRef} style={{ position: 'relative', flex: '1', minWidth: '220px' }}>
+              {!selectedListStudent ? (
+                <>
+                  <input
+                    type="text"
+                    placeholder="Search by student name..."
+                    value={listSearchTerm}
+                    onChange={(e) => setListSearchTerm(e.target.value)}
+                    onFocus={() => listSearchResults.length > 0 && setShowListSearchResults(true)}
+                    className="search-input"
+                    style={{ width: '100%' }}
+                    autoComplete="off"
+                  />
+                  {listSearchLoading && (
+                    <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '12px', color: '#6b7280' }}>⏳</span>
+                  )}
+                  {showListSearchResults && (
+                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1000, background: '#fff', border: '1px solid #dee2e6', borderRadius: '4px', maxHeight: '240px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+                      {listSearchResults.length === 0 ? (
+                        <div style={{ padding: '10px 14px', color: '#6c757d', fontSize: '13px' }}>No students found</div>
+                      ) : listSearchResults.map((student) => {
+                        const fatherName = student.father_name || student.father_guardian_name || 'N/A'
+                        const className = student.current_class_name || student.current_enrollment?.class_name || student.class_name || 'N/A'
+                        const sectionName = student.current_section_name || student.current_enrollment?.section_name || student.section_name || ''
+                        return (
+                          <div
+                            key={student.id}
+                            onClick={() => { setSelectedListStudent(student); setListSearchTerm(''); setShowListSearchResults(false) }}
+                            style={{ padding: '8px 14px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', gap: '10px' }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#f0f4ff'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}
+                          >
+                            <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#3b82f6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '13px', flexShrink: 0 }}>
+                              {student.name?.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: '600', fontSize: '13px' }}>{student.name}</div>
+                              <div style={{ fontSize: '11px', color: '#6c757d' }}>
+                                {fatherName} · {className}{sectionName ? ` - ${sectionName}` : ''}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#e8f4fd', border: '1px solid #bee3f8', borderRadius: '4px', padding: '6px 10px', height: '38px' }}>
+                  <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#3b82f6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '12px', flexShrink: 0 }}>
+                    {selectedListStudent.name?.charAt(0).toUpperCase()}
+                  </div>
+                  <span style={{ fontWeight: '600', fontSize: '13px', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {selectedListStudent.name}
+                  </span>
+                  <button onClick={() => setSelectedListStudent(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#e53e3e', fontSize: '16px', lineHeight: 1, padding: 0, flexShrink: 0 }}>×</button>
+                </div>
+              )}
+            </div>
             
             <select
               value={filters.class_id}
@@ -1202,6 +1352,27 @@ const FeeVoucherManagement = () => {
                         <div className="action-buttons" style={{ display: 'flex', flexDirection: 'row', gap: '0.35rem', alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'center', whiteSpace: 'nowrap' }}>
                           {voucher.status !== VOUCHER_STATUS.PAID && (
                             <>
+                              <button 
+                                className="btn-action btn-pay btn-small"
+                                onClick={() => openPaymentModal(voucher)}
+                                title="Record a payment for this voucher"
+                                style={{ 
+                                  fontSize: '0.95rem', 
+                                  padding: '0.3rem 0.45rem',
+                                  background: '#10b981',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s',
+                                  lineHeight: '1',
+                                  minWidth: 'auto'
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.background = '#059669'}
+                                onMouseOut={(e) => e.currentTarget.style.background = '#10b981'}
+                              >
+                                💰
+                              </button>
                               {isAdmin() && (
                                 <button 
                                   className="btn-action btn-edit btn-small"
@@ -1225,27 +1396,6 @@ const FeeVoucherManagement = () => {
                                   ✏️
                                 </button>
                               )}
-                              <button 
-                                className="btn-action btn-pay btn-small"
-                                onClick={() => openPaymentModal(voucher)}
-                                title="Record a payment for this voucher"
-                                style={{ 
-                                  fontSize: '0.95rem', 
-                                  padding: '0.3rem 0.45rem',
-                                  background: '#10b981',
-                                  color: 'white',
-                                  border: 'none',
-                                  borderRadius: '4px',
-                                  cursor: 'pointer',
-                                  transition: 'all 0.2s',
-                                  lineHeight: '1',
-                                  minWidth: 'auto'
-                                }}
-                                onMouseOver={(e) => e.currentTarget.style.background = '#059669'}
-                                onMouseOut={(e) => e.currentTarget.style.background = '#10b981'}
-                              >
-                                💰
-                              </button>
                             </>
                           )}
                           {voucher.status === VOUCHER_STATUS.PAID && isAdmin() && (
@@ -1679,7 +1829,7 @@ const FeeVoucherManagement = () => {
                 )}
               </div>
 
-              <div style={{ maxHeight: '400px', overflowY: 'auto', marginBottom: '1rem' }}>
+              <div style={{ marginBottom: '1rem' }}>
                 <table className="data-table">
                   <thead>
                     <tr>
@@ -1691,7 +1841,7 @@ const FeeVoucherManagement = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {(previewData.vouchers || []).map((voucher, index) => (
+                    {(previewData.vouchers || []).slice(0, previewDisplayLimit).map((voucher, index) => (
                       <tr key={index}>
                         <td>
                           {voucher.student_name}
@@ -1720,6 +1870,28 @@ const FeeVoucherManagement = () => {
                     ))}
                   </tbody>
                 </table>
+                {(previewData.vouchers || []).length > previewDisplayLimit && (
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem 0 0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewDisplayLimit(prev => prev + 100)}
+                      style={{
+                        padding: '0.55rem 2rem',
+                        background: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: '600',
+                        fontSize: '0.95rem',
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.background = '#2563eb'}
+                      onMouseOut={(e) => e.currentTarget.style.background = '#3b82f6'}
+                    >
+                      Show More ({(previewData.vouchers || []).length - previewDisplayLimit} remaining)
+                    </button>
+                  </div>
+                )}
               </div>
 
               {previewData.summary?.students_with_custom_fees > 0 && (
@@ -1864,6 +2036,7 @@ const FeeVoucherManagement = () => {
                     <thead>
                       <tr>
                         <th>Fee Type</th>
+                        <th>Custom Name</th>
                         <th>Amount</th>
                         <th>Action</th>
                       </tr>
@@ -1871,15 +2044,30 @@ const FeeVoucherManagement = () => {
                     <tbody>
                       {editItems.map((item, index) => (
                         <tr key={index}>
-                          <td>
+                          <td style={{ minWidth: '140px' }}>
                             <select
                               value={item.item_type}
                               onChange={(e) => handleEditItemChange(index, 'item_type', e.target.value)}
+                              style={{ width: '100%' }}
                             >
-                              {FEE_TYPES.map(ft => (
+                              {EDIT_FEE_TYPES.map(ft => (
                                 <option key={ft.value} value={ft.value}>{ft.label}</option>
                               ))}
                             </select>
+                          </td>
+                          <td style={{ minWidth: '160px' }}>
+                            {item.item_type === 'CUSTOM' ? (
+                              <input
+                                type="text"
+                                placeholder="e.g. Library Fee, Sports Fee..."
+                                value={item.description || ''}
+                                onChange={(e) => handleEditItemChange(index, 'description', e.target.value)}
+                                required={item.item_type === 'CUSTOM'}
+                                style={{ width: '100%', padding: '0.4rem', border: '1px solid #cbd5e0', borderRadius: '4px' }}
+                              />
+                            ) : (
+                              <span style={{ color: '#9ca3af', fontSize: '0.8rem' }}>—</span>
+                            )}
                           </td>
                           <td>
                             <input
@@ -1887,7 +2075,8 @@ const FeeVoucherManagement = () => {
                               value={item.amount}
                               onChange={(e) => handleEditItemChange(index, 'amount', e.target.value)}
                               min="0"
-                              step="100"
+                              step="50"
+                              style={{ width: '100px' }}
                             />
                           </td>
                           <td>
@@ -1905,7 +2094,7 @@ const FeeVoucherManagement = () => {
                     </tbody>
                     <tfoot>
                       <tr>
-                        <td colSpan="3">
+                        <td colSpan="4">
                           <button
                             type="button"
                             className="btn-secondary"
@@ -1916,7 +2105,7 @@ const FeeVoucherManagement = () => {
                         </td>
                       </tr>
                       <tr className="total-row">
-                        <td><strong>Total</strong></td>
+                        <td colSpan="2"><strong>Total</strong></td>
                         <td colSpan="2">
                           <strong>{formatCurrency(editItems.reduce((sum, item) => sum + (item.amount || 0), 0))}</strong>
                         </td>
