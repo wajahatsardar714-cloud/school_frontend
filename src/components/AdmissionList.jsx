@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { studentService } from '../services/studentService'
 import { classService } from '../services/classService'
 import { sortClassesBySequence } from '../utils/classSorting'
 
 const AdmissionList = () => {
+  const location = useLocation()
   const [students, setStudents] = useState([])
   const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(true)
@@ -14,20 +15,20 @@ const AdmissionList = () => {
   const [filterStatus, setFilterStatus] = useState('active') // active, inactive, expelled, all
   const [isClearing, setIsClearing] = useState(false)
   const [sortOrder, setSortOrder] = useState('new-to-old')
-  
-  // Date range filter - default to last 3 days
-  const getDefaultStartDate = () => {
-    const date = new Date()
-    date.setDate(date.getDate() - 3)
-    return date.toISOString().split('T')[0]
-  }
-  
-  const [startDate, setStartDate] = useState(getDefaultStartDate())
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0])
+  // No default date filter — show all students
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
 
   useEffect(() => {
     loadInitialData()
   }, [])
+
+  // Re-fetch when navigating here after a new admission
+  useEffect(() => {
+    if (location.state?.fromAdmission) {
+      loadInitialData()
+    }
+  }, [location.state])
 
   // Sort classes using centralized sorting
   const sortedClasses = useMemo(

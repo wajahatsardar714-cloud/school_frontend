@@ -364,8 +364,8 @@ const AdmissionFormNew = () => {
   }, [admittedStudentData, navigate])
   
   const handleGoToAdmissionList = useCallback(() => {
-    navigate('/admission/list')
-  }, [navigate])
+    navigate('/admission/list', { state: { fromAdmission: true } })
+  }, [navigate, admittedStudentData])
   
   // Document handlers
   const handleDocumentSelect = (documentType, file) => {
@@ -1732,7 +1732,7 @@ const AdmissionFormNew = () => {
                 Admission Successful!
               </h2>
               <p style={{ color: '#6b7280' }}>
-                {admittedStudentData.student.name} has been successfully admitted to {admittedStudentData.className} - {admittedStudentData.sectionName}
+                {admittedStudentData.student.name} has been successfully admitted to {admittedStudentData.className}{admittedStudentData.sectionName ? ` - ${admittedStudentData.sectionName}` : ''}
               </p>
             </div>
             
@@ -1748,7 +1748,7 @@ const AdmissionFormNew = () => {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <span>Class & Section:</span>
-                <strong>{admittedStudentData.className} - {admittedStudentData.sectionName}</strong>
+                <strong>{admittedStudentData.className}{admittedStudentData.sectionName ? ` - ${admittedStudentData.sectionName}` : ''}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <span>Total Fees:</span>
@@ -1762,56 +1762,58 @@ const AdmissionFormNew = () => {
               </div>
             </div>
             
-            <div className="action-buttons" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               <button
                 onClick={handleViewStudent}
-                className="btn-action"
                 style={{
-                  padding: '0.75rem 1rem',
-                  background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                  width: '100%',
+                  padding: '0.7rem 1rem',
+                  background: '#7c3aed',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
-                  fontSize: '0.9rem',
-                  fontWeight: '600'
+                  fontSize: '0.95rem',
+                  fontWeight: '600',
+                  letterSpacing: '0.01em'
                 }}
               >
-                👤 View Student
+                View Student Profile
               </button>
-              
+
               <button
                 onClick={() => navigate('/fees/vouchers')}
-                className="btn-action"
                 style={{
-                  padding: '0.75rem 1rem',
-                  background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                  width: '100%',
+                  padding: '0.7rem 1rem',
+                  background: '#2563eb',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
-                  fontSize: '0.9rem',
-                  fontWeight: '600'
+                  fontSize: '0.95rem',
+                  fontWeight: '600',
+                  letterSpacing: '0.01em'
                 }}
               >
-                📋 Voucher
+                View Fee Voucher
               </button>
-            </div>
-            
-            <div style={{ textAlign: 'center' }}>
+
               <button
                 onClick={handleGoToAdmissionList}
                 style={{
+                  width: '100%',
+                  padding: '0.65rem 1rem',
                   background: 'transparent',
-                  border: '2px solid #d1d5db',
-                  color: '#6b7280',
-                  padding: '0.5rem 1.5rem',
-                  borderRadius: '6px',
+                  border: '1.5px solid #d1d5db',
+                  color: '#374151',
+                  borderRadius: '8px',
                   cursor: 'pointer',
-                  fontSize: '0.875rem'
+                  fontSize: '0.9rem',
+                  fontWeight: '500'
                 }}
               >
-                Close
+                Go to Admission List
               </button>
             </div>
           </div>
