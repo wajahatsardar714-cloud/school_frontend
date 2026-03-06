@@ -44,6 +44,13 @@ export const authService = {
     return await apiClient.delete(API_ENDPOINTS.AUTH_DELETE_USER(id))
   },
 
+  async adminResetPassword(targetUserId, adminCurrentPassword, newPassword) {
+    return await apiClient.put(API_ENDPOINTS.AUTH_ADMIN_RESET_PASSWORD(targetUserId), {
+      adminCurrentPassword,
+      newPassword,
+    })
+  },
+
   logout() {
     apiClient.clearAuth()
   },

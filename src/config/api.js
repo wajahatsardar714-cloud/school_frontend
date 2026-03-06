@@ -8,6 +8,7 @@ export const API_ENDPOINTS = {
   AUTH_CHANGE_PASSWORD: '/api/auth/change-password',
   AUTH_USERS: '/api/auth/users',
   AUTH_DELETE_USER: (id) => `/api/auth/users/${id}`,
+  AUTH_ADMIN_RESET_PASSWORD: (id) => `/api/auth/users/${id}/reset-password`,
 
   // Students
   STUDENTS: '/api/students',

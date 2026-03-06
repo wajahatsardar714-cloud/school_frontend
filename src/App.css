@@ -7473,18 +7473,19 @@ h6 {
 }
 
 .data-table thead {
-  background-color: #1e3a8a;
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
 }
 
 .data-table th {
-  padding: 12px 16px;
+  padding: 14px 18px;
   text-align: left;
-  font-size: 12px;
-  font-weight: 600;
-  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff !important;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.08em;
   border-bottom: 2px solid #1e3a8a;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
 .data-table td {
@@ -8264,10 +8265,11 @@ input:focus, select:focus, textarea:focus {
 }
 
 .data-table th {
-  font-weight: 600;
-  letter-spacing: 0.025em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  font-size: 12px;
+  font-size: 13px;
+  color: #ffffff !important;
 }
 
 .data-table td {
