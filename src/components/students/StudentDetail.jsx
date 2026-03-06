@@ -675,24 +675,35 @@ const StudentDetail = () => {
                                     </div>
                                 )}
 
-                                <div className="form-group" style={{ marginBottom: '1rem' }}>
-                                    <label>Select Target Class</label>
-                                    <select
-                                        value={selectedClass}
-                                        onChange={(e) => { setSelectedClass(e.target.value); setSelectedSection(''); }}
-                                        required
-                                        className="form-control"
-                                        style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e0' }}
-                                    >
-                                        <option value="">-- Choose Class --</option>
-                                        {sortedClasses.map(c => (
-                                            <option key={c.id} value={c.id}>{c.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                                {enrollmentAction === 'transfer' ? (
+                                    /* Transfer: locked to current class */
+                                    <div className="form-group" style={{ marginBottom: '1rem' }}>
+                                        <label>Class (locked — transfers stay within the same class)</label>
+                                        <div style={{ padding: '0.5rem 0.75rem', borderRadius: '4px', border: '1px solid #cbd5e0', background: '#f7fafc', color: '#4a5568', fontWeight: 600 }}>
+                                            {student.current_enrollment?.class_name || '—'}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    /* Promote: free class selection */
+                                    <div className="form-group" style={{ marginBottom: '1rem' }}>
+                                        <label>Select Target Class</label>
+                                        <select
+                                            value={selectedClass}
+                                            onChange={(e) => { setSelectedClass(e.target.value); setSelectedSection(''); }}
+                                            required
+                                            className="form-control"
+                                            style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e0' }}
+                                        >
+                                            <option value="">-- Choose Class --</option>
+                                            {sortedClasses.map(c => (
+                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
 
-                                {/* Show selected class fee */}
-                                {selectedClass && classFeeData?.data && (
+                                {/* Show new class fee for promote */}
+                                {enrollmentAction === 'promote' && selectedClass && classFeeData?.data && (
                                     <div style={{ background: '#f0fff4', border: '1px solid #9ae6b4', borderRadius: '6px', padding: '0.6rem 1rem', marginBottom: '1rem', fontSize: '0.83rem', color: '#276749' }}>
                                         💰 New class monthly fee: <strong>Rs. {(classFeeData.data.monthly_fee || classFeeData.data[0]?.monthly_fee || 0)?.toLocaleString()}</strong>
                                         {dueInfo.total_due > 0 && (
@@ -719,7 +730,9 @@ const StudentDetail = () => {
                                 </div>
 
                                 <p style={{ fontSize: '0.8rem', color: '#718096', marginTop: '0.5rem' }}>
-                                    Student will be placed at the bottom of the class list (next available serial number).
+                                    {enrollmentAction === 'promote'
+                                        ? 'Monthly fee will be updated to the new class fee structure. Outstanding dues carry forward as arrears on the next voucher.'
+                                        : 'Monthly fee and outstanding dues remain unchanged. Student will be placed at the next available serial number in the new section.'}
                                 </p>
                             </div>
                             <div className="modal-actions">
@@ -825,7 +838,6 @@ const StudentDetail = () => {
                             {student.is_expelled ? 'Expelled' : (student.is_active ? 'Active' : 'Deactivated')}
                         </span>
                         <span className="class-type-badge">{student.current_enrollment?.class_name || 'N/A'} - {student.current_enrollment?.section_name || 'N/A'}</span>
-                        <span className="class-type-badge">Roll: {student.roll_no}</span>
                     </div>
                     <p style={{ marginTop: '1rem', color: '#718096' }}>
                         Registered since {new Date(student.created_at).toLocaleDateString()}
@@ -1133,7 +1145,7 @@ const StudentDetail = () => {
                         <h4>⚡ Enrollment Actions</h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                             <button className="btn-secondary" style={{ width: '100%', textAlign: 'left' }} onClick={() => { setEnrollmentAction('promote'); setSelectedClass(''); setSelectedSection(''); setShowEnrollmentModal(true); }} disabled={!student.is_active || student.is_expelled}>📤 Promote</button>
-                            <button className="btn-secondary" style={{ width: '100%', textAlign: 'left' }} onClick={() => { setEnrollmentAction('transfer'); setSelectedClass(''); setSelectedSection(''); setShowEnrollmentModal(true); }} disabled={!student.is_active || student.is_expelled}>📑 Transfer</button>
+                            <button className="btn-secondary" style={{ width: '100%', textAlign: 'left' }} onClick={() => { setEnrollmentAction('transfer'); setSelectedClass(student.current_enrollment?.class_id ? String(student.current_enrollment.class_id) : ''); setSelectedSection(''); setShowEnrollmentModal(true); }} disabled={!student.is_active || student.is_expelled || !student.current_enrollment}>📑 Transfer</button>
                             <button className="btn-secondary" style={{ width: '100%', textAlign: 'left', color: '#e53e3e' }} onClick={() => setShowDeleteModal(true)}>⛔ Withdraw</button>
                         </div>
                     </div>
