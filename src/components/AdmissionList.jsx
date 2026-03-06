@@ -40,7 +40,7 @@ const AdmissionList = () => {
     try {
       setLoading(true)
       const [studentsRes, classesRes] = await Promise.all([
-        studentService.list({ is_active: filterStatus === 'all' ? undefined : (filterStatus === 'active') }),
+        studentService.list({ is_active: filterStatus === 'all' ? undefined : (filterStatus === 'active'), limit: 5000 }),
         classService.list()
       ])
       setStudents(studentsRes.data || [])
