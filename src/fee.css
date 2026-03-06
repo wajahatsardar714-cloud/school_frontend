@@ -1748,6 +1748,35 @@
 }
 /* ─────────────────────────────────────────────────────────────────────── */
 
+/* Custom Charges Section (Generate Form) */
+.custom-charges-section {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  background: #f0f4ff;
+  border: 1px solid #d6e0ff;
+  border-radius: 10px;
+}
+
+.custom-charges-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.custom-charges-header h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.custom-charges-empty {
+  font-size: 0.83rem;
+  color: #6b7280;
+  margin: 0.25rem 0;
+}
+
 /* Voucher Info in Modal */
 .voucher-info {
   display: flex;

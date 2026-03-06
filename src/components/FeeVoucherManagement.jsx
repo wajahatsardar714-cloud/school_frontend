@@ -300,12 +300,18 @@ const FeeVoucherManagement = () => {
           custom_charges: validCustomCharges.length > 0 ? validCustomCharges : undefined,
         })
       } else {
+        // Single generate: include item_type: 'CUSTOM' as backend requires it
+        const customItems = validCustomCharges.map(c => ({
+          item_type: 'CUSTOM',
+          description: c.description,
+          amount: c.amount,
+        }))
         return feeVoucherService.generate({
           student_id: parseInt(data.student_id),
           month: monthStr,
           due_date: data.due_date || undefined,
           fee_types: data.fee_types?.length > 0 ? data.fee_types : undefined,
-          custom_items: validCustomCharges.length > 0 ? validCustomCharges : undefined,
+          custom_items: customItems.length > 0 ? customItems : undefined,
         })
       }
     },
@@ -1683,76 +1689,51 @@ const FeeVoucherManagement = () => {
 
               {/* Custom Charges Section */}
               {generateForm.fee_types?.includes('OTHER') && (
-                <div style={{ marginTop: '1rem', padding: '1rem', background: '#f3f4f6', borderRadius: '6px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                    <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '600' }}>Custom Charges</h4>
+                <div className="custom-charges-section">
+                  <div className="custom-charges-header">
+                    <h4>Custom Charges</h4>
                     <button
                       type="button"
+                      className="edit-items-add-btn"
                       onClick={handleAddCustomCharge}
-                      style={{
-                        padding: '0.4rem 0.8rem',
-                        background: '#3b82f6',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '0.85rem',
-                        fontWeight: '500'
-                      }}
                     >
                       + Add Charge
                     </button>
                   </div>
-                  
+
                   {(generateForm.custom_charges || []).length === 0 ? (
-                    <p style={{ fontSize: '0.85rem', color: '#6b7280', margin: '0.5rem 0' }}>
-                      No custom charges added. Click "Add Charge" to add fees.
+                    <p className="custom-charges-empty">
+                      No custom charges added yet. Click "+ Add Charge" to add fees like Library Fee, Sports Fee, etc.
                     </p>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div className="edit-items-list">
                       {(generateForm.custom_charges || []).map((charge, index) => (
-                        <div key={index} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <div key={index} className="edit-item-row">
                           <input
                             type="text"
-                            placeholder="Fee description (e.g., Library Fee)"
+                            className="edit-item-desc-input"
+                            placeholder="Fee name (e.g., Library Fee)"
                             value={charge.description}
                             onChange={(e) => handleUpdateCustomCharge(index, 'description', e.target.value)}
-                            style={{
-                              flex: 2,
-                              padding: '0.5rem',
-                              border: '1px solid #d1d5db',
-                              borderRadius: '4px',
-                              fontSize: '0.9rem'
-                            }}
+                            required
                           />
-                          <input
-                            type="number"
-                            placeholder="Amount"
-                            value={charge.amount}
-                            onChange={(e) => handleUpdateCustomCharge(index, 'amount', e.target.value)}
-                            style={{
-                              flex: 1,
-                              padding: '0.5rem',
-                              border: '1px solid #d1d5db',
-                              borderRadius: '4px',
-                              fontSize: '0.9rem'
-                            }}
-                          />
+                          <div className="edit-item-amount-wrap">
+                            <input
+                              type="number"
+                              className="edit-item-amount-input"
+                              placeholder="Amount"
+                              value={charge.amount}
+                              onChange={(e) => handleUpdateCustomCharge(index, 'amount', e.target.value)}
+                              min="0"
+                              step="50"
+                            />
+                          </div>
                           <button
                             type="button"
+                            className="edit-item-remove-btn"
                             onClick={() => handleRemoveCustomCharge(index)}
-                            style={{
-                              padding: '0.5rem 0.75rem',
-                              background: '#ef4444',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '0.85rem'
-                            }}
-                          >
-                            ×
-                          </button>
+                            title="Remove charge"
+                          >×</button>
                         </div>
                       ))}
                     </div>
