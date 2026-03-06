@@ -14,6 +14,7 @@ export const studentService = {
     if (filters.is_active !== undefined) params.append('is_active', filters.is_active)
     if (filters.is_expelled !== undefined) params.append('is_expelled', filters.is_expelled)
     if (filters.search) params.append('search', filters.search)
+    if (filters.limit) params.append('limit', filters.limit)
 
     const query = params.toString() ? `?${params.toString()}` : ''
     return await apiClient.get(`${API_ENDPOINTS.STUDENTS}${query}`)
@@ -49,12 +50,9 @@ export const studentService = {
     })
   },
 
-  async transfer(id, newClassId, newSectionId, transferDate) {
-    return await apiClient.post(API_ENDPOINTS.STUDENT_TRANSFER(id), {
-      new_class_id: newClassId,
-      new_section_id: newSectionId,
-      transfer_date: transferDate,
-    })
+  async transfer(id, transferData) {
+    // transferData: { class_id, section_id, transfer_date? }
+    return await apiClient.post(API_ENDPOINTS.STUDENT_TRANSFER(id), transferData)
   },
 
   async activate(id) {

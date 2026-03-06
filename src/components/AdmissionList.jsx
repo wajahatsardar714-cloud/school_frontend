@@ -60,7 +60,8 @@ const AdmissionList = () => {
   const loadStudents = async () => {
     try {
       const response = await studentService.list({
-        is_active: filterStatus === 'all' ? undefined : (filterStatus === 'active')
+        is_active: filterStatus === 'all' ? undefined : (filterStatus === 'active'),
+        limit: 5000
       })
       setStudents(response.data || [])
     } catch (err) {
