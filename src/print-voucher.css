@@ -145,6 +145,60 @@
     background: #f0f0f0 !important;
   }
   
+  /* Payment history table for college students */
+  .payment-history {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 15px 0 !important;
+    border: 2px solid #000 !important;
+  }
+  
+  .payment-history th,
+  .payment-history td {
+    border: 1px solid #000 !important;
+    padding: 6px !important;
+    text-align: left !important;
+    font-size: 11px !important;
+  }
+  
+  .payment-history th {
+    background: #e0e0e0 !important;
+    font-weight: bold !important;
+    text-align: center !important;
+  }
+  
+  .payment-history .payment-date {
+    width: 35% !important;
+  }
+  
+  .payment-history .payment-amount {
+    width: 30% !important;
+    text-align: right !important;
+    color: #059669 !important;
+    font-weight: bold !important;
+  }
+  
+  .payment-history .payment-balance {
+    width: 35% !important;
+    text-align: right !important;
+    font-weight: bold !important;
+  }
+  
+  .payment-balance.positive {
+    color: #dc2626 !important;
+  }
+  
+  .payment-balance.complete {
+    color: #059669 !important;
+  }
+  
+  .payment-history-title {
+    font-size: 13px !important;
+    font-weight: bold !important;
+    margin: 15px 0 5px 0 !important;
+    color: black !important;
+  }
+  
   .total-amount {
     font-size: 16px !important;
     font-weight: bold !important;
