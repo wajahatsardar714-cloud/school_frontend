@@ -130,7 +130,8 @@ const StudentDetail = () => {
         address: '',
         caste: '',
         previous_school: '',
-        bay_form: ''
+        bay_form: '',
+        yearly_package_amount: ''
     })
 
     // Fetch student details
@@ -159,7 +160,8 @@ const StudentDetail = () => {
             address: s.address || '',
             caste: s.caste || '',
             previous_school: s.previous_school || '',
-            bay_form: s.bay_form || ''
+            bay_form: s.bay_form || '',
+            yearly_package_amount: currentYearlyPackage || ''
         })
         setShowEditModal(true)
     }
@@ -167,7 +169,16 @@ const StudentDetail = () => {
     const handleEditSubmit = async (e) => {
         e.preventDefault()
         try {
-            await updateStudent(editFormData)
+            const { yearly_package_amount, ...studentData } = editFormData
+            await updateStudent(studentData)
+            // If college student and yearly package is set, create/update the voucher
+            if (isCollegeStudent && yearly_package_amount && parseFloat(yearly_package_amount) > 0) {
+                try {
+                    await studentService.setYearlyPackage(studentId, parseFloat(yearly_package_amount))
+                } catch (pkgError) {
+                    alert(pkgError.message || 'Student saved but failed to set yearly package')
+                }
+            }
         } catch (error) {
             alert(error.message || 'Failed to update student')
         }
@@ -305,6 +316,19 @@ const StudentDetail = () => {
     const student = studentResponse?.data || {}
     const feeHistory = feeHistoryResponse?.data?.history || feeHistoryResponse?.history || []
     const dueInfo = dueResponse?.data || { total_due: 0 }
+
+    // Derive yearly package from fee history for college students
+    const currentYearlyPackage = useMemo(() => {
+        if (!feeHistory.length) return null
+        const yearlyVoucher = feeHistory.find(v => 
+            v.items?.some(i => i.item_type === 'YEARLY_PACKAGE')
+        )
+        if (!yearlyVoucher) return null
+        const pkgItem = yearlyVoucher.items.find(i => i.item_type === 'YEARLY_PACKAGE')
+        return pkgItem ? parseFloat(pkgItem.amount) : null
+    }, [feeHistory])
+
+    const isCollegeStudent = student?.current_enrollment?.class_type === 'COLLEGE'
 
     // Derive documents safely — depend on the raw response value, not the derived `student` object
     // (which recreates `{}` every render and makes the dep unstable)
@@ -604,6 +628,29 @@ const StudentDetail = () => {
                                             style={{ width: '100%', padding: '0.5rem', border: '1px solid #cbd5e0', borderRadius: '4px' }}
                                         ></textarea>
                                     </div>
+                                    {isCollegeStudent && (
+                                        <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                                            <label>Yearly Package (Rs.)</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={editFormData.yearly_package_amount}
+                                                onChange={(e) => setEditFormData({ ...editFormData, yearly_package_amount: e.target.value })}
+                                                className="form-control"
+                                                placeholder="Enter yearly package amount"
+                                                style={{ width: '100%', padding: '0.5rem', border: '1px solid #cbd5e0', borderRadius: '4px' }}
+                                            />
+                                            {currentYearlyPackage ? (
+                                                <small style={{ color: '#64748b', marginTop: '0.25rem', display: 'block' }}>
+                                                    Current: Rs. {currentYearlyPackage.toLocaleString()} — editing will update the existing voucher
+                                                </small>
+                                            ) : (
+                                                <small style={{ color: '#38a169', marginTop: '0.25rem', display: 'block' }}>
+                                                    A yearly fee voucher will be auto-created on save
+                                                </small>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div className="modal-actions">
@@ -897,6 +944,29 @@ const StudentDetail = () => {
                                     <span>{student.previous_school || 'N/A'}</span>
                                 </div>
                             </div>
+                            {isCollegeStudent && (
+                                <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                                    <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.95rem' }}>🎓 Yearly Package</h4>
+                                    {currentYearlyPackage ? (
+                                        <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+                                            <div>
+                                                <label style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>Package Amount</label>
+                                                <span style={{ fontSize: '1.1rem', fontWeight: 600 }}>Rs. {currentYearlyPackage.toLocaleString()}</span>
+                                            </div>
+                                            <div>
+                                                <label style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>Outstanding</label>
+                                                <span style={{ fontSize: '1.1rem', fontWeight: 600, color: dueInfo.total_due > 0 ? '#e53e3e' : '#38a169' }}>
+                                                    Rs. {(dueInfo.total_due || 0).toLocaleString()}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p style={{ color: '#64748b', margin: 0, fontSize: '0.85rem' }}>
+                                            No yearly package set. Click "Edit Profile" to assign one.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
 
