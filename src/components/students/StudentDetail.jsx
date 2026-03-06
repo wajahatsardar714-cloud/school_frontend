@@ -266,39 +266,6 @@ const StudentDetail = () => {
         { enabled: !!selectedClass }
     )
 
-    // Filter classes based on enrollment action and student type
-    const availableClasses = useMemo(() => {
-        const classes = sortClassesBySequence(classesData?.data || [])
-        
-        if (enrollmentAction === 'promote' && isCollegeStudent) {
-            // College students can only be promoted to other college classes
-            return classes.filter(c => c.class_type === 'COLLEGE')
-        }
-        
-        // For school students promoting or any transfer, show all classes
-        return classes
-    }, [classesData, enrollmentAction, isCollegeStudent])
-
-    const handleEnrollmentAction = async (e) => {
-        e.preventDefault()
-        try {
-            if (enrollmentAction === 'promote') {
-                await promoteStudent({
-                    class_id: selectedClass,
-                    section_id: selectedSection,
-                    force: true  // Always allow; outstanding dues carry forward to next voucher
-                })
-            } else if (enrollmentAction === 'transfer') {
-                await transferStudent({
-                    class_id: selectedClass,
-                    section_id: selectedSection
-                })
-            }
-        } catch (error) {
-            alert(error.message || `Failed to ${enrollmentAction} student`)
-        }
-    }
-
     // Fetch fee history (only if financial tab is active or for summary)
     const { data: feeHistoryResponse } = useFetch(
         () => feePaymentService.getStudentHistory(studentId),
@@ -324,6 +291,40 @@ const StudentDetail = () => {
     const feeHistory = feeHistoryResponse?.data?.history || feeHistoryResponse?.history || []
     const dueInfo = dueResponse?.data || { total_due: 0 }
 
+    // Define isCollegeStudent early so it can be used in availableClasses
+    const isCollegeStudent = student?.current_enrollment?.class_type === 'COLLEGE'
+
+    // Filter classes based on enrollment action and student type
+    const availableClasses = useMemo(() => {
+        const classes = sortClassesBySequence(classesData?.data || [])
+        
+        if (enrollmentAction === 'promote' && isCollegeStudent) {
+            return classes.filter(c => c.class_type === 'COLLEGE')
+        }
+        
+        return classes
+    }, [classesData, enrollmentAction, isCollegeStudent])
+
+    const handleEnrollmentAction = async (e) => {
+        e.preventDefault()
+        try {
+            if (enrollmentAction === 'promote') {
+                await promoteStudent({
+                    class_id: selectedClass,
+                    section_id: selectedSection,
+                    force: true  // Always allow; outstanding dues carry forward to next voucher
+                })
+            } else if (enrollmentAction === 'transfer') {
+                await transferStudent({
+                    class_id: selectedClass,
+                    section_id: selectedSection
+                })
+            }
+        } catch (error) {
+            alert(error.message || `Failed to ${enrollmentAction} student`)
+        }
+    }
+
     // Derive yearly package from fee history for college students
     const currentYearlyPackage = useMemo(() => {
         if (!feeHistory.length) return null
@@ -334,8 +335,6 @@ const StudentDetail = () => {
         const pkgItem = yearlyVoucher.items.find(i => i.item_type === 'YEARLY_PACKAGE')
         return pkgItem ? parseFloat(pkgItem.amount) : null
     }, [feeHistory])
-
-    const isCollegeStudent = student?.current_enrollment?.class_type === 'COLLEGE'
 
     // Derive documents safely — depend on the raw response value, not the derived `student` object
     // (which recreates `{}` every render and makes the dep unstable)
