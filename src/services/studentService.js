@@ -88,7 +88,7 @@ export const studentService = {
   },
 
   async setYearlyPackage(id, yearlyPackageAmount) {
-    return await apiClient.post(`/students/${id}/yearly-package`, { yearly_package_amount: yearlyPackageAmount })
+    return await apiClient.post(API_ENDPOINTS.STUDENT_YEARLY_PACKAGE(id), { yearly_package_amount: yearlyPackageAmount })
   },
 
   async getDocuments(id) {
