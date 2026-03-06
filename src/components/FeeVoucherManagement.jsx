@@ -2014,116 +2014,115 @@ const FeeVoucherManagement = () => {
       {/* Edit Items Modal */}
       {showEditItemsModal && editingVoucher && (
         <div className="modal-overlay" onClick={closeEditItemsModal}>
-          <div className="modal-content modal-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content edit-items-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Edit Voucher Items</h3>
               <button className="modal-close" onClick={closeEditItemsModal}>×</button>
             </div>
-            
+
             <div className="modal-body">
-              <div className="voucher-info">
-                <p><strong>Student:</strong> {editingVoucher.student_name}</p>
-                <p><strong>Class:</strong> {editingVoucher.class_name} {editingVoucher.section_name && `- ${editingVoucher.section_name}`}</p>
+              {/* Student Info Banner */}
+              <div className="edit-voucher-student-info">
+                <div>
+                  <span className="edit-info-label">Student</span>
+                  <span className="edit-info-value">{editingVoucher.student_name}</span>
+                </div>
+                <div>
+                  <span className="edit-info-label">Class</span>
+                  <span className="edit-info-value">
+                    {editingVoucher.class_name}{editingVoucher.section_name && ` – ${editingVoucher.section_name}`}
+                  </span>
+                </div>
               </div>
 
               {editItemsMutation.error && (
-                <div className="alert alert-error">{editItemsMutation.error}</div>
+                <div className="edit-items-error">
+                  {editItemsMutation.error}
+                </div>
               )}
 
               <form onSubmit={handleEditItemsSubmit}>
-                <div className="items-list">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Fee Type</th>
-                        <th>Custom Name</th>
-                        <th>Amount</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {editItems.map((item, index) => (
-                        <tr key={index}>
-                          <td style={{ minWidth: '140px' }}>
-                            <select
-                              value={item.item_type}
-                              onChange={(e) => handleEditItemChange(index, 'item_type', e.target.value)}
-                              style={{ width: '100%' }}
-                            >
-                              {EDIT_FEE_TYPES.map(ft => (
-                                <option key={ft.value} value={ft.value}>{ft.label}</option>
-                              ))}
-                            </select>
-                          </td>
-                          <td style={{ minWidth: '160px' }}>
-                            {item.item_type === 'CUSTOM' ? (
-                              <input
-                                type="text"
-                                placeholder="e.g. Library Fee, Sports Fee..."
-                                value={item.description || ''}
-                                onChange={(e) => handleEditItemChange(index, 'description', e.target.value)}
-                                required={item.item_type === 'CUSTOM'}
-                                style={{ width: '100%', padding: '0.4rem', border: '1px solid #cbd5e0', borderRadius: '4px' }}
-                              />
-                            ) : (
-                              <span style={{ color: '#9ca3af', fontSize: '0.8rem' }}>—</span>
-                            )}
-                          </td>
-                          <td>
-                            <input
-                              type="number"
-                              value={item.amount}
-                              onChange={(e) => handleEditItemChange(index, 'amount', e.target.value)}
-                              min="0"
-                              step="50"
-                              style={{ width: '100px' }}
-                            />
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className="btn-action btn-delete"
-                              onClick={() => handleRemoveItem(index)}
-                              title="Remove Item"
-                            >
-                              🗑️
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr>
-                        <td colSpan="4">
-                          <button
-                            type="button"
-                            className="btn-secondary"
-                            onClick={handleAddItem}
-                          >
-                            + Add Item
-                          </button>
-                        </td>
-                      </tr>
-                      <tr className="total-row">
-                        <td colSpan="2"><strong>Total</strong></td>
-                        <td colSpan="2">
-                          <strong>{formatCurrency(editItems.reduce((sum, item) => sum + (item.amount || 0), 0))}</strong>
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
+                {/* Column Labels */}
+                <div className="edit-items-col-labels">
+                  <span style={{ flex: '0 0 150px' }}>Fee Type</span>
+                  <span style={{ flex: 1 }}>Custom Name</span>
+                  <span style={{ flex: '0 0 110px' }}>Amount (Rs)</span>
+                  <span style={{ flex: '0 0 32px' }}></span>
+                </div>
+
+                {/* Items */}
+                <div className="edit-items-list">
+                  {editItems.map((item, index) => (
+                    <div key={index} className="edit-item-row">
+                      <select
+                        className="edit-item-select"
+                        value={item.item_type}
+                        onChange={(e) => handleEditItemChange(index, 'item_type', e.target.value)}
+                      >
+                        {EDIT_FEE_TYPES.map(ft => (
+                          <option key={ft.value} value={ft.value}>{ft.label}</option>
+                        ))}
+                      </select>
+
+                      {item.item_type === 'CUSTOM' ? (
+                        <input
+                          type="text"
+                          className="edit-item-desc-input"
+                          placeholder="e.g. Library Fee, Sports Fee…"
+                          value={item.description || ''}
+                          onChange={(e) => handleEditItemChange(index, 'description', e.target.value)}
+                          required
+                        />
+                      ) : (
+                        <div className="edit-item-desc-empty">—</div>
+                      )}
+
+                      <div className="edit-item-amount-wrap">
+                        <input
+                          type="number"
+                          className="edit-item-amount-input"
+                          value={item.amount}
+                          onChange={(e) => handleEditItemChange(index, 'amount', e.target.value)}
+                          min="0"
+                          step="50"
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        className="edit-item-remove-btn"
+                        onClick={() => handleRemoveItem(index)}
+                        title="Remove item"
+                      >×</button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add Item */}
+                <button
+                  type="button"
+                  className="edit-items-add-btn"
+                  onClick={handleAddItem}
+                >
+                  + Add Item
+                </button>
+
+                {/* Total */}
+                <div className="edit-items-total-row">
+                  <span>Total</span>
+                  <span>{formatCurrency(editItems.reduce((sum, item) => sum + (item.amount || 0), 0))}</span>
                 </div>
 
                 <div className="modal-actions">
                   <button type="button" className="btn-secondary" onClick={closeEditItemsModal}>
                     Cancel
                   </button>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="btn-primary"
                     disabled={editItemsMutation.loading || editItems.length === 0}
                   >
-                    {editItemsMutation.loading ? 'Saving...' : 'Save Changes'}
+                    {editItemsMutation.loading ? 'Saving…' : 'Save Changes'}
                   </button>
                 </div>
               </form>

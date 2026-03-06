@@ -1540,6 +1540,214 @@
   width: 90%;
 }
 
+/* ── Edit Items Modal ─────────────────────────────────────────────────── */
+.edit-items-modal {
+  max-width: 620px;
+  width: 95%;
+}
+
+/* Student info banner */
+.edit-voucher-student-info {
+  display: flex;
+  gap: 2rem;
+  background: #f0f4ff;
+  border: 1px solid #d6e0ff;
+  border-radius: 10px;
+  padding: 0.875rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.edit-voucher-student-info > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.edit-info-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+}
+
+.edit-info-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+/* Error banner */
+.edit-items-error {
+  background: #fff0f0;
+  border: 1px solid #fca5a5;
+  color: #dc2626;
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+/* Column label row */
+.edit-items-col-labels {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.5rem 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9ca3af;
+}
+
+/* List of items */
+.edit-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.875rem;
+}
+
+/* Single item row */
+.edit-item-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.5rem 0.625rem;
+  transition: border-color 0.15s;
+}
+
+.edit-item-row:hover {
+  border-color: #c7d2ff;
+}
+
+.edit-item-select {
+  flex: 0 0 150px;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: #fff;
+  color: #1f2937;
+  cursor: pointer;
+}
+
+.edit-item-select:focus {
+  outline: none;
+  border-color: #4a6cf7;
+  box-shadow: 0 0 0 2px rgba(74, 108, 247, 0.15);
+}
+
+.edit-item-desc-input {
+  flex: 1;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: #fff;
+  min-width: 0;
+}
+
+.edit-item-desc-input:focus {
+  outline: none;
+  border-color: #4a6cf7;
+  box-shadow: 0 0 0 2px rgba(74, 108, 247, 0.15);
+}
+
+.edit-item-desc-empty {
+  flex: 1;
+  color: #d1d5db;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.edit-item-amount-wrap {
+  flex: 0 0 110px;
+}
+
+.edit-item-amount-input {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: #fff;
+  text-align: right;
+}
+
+.edit-item-amount-input:focus {
+  outline: none;
+  border-color: #4a6cf7;
+  box-shadow: 0 0 0 2px rgba(74, 108, 247, 0.15);
+}
+
+.edit-item-remove-btn {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 1.1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  line-height: 1;
+}
+
+.edit-item-remove-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* Add item button */
+.edit-items-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.45rem 1rem;
+  border: 1.5px dashed #a5b4fc;
+  background: #f5f7ff;
+  color: #4a6cf7;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: 1rem;
+}
+
+.edit-items-add-btn:hover {
+  background: #eef2ff;
+  border-color: #4a6cf7;
+}
+
+/* Total row */
+.edit-items-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0.5rem;
+  border-top: 2px solid #e5e7eb;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #1a1a2e;
+  margin-bottom: 0;
+}
+
+.edit-items-total-row span:last-child {
+  color: #4a6cf7;
+  font-size: 1.05rem;
+}
+/* ─────────────────────────────────────────────────────────────────────── */
+
 /* Voucher Info in Modal */
 .voucher-info {
   display: flex;
