@@ -365,7 +365,7 @@ const ClassStudentList = () => {
                                 <th>Name</th>
                                 <th>Father Name</th>
                                 <th>Father's Contact Number</th>
-                                <th>Monthly Fee</th>
+                                <th>{classData?.data?.class_type === 'COLLEGE' ? 'Pending' : 'Monthly Fee'}</th>
                                 <th style={{ width: '100px' }}>Actions</th>
                             </tr>
                         </thead>
@@ -428,17 +428,32 @@ const ClassStudentList = () => {
                                         )}
                                     </td>
                                     <td onClick={(e) => isEditing && e.stopPropagation()}>
-                                        {isEditing ? (
-                                            <input 
-                                                type="number"
-                                                value={editFormData.individual_monthly_fee}
-                                                onChange={(e) => setEditFormData({...editFormData, individual_monthly_fee: parseFloat(e.target.value) || 0})}
-                                                style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid #cbd5e0' }}
-                                            />
-                                        ) : (
-                                            <span className="student-sub-info" onClick={() => navigate(`/students/${student.id}`)}>
-                                                Rs. {(student.individual_monthly_fee ?? student.effective_monthly_fee ?? 0).toLocaleString()}
+                                        {classData?.data?.class_type === 'COLLEGE' ? (
+                                            // College students - show pending amount or "Complete"
+                                            <span 
+                                                className={`student-sub-info ${student.pending_amount === 0 ? 'text-success' : 'text-danger'}`} 
+                                                onClick={() => navigate(`/students/${student.id}`)}
+                                                style={{ 
+                                                    color: student.pending_amount === 0 ? '#059669' : '#dc2626',
+                                                    fontWeight: student.pending_amount === 0 ? 'bold' : 'normal'
+                                                }}
+                                            >
+                                                {student.pending_amount === 0 ? 'Complete' : `Rs. ${student.pending_amount.toLocaleString()}`}
                                             </span>
+                                        ) : (
+                                            // School students - show monthly fee (existing logic)
+                                            isEditing ? (
+                                                <input 
+                                                    type="number"
+                                                    value={editFormData.individual_monthly_fee}
+                                                    onChange={(e) => setEditFormData({...editFormData, individual_monthly_fee: parseFloat(e.target.value) || 0})}
+                                                    style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid #cbd5e0' }}
+                                                />
+                                            ) : (
+                                                <span className="student-sub-info" onClick={() => navigate(`/students/${student.id}`)}>
+                                                    Rs. {(student.individual_monthly_fee ?? student.effective_monthly_fee ?? 0).toLocaleString()}
+                                                </span>
+                                            )
                                         )}
                                     </td>
                                     <td onClick={(e) => e.stopPropagation()}>
@@ -519,7 +534,7 @@ const ClassStudentList = () => {
                                             <th>Name</th>
                                             <th>Father Name</th>
                                             <th>Father's Contact Number</th>
-                                            <th>Monthly Fee</th>
+                                            <th>{classData?.data?.class_type === 'COLLEGE' ? 'Pending' : 'Monthly Fee'}</th>
                                             <th style={{ width: '100px' }}>Actions</th>
                                         </tr>
                                     </thead>
@@ -582,17 +597,32 @@ const ClassStudentList = () => {
                                                     )}
                                                 </td>
                                                 <td onClick={(e) => isEditing && e.stopPropagation()}>
-                                                    {isEditing ? (
-                                                        <input 
-                                                            type="number"
-                                                            value={editFormData.individual_monthly_fee}
-                                                            onChange={(e) => setEditFormData({...editFormData, individual_monthly_fee: parseFloat(e.target.value) || 0})}
-                                                            style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid #cbd5e0' }}
-                                                        />
-                                                    ) : (
-                                                        <span className="student-sub-info" onClick={() => navigate(`/students/${student.id}`)}>
-                                                            Rs. {(student.individual_monthly_fee ?? student.effective_monthly_fee ?? 0).toLocaleString()}
+                                                    {classData?.data?.class_type === 'COLLEGE' ? (
+                                                        // College students - show pending amount or "Complete"
+                                                        <span 
+                                                            className={`student-sub-info ${student.pending_amount === 0 ? 'text-success' : 'text-danger'}`} 
+                                                            onClick={() => navigate(`/students/${student.id}`)}
+                                                            style={{ 
+                                                                color: student.pending_amount === 0 ? '#059669' : '#dc2626',
+                                                                fontWeight: student.pending_amount === 0 ? 'bold' : 'normal'
+                                                            }}
+                                                        >
+                                                            {student.pending_amount === 0 ? 'Complete' : `Rs. ${student.pending_amount.toLocaleString()}`}
                                                         </span>
+                                                    ) : (
+                                                        // School students - show monthly fee (existing logic)
+                                                        isEditing ? (
+                                                            <input 
+                                                                type="number"
+                                                                value={editFormData.individual_monthly_fee}
+                                                                onChange={(e) => setEditFormData({...editFormData, individual_monthly_fee: parseFloat(e.target.value) || 0})}
+                                                                style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid #cbd5e0' }}
+                                                            />
+                                                        ) : (
+                                                            <span className="student-sub-info" onClick={() => navigate(`/students/${student.id}`)}>
+                                                                Rs. {(student.individual_monthly_fee ?? student.effective_monthly_fee ?? 0).toLocaleString()}
+                                                            </span>
+                                                        )
                                                     )}
                                                 </td>
                                                 <td onClick={(e) => e.stopPropagation()}>
