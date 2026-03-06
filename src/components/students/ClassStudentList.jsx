@@ -6,6 +6,57 @@ import { useFetch } from '../../hooks/useApi'
 import CSVImportModal from '../common/CSVImportModal'
 import './Students.css'
 
+// Inline component to set/update annual package for a 0-fee student
+const PackageInput = ({ student, onSaved }) => {
+    const existing = student.yearly_package_amount || 0
+    const [editing, setEditing] = useState(false)
+    const [value, setValue] = useState(existing > 0 ? existing : '')
+    const [saving, setSaving] = useState(false)
+
+    const handleSave = async () => {
+        const amount = parseFloat(value)
+        if (!amount || amount <= 0) { alert('Enter a valid package amount'); return }
+        setSaving(true)
+        try {
+            await studentService.setYearlyPackage(student.id, amount)
+            setEditing(false)
+            onSaved()
+        } catch (err) {
+            alert('Failed to set package: ' + (err.message || 'Unknown error'))
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    if (editing) {
+        return (
+            <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                <input
+                    type="number"
+                    value={value}
+                    onChange={e => setValue(e.target.value)}
+                    placeholder="Amount"
+                    style={{ width: '90px', padding: '0.3rem', borderRadius: '4px', border: '1px solid #cbd5e0', fontSize: '0.85rem' }}
+                    autoFocus
+                />
+                <button onClick={handleSave} disabled={saving} style={{ padding: '0.3rem 0.5rem', background: '#059669', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>
+                    {saving ? '...' : '✓'}
+                </button>
+                <button onClick={() => setEditing(false)} style={{ padding: '0.3rem 0.5rem', background: '#6b7280', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>✕</button>
+            </div>
+        )
+    }
+    return (
+        <span
+            onClick={() => { setValue(existing > 0 ? existing : ''); setEditing(true) }}
+            style={{ cursor: 'pointer', color: existing > 0 ? '#3b82f6' : '#9ca3af', fontSize: '0.85rem', textDecoration: 'underline dotted' }}
+            title="Click to set annual package"
+        >
+            {existing > 0 ? `Rs. ${existing.toLocaleString()} /yr` : '+ Set Package'}
+        </span>
+    )
+}
+
 const ClassStudentList = () => {
     const { classId } = useParams()
     const navigate = useNavigate()
@@ -441,8 +492,10 @@ const ClassStudentList = () => {
                                                 {student.pending_amount === 0 ? 'Complete' : `Rs. ${student.pending_amount.toLocaleString()}`}
                                             </span>
                                         ) : (
-                                            // School students - show monthly fee (existing logic)
-                                            isEditing ? (
+                                            // School students - show monthly fee; if 0 allow setting annual package
+                                            (student.individual_monthly_fee ?? student.effective_monthly_fee ?? 0) === 0 ? (
+                                                <PackageInput student={student} onSaved={() => setRefreshKey(k => k + 1)} />
+                                            ) : isEditing ? (
                                                 <input 
                                                     type="number"
                                                     value={editFormData.individual_monthly_fee}
@@ -478,15 +531,6 @@ const ClassStudentList = () => {
                                             </div>
                                         ) : (
                                             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                                {/* Edit button commented out
-                                                <button 
-                                                    className="btn-warning"
-                                                    onClick={() => handleEditClick(student)}
-                                                    style={{ fontSize: '1rem', padding: '0.4rem 0.7rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}
-                                                >
-                                                    ✏️
-                                                </button>
-                                                */}
                                                 <button 
                                                     className="btn-primary"
                                                     onClick={() => navigate(`/students/${student.id}`)}
@@ -610,8 +654,10 @@ const ClassStudentList = () => {
                                                             {student.pending_amount === 0 ? 'Complete' : `Rs. ${student.pending_amount.toLocaleString()}`}
                                                         </span>
                                                     ) : (
-                                                        // School students - show monthly fee (existing logic)
-                                                        isEditing ? (
+                                                        // School students - show monthly fee; if 0 allow setting annual package
+                                                        (student.individual_monthly_fee ?? student.effective_monthly_fee ?? 0) === 0 ? (
+                                                            <PackageInput student={student} onSaved={() => setRefreshKey(k => k + 1)} />
+                                                        ) : isEditing ? (
                                                             <input 
                                                                 type="number"
                                                                 value={editFormData.individual_monthly_fee}
