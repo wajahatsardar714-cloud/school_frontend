@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, memo, useMemo } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { studentService } from '../../services/studentService'
 import { feePaymentService } from '../../services/feeService'
 import { classService, sectionService } from '../../services/classService'
@@ -100,6 +100,7 @@ const ImagePreview = memo(({ doc }) => {
 
 const StudentDetail = () => {
     const { studentId } = useParams()
+    const navigate = useNavigate()
     const [activeTab, setActiveTab] = useState('overview')
 
     // Modal states
@@ -107,7 +108,10 @@ const StudentDetail = () => {
     const [statusAction, setStatusAction] = useState(null) // 'activate' | 'deactivate' | 'expel' | 'clearExpulsion'
 
     const [showEnrollmentModal, setShowEnrollmentModal] = useState(false)
-    const [enrollmentAction, setEnrollmentAction] = useState(null) // 'promote' | 'transfer' | 'withdraw'
+    const [enrollmentAction, setEnrollmentAction] = useState(null) // 'promote' | 'transfer'
+
+    // Permanent delete modal (replaces Withdraw)
+    const [showDeleteModal, setShowDeleteModal] = useState(false)
 
     const [showEditModal, setShowEditModal] = useState(false)
     const [showDocumentUploadModal, setShowDocumentUploadModal] = useState(false)
@@ -190,6 +194,25 @@ const StudentDetail = () => {
         { onSuccess: () => { refetchStudent(); setShowStatusModal(false); } }
     )
 
+    // Permanently delete student (triggered by Withdraw button)
+    const { execute: deleteStudent, loading: deleting } = useMutation(
+        () => studentService.delete(studentId),
+        {
+            onSuccess: () => {
+                setShowDeleteModal(false)
+                navigate('/students')
+            }
+        }
+    )
+
+    const handleDeleteStudent = async () => {
+        try {
+            await deleteStudent()
+        } catch (error) {
+            alert(error.message || 'Failed to delete student')
+        }
+    }
+
     const handleStatusAction = async () => {
         try {
             switch (statusAction) {
@@ -204,8 +227,6 @@ const StudentDetail = () => {
             alert(error.message || `Failed to ${statusAction} student`)
         }
     }
-
-    // Enrollment Mutations
     const { execute: promoteStudent, loading: promoting } = useMutation(
         (data) => studentService.promote(studentId, data),
         { onSuccess: () => { refetchStudent(); setShowEnrollmentModal(false); } }
@@ -216,19 +237,20 @@ const StudentDetail = () => {
         { onSuccess: () => { refetchStudent(); setShowEnrollmentModal(false); } }
     )
 
-    const { execute: withdrawStudent, loading: withdrawing } = useMutation(
-        (data) => studentService.withdraw(studentId, data),
-        { onSuccess: () => { refetchStudent(); setShowEnrollmentModal(false); } }
-    )
-
     // Data for modals
     const [selectedClass, setSelectedClass] = useState('')
     const [selectedSection, setSelectedSection] = useState('')
-    const [forcePromotion, setForcePromotion] = useState(false)
 
     const { data: classesData } = useFetch(() => classService.list(), [])
-    const { data: sectionsData, refetch: refetchSections } = useFetch(
+    const { data: sectionsData } = useFetch(
         () => sectionService.list(selectedClass),
+        [selectedClass],
+        { enabled: !!selectedClass }
+    )
+
+    // Fetch class fee when a class is selected (shown in promote/transfer modal)
+    const { data: classFeeData } = useFetch(
+        () => classService.getFeeStructure(selectedClass),
         [selectedClass],
         { enabled: !!selectedClass }
     )
@@ -246,24 +268,16 @@ const StudentDetail = () => {
                 await promoteStudent({
                     class_id: selectedClass,
                     section_id: selectedSection,
-                    force: forcePromotion
+                    force: true  // Always allow; outstanding dues carry forward to next voucher
                 })
             } else if (enrollmentAction === 'transfer') {
                 await transferStudent({
                     class_id: selectedClass,
                     section_id: selectedSection
                 })
-            } else if (enrollmentAction === 'withdraw') {
-                await withdrawStudent({ end_date: new Date().toISOString().split('T')[0] })
             }
         } catch (error) {
-            if (error.message?.includes('outstanding dues') || error.data?.due_amount) {
-                if (window.confirm(`${error.message}\n\nDo you want to force promote anyway?`)) {
-                    setForcePromotion(true)
-                }
-            } else {
-                alert(error.message || `Failed to ${enrollmentAction} student`)
-            }
+            alert(error.message || `Failed to ${enrollmentAction} student`)
         }
     }
 
@@ -633,70 +647,127 @@ const StudentDetail = () => {
                 </div>
             )}
 
-            {/* Enrollment Modal */}
+            {/* Enrollment Modal (Promote / Transfer) */}
             {showEnrollmentModal && (
                 <div className="modal-overlay" onClick={() => setShowEnrollmentModal(false)}>
                     <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
                         <div className="modal-header">
-                            <h3>{enrollmentAction === 'promote' ? 'Promote Student' : enrollmentAction === 'transfer' ? 'Transfer Section' : 'Withdraw Student'}</h3>
+                            <h3>{enrollmentAction === 'promote' ? '📤 Promote Student' : '📑 Transfer Student'}</h3>
                             <button className="modal-close" onClick={() => setShowEnrollmentModal(false)}>×</button>
                         </div>
                         <form onSubmit={handleEnrollmentAction}>
                             <div className="modal-body">
-                                {enrollmentAction === 'withdraw' ? (
-                                    <p>Are you sure you want to withdraw <strong>{student.name}</strong> from the school? This will end their current enrollment.</p>
-                                ) : (
-                                    <>
-                                        <div className="form-group" style={{ marginBottom: '1rem' }}>
-                                            <label>Select Target Class</label>
-                                            <select
-                                                value={selectedClass}
-                                                onChange={(e) => { setSelectedClass(e.target.value); setSelectedSection(''); }}
-                                                required
-                                                className="form-control"
-                                                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e0' }}
-                                            >
-                                                <option value="">-- Choose Class --</option>
-                                                {sortedClasses.map(c => (
-                                                    <option key={c.id} value={c.id}>{c.name}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div className="form-group" style={{ marginBottom: '1rem' }}>
-                                            <label>Select Target Section</label>
-                                            <select
-                                                value={selectedSection}
-                                                onChange={(e) => setSelectedSection(e.target.value)}
-                                                required
-                                                className="form-control"
-                                                disabled={!selectedClass}
-                                                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e0' }}
-                                            >
-                                                <option value="">-- Choose Section --</option>
-                                                {sectionsData?.data?.map(s => (
-                                                    <option key={s.id} value={s.id}>{s.name} ({s.student_count || 0} students)</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        {enrollmentAction === 'promote' && forcePromotion && (
-                                            <div className="alert alert-warning" style={{ fontSize: '0.8rem' }}>
-                                                <strong>Force Promotion Active</strong>: Outstanding dues will be ignored.
-                                            </div>
+                                {/* Current class info */}
+                                {student.current_enrollment && (
+                                    <div style={{ background: '#f0f4ff', borderRadius: '6px', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.88rem', color: '#4a5568' }}>
+                                        <strong>Current:</strong> {student.current_enrollment.class_name} — {student.current_enrollment.section_name}
+                                        {dueInfo.total_due > 0 && (
+                                            <span style={{ marginLeft: '0.75rem', color: '#e53e3e', fontWeight: 600 }}>
+                                                | Outstanding: Rs. {dueInfo.total_due?.toLocaleString()}
+                                            </span>
                                         )}
-                                    </>
+                                    </div>
                                 )}
+
+                                {dueInfo.total_due > 0 && (
+                                    <div style={{ background: '#fffbeb', border: '1px solid #f6e05e', borderRadius: '6px', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.83rem', color: '#744210' }}>
+                                        ⚠️ <strong>Outstanding dues of Rs. {dueInfo.total_due?.toLocaleString()} will carry forward.</strong> The next voucher generated in the new class will include these dues as arrears plus the new class monthly fee.
+                                    </div>
+                                )}
+
+                                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                                    <label>Select Target Class</label>
+                                    <select
+                                        value={selectedClass}
+                                        onChange={(e) => { setSelectedClass(e.target.value); setSelectedSection(''); }}
+                                        required
+                                        className="form-control"
+                                        style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e0' }}
+                                    >
+                                        <option value="">-- Choose Class --</option>
+                                        {sortedClasses.map(c => (
+                                            <option key={c.id} value={c.id}>{c.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Show selected class fee */}
+                                {selectedClass && classFeeData?.data && (
+                                    <div style={{ background: '#f0fff4', border: '1px solid #9ae6b4', borderRadius: '6px', padding: '0.6rem 1rem', marginBottom: '1rem', fontSize: '0.83rem', color: '#276749' }}>
+                                        💰 New class monthly fee: <strong>Rs. {(classFeeData.data.monthly_fee || classFeeData.data[0]?.monthly_fee || 0)?.toLocaleString()}</strong>
+                                        {dueInfo.total_due > 0 && (
+                                            <span> &nbsp;|&nbsp; First voucher total: <strong>Rs. {((classFeeData.data.monthly_fee || classFeeData.data[0]?.monthly_fee || 0) + (dueInfo.total_due || 0))?.toLocaleString()}</strong></span>
+                                        )}
+                                    </div>
+                                )}
+
+                                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                                    <label>Select Target Section</label>
+                                    <select
+                                        value={selectedSection}
+                                        onChange={(e) => setSelectedSection(e.target.value)}
+                                        required
+                                        className="form-control"
+                                        disabled={!selectedClass}
+                                        style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e0' }}
+                                    >
+                                        <option value="">-- Choose Section --</option>
+                                        {sectionsData?.data?.map(s => (
+                                            <option key={s.id} value={s.id}>{s.name} ({s.student_count || 0} students)</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <p style={{ fontSize: '0.8rem', color: '#718096', marginTop: '0.5rem' }}>
+                                    Student will be placed at the bottom of the class list (next available serial number).
+                                </p>
                             </div>
                             <div className="modal-actions">
                                 <button type="button" className="btn-secondary" onClick={() => setShowEnrollmentModal(false)}>Cancel</button>
                                 <button
                                     type="submit"
-                                    className={`btn-${enrollmentAction === 'withdraw' ? 'danger' : 'primary'}`}
-                                    disabled={promoting || transferring || withdrawing || (!selectedSection && enrollmentAction !== 'withdraw')}
+                                    className="btn-primary"
+                                    disabled={promoting || transferring || !selectedSection}
                                 >
-                                    {promoting || transferring || withdrawing ? 'Processing...' : 'Confirm'}
+                                    {promoting || transferring ? 'Processing...' : enrollmentAction === 'promote' ? 'Promote' : 'Transfer'}
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Permanent Delete Modal (Withdraw) */}
+            {showDeleteModal && (
+                <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+                        <div className="modal-header">
+                            <h3>⚠️ Withdraw & Delete Student</h3>
+                            <button className="modal-close" onClick={() => setShowDeleteModal(false)}>×</button>
+                        </div>
+                        <div className="modal-body">
+                            <p>You are about to <strong>permanently delete</strong> <strong style={{ color: '#e53e3e' }}>{student.name}</strong> from the system.</p>
+                            <div style={{ background: '#fff5f5', border: '1px solid #feb2b2', borderRadius: '6px', padding: '0.75rem 1rem', marginTop: '1rem', fontSize: '0.85rem', color: '#742a2a' }}>
+                                <strong>This action cannot be undone.</strong> All records will be permanently removed:
+                                <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
+                                    <li>Student enrolment &amp; class history</li>
+                                    <li>All fee vouchers &amp; payment records</li>
+                                    <li>All documents</li>
+                                    <li>Guardian links</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div className="modal-actions">
+                            <button className="btn-secondary" onClick={() => setShowDeleteModal(false)}>Cancel</button>
+                            <button
+                                className="btn-danger"
+                                onClick={handleDeleteStudent}
+                                disabled={deleting}
+                                style={{ background: '#e53e3e', color: 'white', border: 'none', padding: '0.5rem 1.2rem', borderRadius: '6px', cursor: 'pointer' }}
+                            >
+                                {deleting ? 'Deleting...' : 'Yes, Delete Permanently'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
@@ -1061,9 +1132,9 @@ const StudentDetail = () => {
                     <div className="profile-card" style={{ borderTop: '4px solid #4a6cf7', marginBottom: '1.5rem' }}>
                         <h4>⚡ Enrollment Actions</h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                            <button className="btn-secondary" style={{ width: '100%', textAlign: 'left' }} onClick={() => { setEnrollmentAction('promote'); setShowEnrollmentModal(true); }} disabled={!student.is_active || student.is_expelled}>📤 Promote</button>
-                            <button className="btn-secondary" style={{ width: '100%', textAlign: 'left' }} onClick={() => { setEnrollmentAction('transfer'); setShowEnrollmentModal(true); }} disabled={!student.is_active || student.is_expelled}>📑 Transfer</button>
-                            <button className="btn-secondary" style={{ width: '100%', textAlign: 'left', color: '#e53e3e' }} onClick={() => { setEnrollmentAction('withdraw'); setShowEnrollmentModal(true); }} disabled={!student.is_active || student.is_expelled}>⛔ Withdraw</button>
+                            <button className="btn-secondary" style={{ width: '100%', textAlign: 'left' }} onClick={() => { setEnrollmentAction('promote'); setSelectedClass(''); setSelectedSection(''); setShowEnrollmentModal(true); }} disabled={!student.is_active || student.is_expelled}>📤 Promote</button>
+                            <button className="btn-secondary" style={{ width: '100%', textAlign: 'left' }} onClick={() => { setEnrollmentAction('transfer'); setSelectedClass(''); setSelectedSection(''); setShowEnrollmentModal(true); }} disabled={!student.is_active || student.is_expelled}>📑 Transfer</button>
+                            <button className="btn-secondary" style={{ width: '100%', textAlign: 'left', color: '#e53e3e' }} onClick={() => setShowDeleteModal(true)}>⛔ Withdraw</button>
                         </div>
                     </div>
 
