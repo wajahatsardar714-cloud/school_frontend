@@ -266,11 +266,18 @@ const StudentDetail = () => {
         { enabled: !!selectedClass }
     )
 
-    // Sort classes using centralized sorting
-    const sortedClasses = useMemo(
-        () => sortClassesBySequence(classesData?.data || []),
-        [classesData]
-    )
+    // Filter classes based on enrollment action and student type
+    const availableClasses = useMemo(() => {
+        const classes = sortClassesBySequence(classesData?.data || [])
+        
+        if (enrollmentAction === 'promote' && isCollegeStudent) {
+            // College students can only be promoted to other college classes
+            return classes.filter(c => c.class_type === 'COLLEGE')
+        }
+        
+        // For school students promoting or any transfer, show all classes
+        return classes
+    }, [classesData, enrollmentAction, isCollegeStudent])
 
     const handleEnrollmentAction = async (e) => {
         e.preventDefault()
@@ -742,8 +749,8 @@ const StudentDetail = () => {
                                             style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e0' }}
                                         >
                                             <option value="">-- Choose Class --</option>
-                                            {sortedClasses.map(c => (
-                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                            {availableClasses.map(c => (
+                                                <option key={c.id} value={c.id}>{c.name} {isCollegeStudent && enrollmentAction === 'promote' ? '(College)' : ''}</option>
                                             ))}
                                         </select>
                                     </div>
