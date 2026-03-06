@@ -133,6 +133,8 @@ const FeeVoucherManagement = () => {
   const [studentSearchLoading, setStudentSearchLoading] = useState(false)
   const [showStudentSearchResults, setShowStudentSearchResults] = useState(false)
   const [selectedStudentName, setSelectedStudentName] = useState('')
+  const [selectedStudentClassType, setSelectedStudentClassType] = useState('') // 'SCHOOL' | 'COLLEGE'
+  const [yearlyPackageInput, setYearlyPackageInput] = useState('')
   const studentSearchRef = useRef(null)
 
   // Payment Form State
@@ -142,6 +144,10 @@ const FeeVoucherManagement = () => {
     payment_method: 'CASH',
     reference_no: '',
   })
+
+  // Yearly college voucher payment ledger state
+  const [voucherPayments, setVoucherPayments] = useState([])
+  const [voucherPaymentsLoading, setVoucherPaymentsLoading] = useState(false)
 
   // Debounced search
   const debouncedSearch = useDebounce(searchTerm, 300)
@@ -312,6 +318,7 @@ const FeeVoucherManagement = () => {
           due_date: data.due_date || undefined,
           fee_types: data.fee_types?.length > 0 ? data.fee_types : undefined,
           custom_items: customItems.length > 0 ? customItems : undefined,
+          ...(data.yearly_package_amount ? { yearly_package_amount: parseFloat(data.yearly_package_amount) } : {}),
         })
       }
     },
@@ -407,6 +414,7 @@ const FeeVoucherManagement = () => {
         paid_amount: parseFloat(v.paid_amount) || 0,
         due_amount: parseFloat(v.due_amount) || 0,
         status: v.status,
+        voucher_type: v.voucher_type || 'MONTHLY',
         created_at: v.created_at,
       }
     })
@@ -506,6 +514,8 @@ const FeeVoucherManagement = () => {
   const handleSelectStudentFromSearch = useCallback((student) => {
     setGenerateForm(prev => ({ ...prev, student_id: student.id }))
     setSelectedStudentName(student.name)
+    setSelectedStudentClassType(student.class_type || '')
+    setYearlyPackageInput('') // reset on student change
     setStudentSearchTerm('')
     setShowStudentSearchResults(false)
     setStudentSearchResults([])
@@ -515,6 +525,8 @@ const FeeVoucherManagement = () => {
   const handleClearSelectedStudent = useCallback(() => {
     setGenerateForm(prev => ({ ...prev, student_id: '' }))
     setSelectedStudentName('')
+    setSelectedStudentClassType('')
+    setYearlyPackageInput('')
     setStudentSearchTerm('')
   }, [])
 
@@ -630,6 +642,15 @@ const FeeVoucherManagement = () => {
       alert('Please select a student')
       return
     }
+    // College students require yearly package amount
+    if (generateForm.type === 'single' && selectedStudentClassType === 'COLLEGE') {
+      if (!yearlyPackageInput || parseFloat(yearlyPackageInput) <= 0) {
+        alert('Please enter the Total Yearly Package amount for this college student')
+        return
+      }
+      await generateMutation.mutate({ ...generateForm, yearly_package_amount: parseFloat(yearlyPackageInput) })
+      return
+    }
     if (generateForm.type === 'bulk' && !generateForm.class_id) {
       alert('Please select a class')
       return
@@ -720,7 +741,7 @@ const FeeVoucherManagement = () => {
     setPreviewDisplayLimit(100)
   }, [])
 
-  const openPaymentModal = useCallback((voucher) => {
+  const openPaymentModal = useCallback(async (voucher) => {
     setSelectedVoucher(voucher)
     setPaymentForm({
       amount: (voucher.total_amount - (voucher.paid_amount || 0)).toString(),
@@ -728,12 +749,31 @@ const FeeVoucherManagement = () => {
       payment_method: 'CASH',
       reference_no: '',
     })
+    // For YEARLY_COLLEGE vouchers, fetch payment history for the ledger
+    if (voucher.voucher_type === 'YEARLY_COLLEGE') {
+      setVoucherPaymentsLoading(true)
+      try {
+        const response = await feePaymentService.getVoucherPayments(voucher.id)
+        const payments = response.data?.payments || response.data || []
+        setVoucherPayments(
+          [...payments].sort((a, b) => new Date(a.payment_date) - new Date(b.payment_date))
+        )
+      } catch (err) {
+        console.error('Failed to load payment history:', err)
+        setVoucherPayments([])
+      } finally {
+        setVoucherPaymentsLoading(false)
+      }
+    } else {
+      setVoucherPayments([])
+    }
     setShowPaymentModal(true)
   }, [])
 
   const closePaymentModal = useCallback(() => {
     setShowPaymentModal(false)
     setSelectedVoucher(null)
+    setVoucherPayments([])
     setPaymentForm({
       amount: '',
       payment_date: new Date().toISOString().split('T')[0],
@@ -1337,7 +1377,16 @@ const FeeVoucherManagement = () => {
                           style={{ cursor: 'pointer', width: '16px', height: '16px' }}
                         />
                       </td>
-                      <td>{voucher.voucher_no}</td>
+                      <td>
+                        {voucher.voucher_no}
+                        {voucher.voucher_type === 'YEARLY_COLLEGE' && (
+                          <span style={{
+                            marginLeft: '6px', padding: '2px 7px', fontSize: '11px', fontWeight: '700',
+                            background: '#7c3aed', color: 'white', borderRadius: '10px',
+                            verticalAlign: 'middle'
+                          }}>Annual</span>
+                        )}
+                      </td>
                       <td>
                         <div className="student-info">
                           <span className="student-name">{voucher.student_name}</span>
@@ -1347,7 +1396,7 @@ const FeeVoucherManagement = () => {
                       <td>{voucher.father_name || '-'}</td>
                       <td>{voucher.class_name}</td>
                       <td>{voucher.section_name || '-'}</td>
-                      <td>{voucher.month && voucher.year ? `${MONTHS.find(m => m.value === voucher.month)?.label || ''} ${voucher.year}` : '-'}</td>
+                      <td>{voucher.voucher_type === 'YEARLY_COLLEGE' ? '📅 Annual Package' : (voucher.month && voucher.year ? `${MONTHS.find(m => m.value === voucher.month)?.label || ''} ${voucher.year}` : '-')}</td>
                       <td>{formatCurrency(voucher.total_amount)}</td>
                       <td>{formatCurrency(voucher.paid_amount)}</td>
                       <td className="balance-cell">
@@ -1628,6 +1677,47 @@ const FeeVoucherManagement = () => {
                   )}
                 </div>
               )}
+
+              {/* College student: yearly package input */}
+              {generateForm.type === 'single' && selectedStudentClassType === 'COLLEGE' && (
+                <div className="form-group" style={{
+                  background: '#fdf4ff',
+                  border: '2px solid #a855f7',
+                  borderRadius: '8px',
+                  padding: '1rem',
+                  marginTop: '0.5rem'
+                }}>
+                  <label style={{ color: '#7c3aed', fontWeight: '600' }}>
+                    🎓 Total Yearly Package (Rs.) *
+                  </label>
+                  <p style={{ fontSize: '13px', color: '#6b7280', margin: '0.25rem 0 0.5rem' }}>
+                    College student — a single annual voucher will be created. Enter the full year fee amount.
+                  </p>
+                  <input
+                    type="number"
+                    value={yearlyPackageInput}
+                    onChange={(e) => setYearlyPackageInput(e.target.value)}
+                    min="1"
+                    placeholder="e.g., 80000"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      fontSize: '18px',
+                      fontWeight: '700',
+                      textAlign: 'right',
+                      border: '2px solid #a855f7',
+                      borderRadius: '6px',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  {yearlyPackageInput && parseFloat(yearlyPackageInput) > 0 && (
+                    <p style={{ textAlign: 'right', color: '#7c3aed', fontWeight: '600', marginTop: '0.4rem' }}>
+                      Rs. {parseFloat(yearlyPackageInput).toLocaleString()}/-
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="form-row">
@@ -1656,18 +1746,24 @@ const FeeVoucherManagement = () => {
                 />
               </div>
 
-              <div className="form-group">
-                <label>Due Date *</label>
-                <input
-                  type="date"
-                  value={generateForm.due_date}
-                  onChange={(e) => handleGenerateFormChange('due_date', e.target.value)}
-                  required
-                />
-              </div>
+              {/* Due Date — not needed for college yearly vouchers */}
+              {!(generateForm.type === 'single' && selectedStudentClassType === 'COLLEGE') && (
+                <div className="form-group">
+                  <label>Due Date *</label>
+                  <input
+                    type="date"
+                    value={generateForm.due_date}
+                    onChange={(e) => handleGenerateFormChange('due_date', e.target.value)}
+                    required
+                  />
+                </div>
+              )}
             </div>
 
-            {/* Fee Types Selection */}
+            {/* Fee Types Selection — hidden for college single-student vouchers.
+                College students get a single YEARLY_COLLEGE voucher with a custom
+                package amount; there is no shared fee structure for college classes. */}
+            {!(generateForm.type === 'single' && selectedStudentClassType === 'COLLEGE') && (
             <div className="form-section">
               <h3>Fee Types to Include *</h3>
               <p className="form-hint">Select which fees to include. Monthly fee uses each student's individual fee amount.</p>
@@ -1688,7 +1784,7 @@ const FeeVoucherManagement = () => {
               </div>
 
               {/* Custom Charges Section */}
-              {generateForm.fee_types?.includes('OTHER') && (
+              {!(generateForm.type === 'single' && selectedStudentClassType === 'COLLEGE') && generateForm.fee_types?.includes('OTHER') && (
                 <div className="custom-charges-section">
                   <div className="custom-charges-header">
                     <h4>Custom Charges</h4>
@@ -1741,6 +1837,7 @@ const FeeVoucherManagement = () => {
                 </div>
               )}
             </div>
+            )}{/* end of fee-types section for non-college */}
 
             {/* Action Buttons */}
             <div className="form-actions">
@@ -1757,7 +1854,7 @@ const FeeVoucherManagement = () => {
               <button 
                 type="submit" 
                 className="btn-primary"
-                disabled={generateMutation.loading || !generateForm.fee_types?.length}
+                disabled={generateMutation.loading || (!(generateForm.type === 'single' && selectedStudentClassType === 'COLLEGE') && !generateForm.fee_types?.length)}
               >
                 {generateMutation.loading ? 'Generating...' : 
                   generateForm.type === 'bulk' ? 'Generate & Save to Database' : 'Generate Voucher'}
@@ -1927,6 +2024,50 @@ const FeeVoucherManagement = () => {
                 <p><strong>Paid:</strong> {formatCurrency(selectedVoucher.paid_amount)}</p>
                 <p><strong>Balance:</strong> {formatCurrency(selectedVoucher.due_amount)}</p>
               </div>
+
+              {selectedVoucher.voucher_type === 'YEARLY_COLLEGE' && (
+                <div style={{ marginBottom: '1rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '12px' }}>
+                  <p style={{ fontWeight: '600', marginBottom: '0.5rem', color: '#059669' }}>
+                    📅 Annual Package — Running Ledger
+                  </p>
+                  {voucherPaymentsLoading ? (
+                    <p style={{ color: '#6b7280', fontSize: '13px' }}>Loading payment history...</p>
+                  ) : voucherPayments.length > 0 ? (
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                      <thead>
+                        <tr style={{ background: '#dcfce7' }}>
+                          <th style={{ padding: '6px 8px', textAlign: 'left', border: '1px solid #bbf7d0' }}>Date</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #bbf7d0' }}>Payment</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #bbf7d0' }}>Remaining</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {voucherPayments.map((payment, idx) => {
+                          const cumulativePaid = voucherPayments
+                            .slice(0, idx + 1)
+                            .reduce((sum, p) => sum + parseFloat(p.amount), 0)
+                          const remaining = selectedVoucher.total_amount - cumulativePaid
+                          return (
+                            <tr key={payment.id}>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e5e7eb' }}>
+                                {new Date(payment.payment_date).toLocaleDateString('en-PK')}
+                              </td>
+                              <td style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #e5e7eb', color: '#059669' }}>
+                                {formatCurrency(parseFloat(payment.amount))}
+                              </td>
+                              <td style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #e5e7eb', color: remaining > 0 ? '#dc2626' : '#059669', fontWeight: '600' }}>
+                                {formatCurrency(remaining)}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <p style={{ color: '#6b7280', fontSize: '13px' }}>No payments recorded yet.</p>
+                  )}
+                </div>
+              )}
 
               <form onSubmit={handlePaymentSubmit}>
                 <div className="form-group">

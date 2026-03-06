@@ -239,8 +239,11 @@ const ClassManagement = () => {
   }
 
   const renderExpandedContent = (cls) => {
-    const feeData = feeStructures[cls.id] || cls.current_fee_structure
     const classSections = sections[cls.id] || []
+    const isCollege = cls.class_type === 'COLLEGE'
+    // Fee structure is only relevant for SCHOOL classes.
+    // COLLEGE classes use a custom yearly package set per-student at admission.
+    const feeData = !isCollege ? (feeStructures[cls.id] || cls.current_fee_structure) : null
     
     return (
       <div className="class-card-expanded">
@@ -248,9 +251,18 @@ const ClassManagement = () => {
           <Link to={`/classes/${cls.id}/sections`} className="class-card-btn sections-btn">
             📂 Sections
           </Link>
+          {/* Fee management is hidden for COLLEGE classes — they use a per-student
+              custom yearly package entered at admission time, not a shared fee structure. */}
+          {/* isCollege ? null : (
           <Link to={`/classes/${cls.id}/fee-structure`} className="class-card-btn fees-btn">
             💰 Fees
           </Link>
+          ) */}
+          {!isCollege && (
+            <Link to={`/classes/${cls.id}/fee-structure`} className="class-card-btn fees-btn">
+              💰 Fees
+            </Link>
+          )}
         </div>
         
         <div className="class-card-info">
@@ -262,10 +274,22 @@ const ClassManagement = () => {
             }
           </span>
           
-          <span className="class-card-info-label">MONTHLY FEE:</span>
-          <span className="class-card-info-value">
-            {feeData ? `Rs. ${feeData.monthly_fee}` : 'Not defined'}
-          </span>
+          {isCollege ? (
+            <>
+              <span className="class-card-info-label">FEE TYPE:</span>
+              <span className="class-card-info-value" style={{ color: '#7c3aed', fontWeight: '600' }}>
+                🎓 Custom Yearly Package (set per student at admission)
+              </span>
+            </>
+          ) : (
+            <>
+              {/* MONTHLY FEE display for school classes only */}
+              <span className="class-card-info-label">MONTHLY FEE:</span>
+              <span className="class-card-info-value">
+                {feeData ? `Rs. ${feeData.monthly_fee}` : 'Not defined'}
+              </span>
+            </>
+          )}
         </div>
       </div>
     )

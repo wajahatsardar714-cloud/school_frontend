@@ -71,6 +71,11 @@ const AdmissionFormNew = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [admittedStudentData, setAdmittedStudentData] = useState(null)
 
+  // College annual fee state
+  const [isCollegeClass, setIsCollegeClass] = useState(false)
+  const [yearlyPackageAmount, setYearlyPackageAmount] = useState('')
+  const [showYearlyPackageModal, setShowYearlyPackageModal] = useState(false)
+
   useEffect(() => {
     // Load classes once on mount - no auto-refresh
     loadClasses()
@@ -197,23 +202,34 @@ const AdmissionFormNew = () => {
         setFormData({ ...formData, class: selectedClassObj.name, section: '' })
         // Sections are loaded reactively via the selectedClassId useEffect — no duplicate call needed
 
-        // Get fee structure from class object (populated by backend list/getById)
-        const feeStruct = selectedClassObj.current_fee_structure
-        
-        if (feeStruct) {
-          const defaults = {
-            admissionFee: parseFloat(feeStruct.admission_fee) || 0,
-            monthlyFee: parseFloat(feeStruct.monthly_fee) || 0,
-            paperFund: parseFloat(feeStruct.paper_fund) || 0,
-          }
-          setClassFeeDefaults(defaults)
-          setFeeSchedule({
-            ...defaults,
-            total: defaults.admissionFee + defaults.monthlyFee + defaults.paperFund
-          })
-          setShowFeeSchedule(true)
+        // Detect college vs school class
+        const isCollege = selectedClassObj.class_type === 'COLLEGE'
+        setIsCollegeClass(isCollege)
+        setYearlyPackageAmount('') // reset on class change
+
+        if (isCollege) {
+          // College: show the yearly package popup, skip regular fee table
+          setShowFeeSchedule(false)
+          setShowYearlyPackageModal(true)
         } else {
-          showManualFeeEntry(selectedClassObj.name)
+          // School: existing fee structure logic
+          setShowYearlyPackageModal(false)
+          const feeStruct = selectedClassObj.current_fee_structure
+          if (feeStruct) {
+            const defaults = {
+              admissionFee: parseFloat(feeStruct.admission_fee) || 0,
+              monthlyFee: parseFloat(feeStruct.monthly_fee) || 0,
+              paperFund: parseFloat(feeStruct.paper_fund) || 0,
+            }
+            setClassFeeDefaults(defaults)
+            setFeeSchedule({
+              ...defaults,
+              total: defaults.admissionFee + defaults.monthlyFee + defaults.paperFund
+            })
+            setShowFeeSchedule(true)
+          } else {
+            showManualFeeEntry(selectedClassObj.name)
+          }
         }
       }
     } else {
@@ -311,6 +327,7 @@ const AdmissionFormNew = () => {
 
   const getTotalFees = () => {
     if (isFreeStudent) return 0
+    if (isCollegeClass) return parseFloat(yearlyPackageAmount) || 0
     const baseFees = feeSchedule.admissionFee + feeSchedule.monthlyFee + feeSchedule.paperFund
     const customFeesTotal = customFees.reduce((total, fee) => total + (fee.amount || 0), 0)
     let total = baseFees + customFeesTotal
@@ -459,8 +476,15 @@ const AdmissionFormNew = () => {
       return
     }
 
+    // College class: yearly package is mandatory
+    if (isCollegeClass && (!yearlyPackageAmount || parseFloat(yearlyPackageAmount) <= 0)) {
+      setError('Please enter the Total Yearly Package amount for this college class student.')
+      setShowYearlyPackageModal(true)
+      return
+    }
+
     // Validate discount description if monthly fee is discounted
-    if (feeSchedule.monthlyFee < classFeeDefaults.monthlyFee && !discountDescription.trim()) {
+    if (!isCollegeClass && feeSchedule.monthlyFee < classFeeDefaults.monthlyFee && !discountDescription.trim()) {
       setError('Please provide a discount description. This will be printed on monthly vouchers.')
       return
     }
@@ -558,35 +582,43 @@ const AdmissionFormNew = () => {
         }
       }
 
-      // Generate voucher for admission (includes all fees on first admission)
+      // Generate voucher for admission
       let generatedVoucherId = null
       if (!isFreeStudent && selectedClassId) {
         try {
-          // Backend expects month in YYYY-MM-01 format
           const admissionDate = new Date(formData.admission_date || new Date())
           const voucherMonth = `${admissionDate.getFullYear()}-${String(admissionDate.getMonth() + 1).padStart(2, '0')}-01`
 
-          // For first admission, include ADMISSION, MONTHLY, and PAPER_FUND fees
-          const feeTypes = ['ADMISSION', 'MONTHLY', 'PAPER_FUND']
-          
-          const voucherData = {
-            student_id: studentId,
-            month: voucherMonth,
-            fee_types: feeTypes,
-            custom_items: customFees.filter(fee => fee.name && fee.amount > 0).map(fee => ({
-              item_type: fee.name,
-              amount: parseFloat(fee.amount)
-            })),
-            due_date: new Date(admissionDate.getFullYear(), admissionDate.getMonth(), 10).toISOString().split('T')[0]
+          let voucherData
+          if (isCollegeClass) {
+            // College: single yearly package voucher — no fee_types, no due_date
+            voucherData = {
+              student_id: studentId,
+              month: voucherMonth,
+              yearly_package_amount: parseFloat(yearlyPackageAmount),
+            }
+            console.log('Generating YEARLY_COLLEGE voucher:', voucherData)
+          } else {
+            // School: first admission includes ADMISSION, MONTHLY, and PAPER_FUND
+            const feeTypes = ['ADMISSION', 'MONTHLY', 'PAPER_FUND']
+            voucherData = {
+              student_id: studentId,
+              month: voucherMonth,
+              fee_types: feeTypes,
+              custom_items: customFees.filter(fee => fee.name && fee.amount > 0).map(fee => ({
+                item_type: fee.name,
+                amount: parseFloat(fee.amount)
+              })),
+              due_date: new Date(admissionDate.getFullYear(), admissionDate.getMonth(), 10).toISOString().split('T')[0]
+            }
+            console.log('Generating admission voucher with all fees:', voucherData)
           }
-          
-          console.log('Generating admission voucher with all fees:', voucherData)
+
           const voucherResponse = await feeService.generateVoucher(voucherData)
           generatedVoucherId = voucherResponse?.data?.voucher?.id || voucherResponse?.data?.id
           console.log('Generated voucher ID:', generatedVoucherId)
         } catch (voucherError) {
           console.error('Voucher generation failed:', voucherError)
-          // Don't block admission if voucher fails, but log to user
           alert(`Warning: Admission successful but voucher generation failed: ${voucherError.message}. You can generate the voucher manually later.`)
         }
       }
@@ -1056,8 +1088,56 @@ const AdmissionFormNew = () => {
                 </div>
               </div>
 
-              {/* Fee Schedule Display - Always show when class is selected */}
-              {(showFeeSchedule || selectedClassId) && (
+              {/* College Annual Fee Summary */}
+              {isCollegeClass && parseFloat(yearlyPackageAmount) > 0 && (
+                <div className="form-section fee-schedule-section" style={{
+                  backgroundColor: '#fdf4ff',
+                  border: '2px solid #a855f7',
+                  borderRadius: '6px',
+                  padding: '1.5rem',
+                  marginTop: '1rem'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#7c3aed' }}>
+                      🎓 College Annual Fee Package
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setShowYearlyPackageModal(true)}
+                      style={{
+                        padding: '6px 14px',
+                        background: '#7c3aed',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '13px'
+                      }}
+                      disabled={submitting}
+                    >
+                      Edit Amount
+                    </button>
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '12px 0',
+                    borderTop: '1px solid #e9d5ff'
+                  }}>
+                    <span style={{ fontSize: '15px', color: '#374151' }}>Total Yearly Package:</span>
+                    <strong style={{ fontSize: '20px', color: '#7c3aed' }}>
+                      Rs. {parseFloat(yearlyPackageAmount).toLocaleString()}/-
+                    </strong>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>
+                    ℹ️ A single annual voucher will be generated. Payments will be tracked against it throughout the year.
+                  </p>
+                </div>
+              )}
+
+              {/* Fee Schedule Display - School classes only */}
+              {!isCollegeClass && (showFeeSchedule || selectedClassId) && (
                 <div className="form-section fee-schedule-section" style={{
                   backgroundColor: '#ffffff',
                   border: '1px solid #e5e7eb',
@@ -1645,7 +1725,20 @@ const AdmissionFormNew = () => {
                 </div>
 
                 {/* Fee Information Review */}
-                {showFeeSchedule && (
+                {isCollegeClass ? (
+                  <div className="review-section">
+                    <h4>Fee Information (College Annual Package)</h4>
+                    <div className="fee-summary">
+                      <div className="fee-summary-item total">
+                        <span><strong>Total Yearly Package:</strong></span>
+                        <span><strong style={{ color: '#7c3aed' }}>Rs. {parseFloat(yearlyPackageAmount || 0).toLocaleString()}/-</strong></span>
+                      </div>
+                      <p style={{ margin: '0.5rem 0 0', fontSize: '12px', color: '#6b7280' }}>
+                        One annual voucher will be generated. Payments tracked throughout the year.
+                      </p>
+                    </div>
+                  </div>
+                ) : showFeeSchedule && (
                   <div className="review-section">
                     <h4>Fee Information</h4>
                     {isFreeStudent ? (
@@ -1704,6 +1797,120 @@ const AdmissionFormNew = () => {
         </form>
       </div>
       
+      {/* Yearly Package Modal - College Classes */}
+      {showYearlyPackageModal && (
+        <div className="modal-overlay" style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1001
+        }}>
+          <div className="modal-content" style={{
+            background: 'white', borderRadius: '12px', padding: '2rem',
+            maxWidth: '440px', width: '90%',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+            border: '2px solid #a855f7'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0, color: '#7c3aed', fontSize: '18px' }}>
+                🎓 College Annual Fee Package
+              </h3>
+              <button
+                onClick={() => {
+                  if (!yearlyPackageAmount) {
+                    // Cancel without amount — deselect the class
+                    setSelectedClassId('')
+                    setIsCollegeClass(false)
+                    setFormData(prev => ({ ...prev, class: '', section: '' }))
+                  }
+                  setShowYearlyPackageModal(false)
+                }}
+                style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#6b7280' }}
+              >×</button>
+            </div>
+
+            <p style={{ color: '#374151', marginBottom: '0.25rem' }}>
+              Class: <strong>{selectedClass}</strong>
+            </p>
+            <p style={{ color: '#6b7280', fontSize: '13px', marginBottom: '1.25rem' }}>
+              Enter the total fee package for this academic year.
+              A <strong>single annual voucher</strong> will be generated at admission.
+              Each payment gets recorded against it with date and remaining balance.
+            </p>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem', color: '#374151' }}>
+                Total Yearly Package (Rs.) *
+              </label>
+              <input
+                type="number"
+                value={yearlyPackageAmount}
+                onChange={(e) => setYearlyPackageAmount(e.target.value)}
+                min="1"
+                placeholder="e.g., 80000"
+                autoFocus
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  fontSize: '20px',
+                  fontWeight: '700',
+                  textAlign: 'right',
+                  border: '2px solid #a855f7',
+                  borderRadius: '6px',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    if (yearlyPackageAmount && parseFloat(yearlyPackageAmount) > 0) {
+                      setShowYearlyPackageModal(false)
+                    }
+                  }
+                }}
+              />
+              {yearlyPackageAmount && parseFloat(yearlyPackageAmount) > 0 && (
+                <p style={{ textAlign: 'right', marginTop: '0.4rem', color: '#7c3aed', fontWeight: '600', fontSize: '15px' }}>
+                  Rs. {parseFloat(yearlyPackageAmount).toLocaleString()}/-
+                </p>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowYearlyPackageModal(false)
+                  setSelectedClassId('')
+                  setIsCollegeClass(false)
+                  setYearlyPackageAmount('')
+                  setFormData(prev => ({ ...prev, class: '', section: '' }))
+                }}
+                style={{
+                  padding: '9px 18px', background: '#f3f4f6', color: '#374151',
+                  border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer', fontSize: '14px'
+                }}
+              >Cancel</button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!yearlyPackageAmount || parseFloat(yearlyPackageAmount) <= 0) {
+                    alert('Please enter a valid yearly package amount')
+                    return
+                  }
+                  setShowYearlyPackageModal(false)
+                }}
+                style={{
+                  padding: '9px 18px', background: '#7c3aed', color: 'white',
+                  border: 'none', borderRadius: '6px', cursor: 'pointer',
+                  fontSize: '14px', fontWeight: '600'
+                }}
+              >Confirm Amount</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Success Modal */}
       {showSuccessModal && admittedStudentData && (
         <div className="modal-overlay" style={{ 
