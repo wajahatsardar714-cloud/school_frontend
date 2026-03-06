@@ -756,7 +756,14 @@ const FeeVoucherManagement = () => {
         const response = await feePaymentService.getVoucherPayments(voucher.id)
         const payments = response.data?.payments || response.data || []
         setVoucherPayments(
-          [...payments].sort((a, b) => new Date(a.payment_date) - new Date(b.payment_date))
+          [...payments].sort((a, b) => {
+            // Sort by payment_date first, then by created_at for same-day payments
+            const dateCompare = new Date(a.payment_date) - new Date(b.payment_date)
+            if (dateCompare === 0 && a.created_at && b.created_at) {
+              return new Date(a.created_at) - new Date(b.created_at)
+            }
+            return dateCompare
+          })
         )
       } catch (err) {
         console.error('Failed to load payment history:', err)
@@ -2036,7 +2043,7 @@ const FeeVoucherManagement = () => {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                       <thead>
                         <tr style={{ background: '#dcfce7' }}>
-                          <th style={{ padding: '6px 8px', textAlign: 'left', border: '1px solid #bbf7d0' }}>Date</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'left', border: '1px solid #bbf7d0' }}>Date & Time</th>
                           <th style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #bbf7d0' }}>Payment</th>
                           <th style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #bbf7d0' }}>Remaining</th>
                         </tr>
@@ -2050,7 +2057,10 @@ const FeeVoucherManagement = () => {
                           return (
                             <tr key={payment.id}>
                               <td style={{ padding: '6px 8px', border: '1px solid #e5e7eb' }}>
-                                {new Date(payment.payment_date).toLocaleDateString('en-PK')}
+                                <div>{new Date(payment.payment_date).toLocaleDateString('en-PK')}</div>
+                                <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                                  {payment.created_at ? new Date(payment.created_at).toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit' }) : ''}
+                                </div>
                               </td>
                               <td style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #e5e7eb', color: '#059669' }}>
                                 {formatCurrency(parseFloat(payment.amount))}
