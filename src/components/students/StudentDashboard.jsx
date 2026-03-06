@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { classService } from '../../services/classService'
+import { studentService } from '../../services/studentService'
 import { useFetch } from '../../hooks/useApi'
 import FilterBar from '../common/FilterBar'
 import CompactClassCard from '../common/CompactClassCard'
@@ -16,6 +17,44 @@ const StudentDashboard = () => {
     const [classTypeFilter, setClassTypeFilter] = useState('ALL')
     const [searchTerm, setSearchTerm] = useState('')
     const [refreshKey, setRefreshKey] = useState(0)
+    const [specialFilter, setSpecialFilter] = useState('')
+    const [specialStudents, setSpecialStudents] = useState([])
+    const [specialLoading, setSpecialLoading] = useState(false)
+    const [specialError, setSpecialError] = useState(null)
+
+    useEffect(() => {
+        if (!specialFilter) {
+            setSpecialStudents([])
+            setSpecialError(null)
+            return
+        }
+        const fetchSpecial = async () => {
+            setSpecialLoading(true)
+            setSpecialError(null)
+            try {
+                const filters = specialFilter === 'expelled'
+                    ? { is_expelled: true }
+                    : { is_active: false, is_expelled: false }
+                const res = await studentService.list(filters)
+                setSpecialStudents(res?.data?.students || res?.data || [])
+            } catch (err) {
+                setSpecialError(err.message || 'Failed to load students')
+            } finally {
+                setSpecialLoading(false)
+            }
+        }
+        fetchSpecial()
+    }, [specialFilter])
+
+    const handleDeleteSpecialStudent = async (studentId) => {
+        if (!window.confirm('Permanently delete this student and all their records?')) return
+        try {
+            await studentService.delete(studentId)
+            setSpecialStudents(prev => prev.filter(s => s.id !== studentId))
+        } catch (err) {
+            alert('Failed to delete student: ' + (err.message || 'Unknown error'))
+        }
+    }
     
     // Fetch all classes
     const { data: classesResponse, loading, error, refetch } = useFetch(
@@ -115,21 +154,43 @@ const StudentDashboard = () => {
                 <StudentSearchBar isCompact={true} />
             </div>
 
-            {/* Class Browse Section */}
-            <div className="filter-section">
-                <h3 className="filter-section-title">📚 Browse by Class</h3>
-                <div className="class-filter-controls">
-                    <FilterBar 
-                        activeFilter={classTypeFilter}
-                        onFilterChange={setClassTypeFilter}
-                    />
-                    <input
-                        type="text"
-                        className="search-input-simple"
-                        placeholder="Filter classes..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+            {/* Two-column filter row */}
+            <div className="dual-filter-row">
+                {/* Class Browse Section - half width */}
+                <div className="filter-section filter-section-half">
+                    <h3 className="filter-section-title">📚 Browse by Class</h3>
+                    <div className="class-filter-controls">
+                        <FilterBar 
+                            activeFilter={classTypeFilter}
+                            onFilterChange={setClassTypeFilter}
+                        />
+                        <input
+                            type="text"
+                            className="search-input-simple"
+                            placeholder="Filter classes..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                {/* Special Students Filter - half width */}
+                <div className="filter-section filter-section-half">
+                    <h3 className="filter-section-title">⚠️ Special Students</h3>
+                    <select
+                        className="special-filter-select"
+                        value={specialFilter}
+                        onChange={(e) => setSpecialFilter(e.target.value)}
+                    >
+                        <option value="">— Select category —</option>
+                        <option value="expelled">Expelled Students</option>
+                        <option value="inactive">Inactive Students</option>
+                    </select>
+                    {specialFilter && (
+                        <p className="special-filter-hint">
+                            {specialLoading ? 'Loading…' : `${specialStudents.length} student(s) found`}
+                        </p>
+                    )}
                 </div>
             </div>
 
@@ -137,6 +198,43 @@ const StudentDashboard = () => {
             <div className="total-students-bar">
                 <span className="total-students-text">Total Students: {totalStudents}</span>
             </div>
+
+            {/* Special Students List */}
+            {specialFilter && (
+                <div className="special-students-section">
+                    <h3 className="special-students-title">
+                        {specialFilter === 'expelled' ? '🚫 Expelled Students' : '💤 Inactive Students'}
+                    </h3>
+                    {specialLoading && (
+                        <div className="special-loading"><div className="spinner"></div><span>Loading…</span></div>
+                    )}
+                    {specialError && (
+                        <div className="alert alert-error"><p>{specialError}</p></div>
+                    )}
+                    {!specialLoading && !specialError && specialStudents.length === 0 && (
+                        <p className="special-empty">No {specialFilter === 'expelled' ? 'expelled' : 'inactive'} students found.</p>
+                    )}
+                    <div className="special-students-grid">
+                        {specialStudents.map(student => (
+                            <div key={student.id} className="special-student-card">
+                                <div className="special-student-info">
+                                    <span className="special-student-name">{student.name}</span>
+                                    <span className="special-student-meta">Father: {student.father_name || student.father_guardian_name || '—'}</span>
+                                    <span className="special-student-meta">Class: {student.class_name || '—'}</span>
+                                    <span className="special-student-meta">Section: {student.section_name || '—'}</span>
+                                </div>
+                                <button
+                                    className="special-student-delete-btn"
+                                    title="Delete student permanently"
+                                    onClick={() => handleDeleteSpecialStudent(student.id)}
+                                >
+                                    🗑️
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Class Grid - Always visible below filters */}
             <div className="compact-classes-grid">
