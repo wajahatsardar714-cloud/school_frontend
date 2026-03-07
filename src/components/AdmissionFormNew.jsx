@@ -75,6 +75,7 @@ const AdmissionFormNew = () => {
   const [isCollegeClass, setIsCollegeClass] = useState(false)
   const [yearlyPackageAmount, setYearlyPackageAmount] = useState('')
   const [showYearlyPackageModal, setShowYearlyPackageModal] = useState(false)
+  const [feeLoading, setFeeLoading] = useState(false)
 
   useEffect(() => {
     // Load classes once on mount - no auto-refresh
@@ -173,12 +174,20 @@ const AdmissionFormNew = () => {
 
   const handleClassChange = async (e) => {
     const classId = e.target.value
-    
+
+    // Immediately clear any previous fee state so stale amounts never show
+    setShowFeeSchedule(false)
+    setHasCustomFees(false)
+    setFeeSchedule({ admissionFee: 0, monthlyFee: 0, paperFund: 0, total: 0 })
+    setClassFeeDefaults({ admissionFee: 0, monthlyFee: 0, paperFund: 0 })
+    setFeeLoading(false)
+
     setSelectedClassId(classId)
     setSelectedSectionId('')
     setFormData({ ...formData, section: '' })
-    
+
     if (classId) {
+      setFeeLoading(true)
       
       // Use string comparison to avoid type mismatch (id could be string or number)
       let selectedClassObj = classes.find(c => String(c.id) === String(classId))
@@ -232,6 +241,7 @@ const AdmissionFormNew = () => {
           }
         }
       }
+      setFeeLoading(false)
     } else {
       setSelectedClass('')
       setSections([])
@@ -1137,7 +1147,12 @@ const AdmissionFormNew = () => {
               )}
 
               {/* Fee Schedule Display - School classes only */}
-              {!isCollegeClass && (showFeeSchedule || selectedClassId) && (
+              {!isCollegeClass && feeLoading && (
+                <div style={{ padding: '1rem', color: '#6b7280', fontSize: '14px' }}>
+                  🔄 Loading fee structure...
+                </div>
+              )}
+              {!isCollegeClass && showFeeSchedule && (
                 <div className="form-section fee-schedule-section" style={{
                   backgroundColor: '#ffffff',
                   border: '1px solid #e5e7eb',

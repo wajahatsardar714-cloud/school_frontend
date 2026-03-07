@@ -2023,7 +2023,10 @@ const FeeVoucherManagement = () => {
                         <td>
                           {(voucher.items || []).map((item, idx) => (
                             <div key={idx} style={{ fontSize: '12px' }}>
-                              {item.item_type}: Rs. {item.amount}
+                              {item.item_type === 'CUSTOM' && item.description
+                                ? item.description
+                                : (EDIT_FEE_TYPES.find(ft => ft.value === item.item_type)?.label || item.item_type.replace('_', ' '))
+                              }: Rs. {item.amount}
                             </div>
                           ))}
                         </td>
