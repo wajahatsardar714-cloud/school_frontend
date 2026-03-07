@@ -432,6 +432,7 @@ const FacultyManagement = () => {
                         step="1000"
                         value={formData.base_salary}
                         onChange={(e) => setFormData({ ...formData, base_salary: e.target.value })}
+                        onWheel={(e) => e.target.blur()}
                         disabled={submitting}
                         required
                       />

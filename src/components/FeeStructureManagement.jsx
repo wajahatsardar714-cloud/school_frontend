@@ -191,6 +191,7 @@ const FeeStructureManagement = () => {
                   placeholder="0"
                   value={formData.admission_fee}
                   onChange={(e) => setFormData({ ...formData, admission_fee: Math.floor(parseFloat(e.target.value) || 0).toString() })}
+                  onWheel={(e) => e.target.blur()}
                   disabled={submitting}
                   required
                 />
@@ -205,6 +206,7 @@ const FeeStructureManagement = () => {
                   placeholder="0"
                   value={formData.monthly_fee}
                   onChange={(e) => setFormData({ ...formData, monthly_fee: Math.floor(parseFloat(e.target.value) || 0).toString() })}
+                  onWheel={(e) => e.target.blur()}
                   disabled={submitting}
                   required
                 />
@@ -219,6 +221,7 @@ const FeeStructureManagement = () => {
                   placeholder="0"
                   value={formData.paper_fund}
                   onChange={(e) => setFormData({ ...formData, paper_fund: Math.floor(parseFloat(e.target.value) || 0).toString() })}
+                  onWheel={(e) => e.target.blur()}
                   disabled={submitting}
                   required
                 />
@@ -233,6 +236,7 @@ const FeeStructureManagement = () => {
                   placeholder="0"
                   value={formData.promotion_fee}
                   onChange={(e) => setFormData({ ...formData, promotion_fee: Math.floor(parseFloat(e.target.value) || 0).toString() })}
+                  onWheel={(e) => e.target.blur()}
                   disabled={submitting}
                   required
                 />
@@ -281,6 +285,7 @@ const FeeStructureManagement = () => {
                               min="0"
                               value={editingFee.admission_fee}
                               onChange={(e) => setEditingFee({ ...editingFee, admission_fee: Math.floor(parseFloat(e.target.value) || 0) })}
+                              onWheel={(e) => e.target.blur()}
                             />
                           </div>
                           <div className="form-group compact">
@@ -290,6 +295,7 @@ const FeeStructureManagement = () => {
                               min="0"
                               value={editingFee.monthly_fee}
                               onChange={(e) => setEditingFee({ ...editingFee, monthly_fee: Math.floor(parseFloat(e.target.value) || 0) })}
+                              onWheel={(e) => e.target.blur()}
                             />
                           </div>
                           <div className="form-group compact">
@@ -299,6 +305,7 @@ const FeeStructureManagement = () => {
                               min="0"
                               value={editingFee.paper_fund}
                               onChange={(e) => setEditingFee({ ...editingFee, paper_fund: Math.floor(parseFloat(e.target.value) || 0) })}
+                              onWheel={(e) => e.target.blur()}
                             />
                           </div>
                           <div className="form-group compact">
@@ -308,6 +315,7 @@ const FeeStructureManagement = () => {
                               min="0"
                               value={editingFee.promotion_fee || 0}
                               onChange={(e) => setEditingFee({ ...editingFee, promotion_fee: Math.floor(parseFloat(e.target.value) || 0) })}
+                              onWheel={(e) => e.target.blur()}
                             />
                           </div>
                           <div className="fee-edit-actions">

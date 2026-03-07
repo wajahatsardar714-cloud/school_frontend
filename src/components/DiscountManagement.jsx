@@ -729,6 +729,7 @@ const DiscountManagement = () => {
                   min="0"
                   value={individualFee}
                   onChange={(e) => setIndividualFee(e.target.value)}
+                  onWheel={(e) => e.target.blur()}
                   placeholder="Enter new monthly fee"
                   style={{
                     padding: '12px',
@@ -1123,6 +1124,7 @@ const DiscountManagement = () => {
                         max={formData.discount_type === 'PERCENTAGE' ? '100' : undefined}
                         value={formData.discount_value}
                         onChange={(e) => setFormData({ ...formData, discount_value: e.target.value })}
+                        onWheel={(e) => e.target.blur()}
                         required
                       />
                     </div>

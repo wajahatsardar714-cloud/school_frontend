@@ -427,6 +427,7 @@ const ClassManagement = () => {
                       placeholder="0"
                       value={formData.numberOfSections}
                       onChange={(e) => handleNumberOfSectionsChange(e.target.value)}
+                      onWheel={(e) => e.target.blur()}
                     />
                   </div>
 

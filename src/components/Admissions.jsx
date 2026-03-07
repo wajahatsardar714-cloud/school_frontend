@@ -1,9 +1,15 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import AdmissionFormNew from './AdmissionFormNew'
 import AdmissionList from './AdmissionList'
 
 const Admissions = () => {
-  const [activeTab, setActiveTab] = useState('admission-form')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [activeTab, setActiveTabInternal] = useState(() => searchParams.get('tab') || 'admission-form')
+  const setActiveTab = (tab) => {
+    setActiveTabInternal(tab)
+    setSearchParams(prev => { const next = new URLSearchParams(prev); next.set('tab', tab); return next }, { replace: true })
+  }
 
   return (
     <div className="admissions-container">

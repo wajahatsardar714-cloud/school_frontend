@@ -449,6 +449,7 @@ const ExpenseManagement = () => {
                   placeholder="0.00"
                   value={formData.amount}
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  onWheel={(e) => e.target.blur()}
                   disabled={submitting}
                   required
                 />

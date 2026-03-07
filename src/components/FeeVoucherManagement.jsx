@@ -16,6 +16,7 @@
  */
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { feeVoucherService, feePaymentService } from '../services/feeService'
 import { studentService } from '../services/studentService'
 import { classService, sectionService } from '../services/classService'
@@ -71,9 +72,14 @@ const EDIT_FEE_TYPES = [
 const FeeVoucherManagement = () => {
   // Auth
   const { isAdmin } = useAuth()
-  
-  // UI State
-  const [activeTab, setActiveTab] = useState('list')
+
+  // URL-synced tab state
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [activeTab, setActiveTabInternal] = useState(() => searchParams.get('tab') || 'list')
+  const setActiveTab = useCallback((tab) => {
+    setActiveTabInternal(tab)
+    setSearchParams(prev => { const next = new URLSearchParams(prev); next.set('tab', tab); return next }, { replace: true })
+  }, [setSearchParams])
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [selectedVoucher, setSelectedVoucher] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -1324,6 +1330,7 @@ const FeeVoucherManagement = () => {
               type="number"
               value={filters.year}
               onChange={(e) => handleFilterChange('year', parseInt(e.target.value))}
+              onWheel={(e) => e.target.blur()}
               className="filter-input year-input"
               min="2020"
               max="2030"
@@ -1781,6 +1788,7 @@ const FeeVoucherManagement = () => {
                     type="number"
                     value={yearlyPackageInput}
                     onChange={(e) => setYearlyPackageInput(e.target.value)}
+                    onWheel={(e) => e.target.blur()}
                     min="1"
                     placeholder="e.g., 80000"
                     style={{
@@ -1824,6 +1832,7 @@ const FeeVoucherManagement = () => {
                   type="number"
                   value={generateForm.year}
                   onChange={(e) => handleGenerateFormChange('year', parseInt(e.target.value))}
+                  onWheel={(e) => e.target.blur()}
                   min="2020"
                   max="2030"
                   required
@@ -1904,6 +1913,7 @@ const FeeVoucherManagement = () => {
                               placeholder="Amount"
                               value={charge.amount}
                               onChange={(e) => handleUpdateCustomCharge(index, 'amount', e.target.value)}
+                              onWheel={(e) => e.target.blur()}
                               min="0"
                               step="50"
                             />
@@ -2182,6 +2192,7 @@ const FeeVoucherManagement = () => {
                     type="number"
                     value={paymentForm.amount}
                     onChange={(e) => setPaymentForm(prev => ({ ...prev, amount: e.target.value }))}
+                    onWheel={(e) => e.target.blur()}
                     min="1"
                     max={selectedVoucher.due_amount}
                     required
@@ -2311,6 +2322,7 @@ const FeeVoucherManagement = () => {
                           className="edit-item-amount-input"
                           value={item.amount}
                           onChange={(e) => handleEditItemChange(index, 'amount', e.target.value)}
+                          onWheel={(e) => e.target.blur()}
                           min="0"
                           step="50"
                         />

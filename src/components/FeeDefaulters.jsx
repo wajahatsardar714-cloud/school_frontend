@@ -439,6 +439,7 @@ const FeeDefaulters = () => {
             type="number"
             value={filters.min_due_amount}
             onChange={(e) => setFilters({ ...filters, min_due_amount: e.target.value })}
+            onWheel={(e) => e.target.blur()}
             placeholder="e.g., 1000"
             min="0"
           />

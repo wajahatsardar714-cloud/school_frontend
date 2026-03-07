@@ -16,11 +16,15 @@ import '../fee.css';
 // Note: Backend API does not support payment_method field
 
 export default function FeePaymentManagement() {
-  // Tab state
-  const [activeTab, setActiveTab] = useState('history');
-  
   // URL search params for handling direct navigation with filters
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Tab state — synced with URL ?tab=
+  const [activeTab, setActiveTabInternal] = useState(() => searchParams.get('tab') || 'history');
+  const setActiveTab = useCallback((tab) => {
+    setActiveTabInternal(tab);
+    setSearchParams(prev => { const next = new URLSearchParams(prev); next.set('tab', tab); return next; }, { replace: true });
+  }, [setSearchParams]);
   
   // Get today's date in YYYY-MM-DD format
   const getTodayDate = () => new Date().toISOString().split('T')[0];
@@ -885,6 +889,7 @@ export default function FeePaymentManagement() {
                       type="number"
                       value={paymentForm.amount}
                       onChange={(e) => handlePaymentFormChange('amount', e.target.value)}
+                      onWheel={(e) => e.target.blur()}
                       required
                       min="1"
                       max={selectedVoucher ? dueAmount : undefined}
