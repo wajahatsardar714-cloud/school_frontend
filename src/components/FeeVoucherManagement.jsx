@@ -86,6 +86,13 @@ const FeeVoucherManagement = () => {
   const [editingVoucher, setEditingVoucher] = useState(null)
   const [editItems, setEditItems] = useState([])
   
+  // Payment Undo Modal State
+  const [showPaymentUndoModal, setShowPaymentUndoModal] = useState(false)
+  const [undoVoucher, setUndoVoucher] = useState(null)
+  const [undoPayments, setUndoPayments] = useState([])
+  const [selectedPaymentIds, setSelectedPaymentIds] = useState([])
+  const [undoPaymentsLoading, setUndoPaymentsLoading] = useState(false)
+  
   // Filter State
   const [filters, setFilters] = useState({
     class_id: '',
@@ -416,6 +423,7 @@ const FeeVoucherManagement = () => {
         status: v.status,
         voucher_type: v.voucher_type || 'MONTHLY',
         created_at: v.created_at,
+        last_payment_date: v.last_payment_date,
       }
     })
 
@@ -815,11 +823,13 @@ const FeeVoucherManagement = () => {
     await deleteMutation.mutate(voucher.id)
   }, [deleteMutation])
 
-  // Handle undo payments (convert PAID back to UNPAID)
+  // Handle undo payments (show modal for selective undo)
   const handleUndoPayments = useCallback(async (voucher) => {
-    if (!confirm(`Are you sure you want to undo all payments for voucher V-${voucher.id}?\n\nThis will mark the voucher as unpaid again.`)) {
-      return
-    }
+    setUndoVoucher(voucher)
+    setUndoPaymentsLoading(true)
+    setUndoPayments([])
+    setSelectedPaymentIds([])
+    setShowPaymentUndoModal(true)
 
     try {
       // Fetch all payments for this voucher
@@ -828,32 +838,91 @@ const FeeVoucherManagement = () => {
 
       if (payments.length === 0) {
         alert('No payments found for this voucher')
+        setShowPaymentUndoModal(false)
         return
       }
 
-      // Delete all payments
+      // Sort payments by date (newest first)
+      const sortedPayments = payments.sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))
+      setUndoPayments(sortedPayments)
+    } catch (error) {
+      console.error('Failed to load payments:', error)
+      alert('Failed to load payment history. Please try again.')
+      setShowPaymentUndoModal(false)
+    } finally {
+      setUndoPaymentsLoading(false)
+    }
+  }, [])
+
+  // Handle payment selection for undo
+  const handlePaymentSelectionToggle = useCallback((paymentId) => {
+    setSelectedPaymentIds(prev => {
+      if (prev.includes(paymentId)) {
+        return prev.filter(id => id !== paymentId)
+      } else {
+        return [...prev, paymentId]
+      }
+    })
+  }, [])
+
+  // Select all payments for undo
+  const handleSelectAllPayments = useCallback((checked) => {
+    if (checked) {
+      setSelectedPaymentIds(undoPayments.map(payment => payment.id))
+    } else {
+      setSelectedPaymentIds([])
+    }
+  }, [undoPayments])
+
+  // Close payment undo modal
+  const closePaymentUndoModal = useCallback(() => {
+    setShowPaymentUndoModal(false)
+    setUndoVoucher(null)
+    setUndoPayments([])
+    setSelectedPaymentIds([])
+  }, [])
+
+  // Execute selected payment deletions
+  const executePaymentUndo = useCallback(async () => {
+    if (selectedPaymentIds.length === 0) {
+      alert('Please select at least one payment to undo')
+      return
+    }
+
+    const selectedPayments = undoPayments.filter(payment => selectedPaymentIds.includes(payment.id))
+    const totalAmount = selectedPayments.reduce((sum, payment) => sum + parseFloat(payment.amount), 0)
+
+    if (!confirm(`Are you sure you want to undo ${selectedPaymentIds.length} payment(s) totaling Rs. ${totalAmount.toLocaleString()}?\n\nThis action cannot be undone.`)) {
+      return
+    }
+
+    setUndoPaymentsLoading(true)
+    try {
       let deletedCount = 0
-      for (const payment of payments) {
+      for (const paymentId of selectedPaymentIds) {
         try {
-          await feePaymentService.delete(payment.id)
+          await feePaymentService.delete(paymentId)
           deletedCount++
         } catch (error) {
-          console.error(`Failed to delete payment ${payment.id}:`, error)
+          console.error(`Failed to delete payment ${paymentId}:`, error)
         }
       }
 
       if (deletedCount > 0) {
         // Refresh the vouchers list
         refreshVouchers()
-        alert(`Successfully undone ${deletedCount} payment(s). Voucher is now unpaid.`)
+        alert(`Successfully undone ${deletedCount} payment(s). Total amount: Rs. ${totalAmount.toLocaleString()}`)
+        closePaymentUndoModal()
       } else {
-        alert('Failed to delete payments')
+        alert('Failed to delete any payments')
       }
     } catch (error) {
       console.error('Failed to undo payments:', error)
       alert('Failed to undo payments. Please try again.')
+    } finally {
+      setUndoPaymentsLoading(false)
     }
-  }, [refreshVouchers])
+  }, [selectedPaymentIds, undoPayments, refreshVouchers, closePaymentUndoModal])
 
   // Checkbox selection handlers
   const handleSelectVoucher = useCallback((voucherId) => {
@@ -1368,6 +1437,7 @@ const FeeVoucherManagement = () => {
                     <th>Total</th>
                     <th>Paid</th>
                     <th>Balance</th>
+                    <th>Last Payment</th>
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>
@@ -1408,6 +1478,13 @@ const FeeVoucherManagement = () => {
                       <td>{formatCurrency(voucher.paid_amount)}</td>
                       <td className="balance-cell">
                         {formatCurrency(voucher.due_amount)}
+                      </td>
+                      <td style={{ fontSize: '13px', color: '#64748b' }}>
+                        {voucher.last_payment_date ? new Date(voucher.last_payment_date).toLocaleDateString('en-PK', {
+                          year: 'numeric',
+                          month: 'short', 
+                          day: 'numeric'
+                        }) : (voucher.status === VOUCHER_STATUS.UNPAID ? '-' : 'N/A')}
                       </td>
                       <td>{renderStatusBadge(voucher.status)}</td>
                       <td>
@@ -1460,11 +1537,11 @@ const FeeVoucherManagement = () => {
                               )}
                             </>
                           )}
-                          {voucher.status === VOUCHER_STATUS.PAID && isAdmin() && (
+                          {(voucher.status === VOUCHER_STATUS.PAID || voucher.status === VOUCHER_STATUS.PARTIAL) && isAdmin() && (
                             <button 
                               className="btn-action btn-undo btn-small"
                               onClick={() => handleUndoPayments(voucher)}
-                              title="Undo all payments and mark as unpaid"
+                              title="Undo payments"
                               style={{ 
                                 fontSize: '0.95rem', 
                                 padding: '0.3rem 0.45rem',
@@ -2043,9 +2120,9 @@ const FeeVoucherManagement = () => {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                       <thead>
                         <tr style={{ background: '#dcfce7' }}>
-                          <th style={{ padding: '6px 8px', textAlign: 'left', border: '1px solid #bbf7d0' }}>Date & Time</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #bbf7d0' }}>Payment</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #bbf7d0' }}>Remaining</th>
+                          <th style={{ padding: '8px 10px', textAlign: 'left', border: '1px solid #bbf7d0', fontWeight: '700' }}>Payment Date & Method</th>
+                          <th style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #bbf7d0', fontWeight: '700' }}>Amount Paid</th>
+                          <th style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #bbf7d0', fontWeight: '700' }}>Balance</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2056,16 +2133,32 @@ const FeeVoucherManagement = () => {
                           const remaining = selectedVoucher.total_amount - cumulativePaid
                           return (
                             <tr key={payment.id}>
-                              <td style={{ padding: '6px 8px', border: '1px solid #e5e7eb' }}>
-                                <div>{new Date(payment.payment_date).toLocaleDateString('en-PK')}</div>
-                                <div style={{ fontSize: '11px', color: '#6b7280' }}>
-                                  {payment.created_at ? new Date(payment.created_at).toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit' }) : ''}
+                              <td style={{ padding: '8px 10px', border: '1px solid #e5e7eb' }}>
+                                <div style={{ fontWeight: '600', color: '#1e293b', fontSize: '13px' }}>
+                                  {new Date(payment.payment_date).toLocaleDateString('en-PK', {
+                                    weekday: 'short',
+                                    year: 'numeric',
+                                    month: 'short', 
+                                    day: 'numeric'
+                                  })}
                                 </div>
+                                <div style={{ fontSize: '11px', color: '#64748b' }}>
+                                  {payment.created_at ? new Date(payment.created_at).toLocaleTimeString('en-PK', { 
+                                    hour: '2-digit', 
+                                    minute: '2-digit',
+                                    hour12: true 
+                                  }) : 'Time not recorded'}
+                                </div>
+                                {payment.payment_method && (
+                                  <div style={{ fontSize: '10px', color: '#7c2d12', background: '#fef3c7', padding: '1px 4px', borderRadius: '3px', marginTop: '2px', display: 'inline-block' }}>
+                                    {payment.payment_method}
+                                  </div>
+                                )}
                               </td>
-                              <td style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #e5e7eb', color: '#059669' }}>
+                              <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', color: '#059669', fontWeight: '600', fontSize: '14px' }}>
                                 {formatCurrency(parseFloat(payment.amount))}
                               </td>
-                              <td style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #e5e7eb', color: remaining > 0 ? '#dc2626' : '#059669', fontWeight: '600' }}>
+                              <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', color: remaining > 0 ? '#dc2626' : '#059669', fontWeight: '700', fontSize: '14px' }}>
                                 {formatCurrency(remaining)}
                               </td>
                             </tr>
@@ -2258,6 +2351,216 @@ const FeeVoucherManagement = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Undo Modal */}
+      {showPaymentUndoModal && undoVoucher && (
+        <div className="modal-overlay" onClick={closePaymentUndoModal}>
+          <div className="modal-content payment-undo-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>🔄 Undo Payments</h3>
+              <button className="modal-close" onClick={closePaymentUndoModal}>×</button>
+            </div>
+
+            <div className="modal-body">
+              {/* Voucher Info */}
+              <div className="undo-voucher-info" style={{ 
+                background: '#f8fafc', 
+                border: '1px solid #e2e8f0', 
+                borderRadius: '8px', 
+                padding: '16px', 
+                marginBottom: '20px' 
+              }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', fontSize: '14px' }}>
+                  <div>
+                    <span style={{ fontWeight: '600', color: '#475569' }}>Student:</span>
+                    <span style={{ marginLeft: '8px', color: '#1e293b' }}>{undoVoucher.student_name}</span>
+                  </div>
+                  <div>
+                    <span style={{ fontWeight: '600', color: '#475569' }}>Voucher:</span>
+                    <span style={{ marginLeft: '8px', color: '#1e293b' }}>V-{undoVoucher.id}</span>
+                  </div>
+                  <div>
+                    <span style={{ fontWeight: '600', color: '#475569' }}>Class:</span>
+                    <span style={{ marginLeft: '8px', color: '#1e293b' }}>
+                      {undoVoucher.class_name}{undoVoucher.section_name && ` - ${undoVoucher.section_name}`}
+                    </span>
+                  </div>
+                  <div>
+                    <span style={{ fontWeight: '600', color: '#475569' }}>Status:</span>
+                    <span style={{ marginLeft: '8px', color: '#1e293b' }}>{undoVoucher.status}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Instructions */}
+              <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '20px' }}>
+                Select the payments you want to undo. Selected payments will be permanently removed and cannot be recovered.
+              </p>
+
+              {/* Payment List */}
+              {undoPaymentsLoading ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                  <div style={{ fontSize: '24px', marginBottom: '12px' }}>⏳</div>
+                  Loading payment history...
+                </div>
+              ) : undoPayments.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                  <div style={{ fontSize: '24px', marginBottom: '12px' }}>📭</div>
+                  No payments found for this voucher
+                </div>
+              ) : (
+                <div>
+                  {/* Select All Option */}
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    padding: '12px', 
+                    background: '#f1f5f9', 
+                    border: '1px solid #cbd5e1', 
+                    borderRadius: '6px', 
+                    marginBottom: '12px',
+                    fontWeight: '600'
+                  }}>
+                    <input
+                      type="checkbox"
+                      id="select-all-payments"
+                      checked={selectedPaymentIds.length === undoPayments.length && undoPayments.length > 0}
+                      onChange={(e) => handleSelectAllPayments(e.target.checked)}
+                      style={{ marginRight: '12px', transform: 'scale(1.2)' }}
+                    />
+                    <label htmlFor="select-all-payments" style={{ cursor: 'pointer', color: '#475569' }}>
+                      Select All Payments ({undoPayments.length})
+                    </label>
+                    {selectedPaymentIds.length > 0 && (
+                      <span style={{ 
+                        marginLeft: 'auto', 
+                        fontSize: '13px', 
+                        color: '#059669',
+                        background: '#dcfce7',
+                        padding: '4px 8px',
+                        borderRadius: '4px'
+                      }}>
+                        {selectedPaymentIds.length} selected
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Payment Items */}
+                  <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                    {undoPayments.map((payment, index) => {
+                      const isSelected = selectedPaymentIds.includes(payment.id)
+                      return (
+                        <div
+                          key={payment.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: '12px 16px',
+                            borderBottom: index < undoPayments.length - 1 ? '1px solid #f1f5f9' : 'none',
+                            background: isSelected ? '#eff6ff' : '#ffffff',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                          onClick={() => handlePaymentSelectionToggle(payment.id)}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handlePaymentSelectionToggle(payment.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ marginRight: '12px', transform: 'scale(1.1)' }}
+                          />
+                          
+                          <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '12px', alignItems: 'center' }}>
+                            <div>
+                              <div style={{ fontWeight: '600', fontSize: '14px', color: '#1e293b', marginBottom: '4px' }}>
+                                Payment #{payment.id}
+                              </div>
+                              <div style={{ fontSize: '13px', color: '#64748b' }}>
+                                📅 {new Date(payment.payment_date).toLocaleDateString('en-PK', { 
+                                  year: 'numeric', 
+                                  month: 'short', 
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </div>
+                              {payment.payment_method && (
+                                <div style={{ fontSize: '12px', color: '#64748b' }}>
+                                  Method: {payment.payment_method}
+                                </div>
+                              )}
+                              {payment.reference_no && (
+                                <div style={{ fontSize: '12px', color: '#64748b' }}>
+                                  Ref: {payment.reference_no}
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div style={{ textAlign: 'right', fontWeight: '700', fontSize: '16px', color: '#059669' }}>
+                              Rs. {parseFloat(payment.amount).toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* Selected Summary */}
+                  {selectedPaymentIds.length > 0 && (
+                    <div style={{ 
+                      marginTop: '16px', 
+                      padding: '12px', 
+                      background: '#fef3c7', 
+                      border: '1px solid #f59e0b', 
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      color: '#92400e'
+                    }}>
+                      <strong>⚠️ You are about to undo {selectedPaymentIds.length} payment(s)</strong>
+                      <br />
+                      Total amount: Rs. {undoPayments
+                        .filter(payment => selectedPaymentIds.includes(payment.id))
+                        .reduce((sum, payment) => sum + parseFloat(payment.amount), 0)
+                        .toLocaleString()}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Modal Actions */}
+              <div className="modal-actions" style={{ marginTop: '24px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={closePaymentUndoModal}
+                  disabled={undoPaymentsLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn-danger"
+                  onClick={executePaymentUndo}
+                  disabled={undoPaymentsLoading || selectedPaymentIds.length === 0}
+                  style={{
+                    background: selectedPaymentIds.length > 0 ? '#dc2626' : '#9ca3af',
+                    border: 'none',
+                    color: 'white',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    cursor: selectedPaymentIds.length > 0 ? 'pointer' : 'not-allowed',
+                    fontWeight: '600',
+                    fontSize: '14px'
+                  }}
+                >
+                  {undoPaymentsLoading ? '⏳ Processing...' : `🔄 Undo ${selectedPaymentIds.length} Payment${selectedPaymentIds.length !== 1 ? 's' : ''}`}
+                </button>
+              </div>
             </div>
           </div>
         </div>
