@@ -130,17 +130,26 @@ const PrintStudentsModal = ({ isOpen, onClose }) => {
             day: 'numeric' 
         });
 
+        // Check if this is a college class
+        const isCollege = selectedClass?.class_type === 'COLLEGE';
+        const feeColumnHeader = isCollege ? 'Pending Amount' : 'Monthly Fee';
+
         // Generate table rows
         const generateTableRows = (studentList) => {
             return studentList.map((student, index) => {
                 const bg = index % 2 === 0 ? '#ffffff' : '#f0f4ff';
+                // For college classes show pending_amount, for school show individual_monthly_fee
+                const feeValue = isCollege 
+                    ? (student.pending_amount != null ? (student.pending_amount === 0 ? 'Complete' : `Rs. ${student.pending_amount.toLocaleString()}`) : '-')
+                    : (student.individual_monthly_fee != null ? `Rs. ${student.individual_monthly_fee.toLocaleString()}` : '-');
+                const feeColor = isCollege && student.pending_amount === 0 ? 'color:#059669;font-weight:bold;' : '';
                 return `<tr style="background:${bg};-webkit-print-color-adjust:exact;print-color-adjust:exact;">
                     <td style="text-align:center;">${student.serial_number || (index + 1)}</td>
                     <td style="text-align:center;">${student.roll_no || '-'}</td>
                     <td>${student.name}</td>
                     <td>${student.father_name || '-'}</td>
                     <td style="text-align:center;">${student.phone || '-'}</td>
-                    <td style="text-align:right;">${student.individual_monthly_fee != null ? `Rs. ${student.individual_monthly_fee}` : '-'}</td>
+                    <td style="text-align:right;${feeColor}">${feeValue}</td>
                 </tr>`;
             }).join('');
         };
@@ -170,7 +179,7 @@ const PrintStudentsModal = ({ isOpen, onClose }) => {
                                     <th>Student Name</th>
                                     <th>Father Name</th>
                                     <th style="text-align:center;">Contact</th>
-                                    <th style="text-align:right;">Monthly Fee</th>
+                                    <th style="text-align:right;">${feeColumnHeader}</th>
                                 </tr>
                             </thead>
                             <tbody>${generateTableRows(sectionData.students)}</tbody>
@@ -193,7 +202,7 @@ const PrintStudentsModal = ({ isOpen, onClose }) => {
                             <th>Student Name</th>
                             <th>Father Name</th>
                             <th style="text-align:center;">Contact</th>
-                            <th style="text-align:right;">Monthly Fee</th>
+                            <th style="text-align:right;">${feeColumnHeader}</th>
                         </tr>
                     </thead>
                     <tbody>${generateTableRows(students)}</tbody>
@@ -431,7 +440,7 @@ const PrintStudentsModal = ({ isOpen, onClose }) => {
                                                         <th>Student Name</th>
                                                         <th>Father Name</th>
                                                         <th>Contact</th>
-                                                        <th>Monthly Fee</th>
+                                                        <th>{selectedClass?.class_type === 'COLLEGE' ? 'Pending Amount' : 'Monthly Fee'}</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -442,7 +451,11 @@ const PrintStudentsModal = ({ isOpen, onClose }) => {
                                                             <td>{student.name}</td>
                                                             <td>{student.father_name || '-'}</td>
                                                             <td>{student.phone || '-'}</td>
-                                                            <td>{student.individual_monthly_fee != null ? `Rs. ${student.individual_monthly_fee}` : '-'}</td>
+                                                            <td style={selectedClass?.class_type === 'COLLEGE' && student.pending_amount === 0 ? { color: '#059669', fontWeight: 'bold' } : {}}>
+                                                                {selectedClass?.class_type === 'COLLEGE' 
+                                                                    ? (student.pending_amount != null ? (student.pending_amount === 0 ? 'Complete' : `Rs. ${student.pending_amount.toLocaleString()}`) : '-')
+                                                                    : (student.individual_monthly_fee != null ? `Rs. ${student.individual_monthly_fee.toLocaleString()}` : '-')}
+                                                            </td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -472,7 +485,7 @@ const PrintStudentsModal = ({ isOpen, onClose }) => {
                                                     <th>Student Name</th>
                                                     <th>Father Name</th>
                                                     <th>Contact</th>
-                                                    <th>Monthly Fee</th>
+                                                    <th>{selectedClass?.class_type === 'COLLEGE' ? 'Pending Amount' : 'Monthly Fee'}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -483,7 +496,11 @@ const PrintStudentsModal = ({ isOpen, onClose }) => {
                                                         <td>{student.name}</td>
                                                         <td>{student.father_name || '-'}</td>
                                                         <td>{student.phone || '-'}</td>
-                                                        <td>{student.individual_monthly_fee != null ? `Rs. ${student.individual_monthly_fee}` : '-'}</td>
+                                                        <td style={selectedClass?.class_type === 'COLLEGE' && student.pending_amount === 0 ? { color: '#059669', fontWeight: 'bold' } : {}}>
+                                                            {selectedClass?.class_type === 'COLLEGE' 
+                                                                ? (student.pending_amount != null ? (student.pending_amount === 0 ? 'Complete' : `Rs. ${student.pending_amount.toLocaleString()}`) : '-')
+                                                                : (student.individual_monthly_fee != null ? `Rs. ${student.individual_monthly_fee.toLocaleString()}` : '-')}
+                                                        </td>
                                                     </tr>
                                                 ))}
                                             </tbody>

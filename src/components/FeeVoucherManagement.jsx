@@ -161,6 +161,7 @@ const FeeVoucherManagement = () => {
   // Yearly college voucher payment ledger state
   const [voucherPayments, setVoucherPayments] = useState([])
   const [voucherPaymentsLoading, setVoucherPaymentsLoading] = useState(false)
+  const [showLedger, setShowLedger] = useState(false)
 
   // Debounced search
   const debouncedSearch = useDebounce(searchTerm, 300)
@@ -2107,7 +2108,7 @@ const FeeVoucherManagement = () => {
       {/* Payment Modal */}
       {showPaymentModal && selectedVoucher && (
         <div className="modal-overlay" onClick={closePaymentModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '580px' }}>
             <div className="modal-header">
               <h3>Record Payment</h3>
               <button className="modal-close" onClick={closePaymentModal}>×</button>
@@ -2123,64 +2124,114 @@ const FeeVoucherManagement = () => {
               </div>
 
               {selectedVoucher.voucher_type === 'YEARLY_COLLEGE' && (
-                <div style={{ marginBottom: '1rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '12px' }}>
-                  <p style={{ fontWeight: '600', marginBottom: '0.5rem', color: '#059669' }}>
-                    📅 Annual Package — Running Ledger
-                  </p>
-                  {voucherPaymentsLoading ? (
-                    <p style={{ color: '#6b7280', fontSize: '13px' }}>Loading payment history...</p>
-                  ) : voucherPayments.length > 0 ? (
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                      <thead>
-                        <tr style={{ background: '#dcfce7' }}>
-                          <th style={{ padding: '8px 10px', textAlign: 'left', border: '1px solid #bbf7d0', fontWeight: '700' }}>Payment Date & Method</th>
-                          <th style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #bbf7d0', fontWeight: '700' }}>Amount Paid</th>
-                          <th style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #bbf7d0', fontWeight: '700' }}>Balance</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {voucherPayments.map((payment, idx) => {
-                          const cumulativePaid = voucherPayments
-                            .slice(0, idx + 1)
-                            .reduce((sum, p) => sum + parseFloat(p.amount), 0)
-                          const remaining = selectedVoucher.total_amount - cumulativePaid
-                          return (
-                            <tr key={payment.id}>
-                              <td style={{ padding: '8px 10px', border: '1px solid #e5e7eb' }}>
-                                <div style={{ fontWeight: '600', color: '#1e293b', fontSize: '13px' }}>
-                                  {new Date(payment.payment_date).toLocaleDateString('en-PK', {
-                                    weekday: 'short',
-                                    year: 'numeric',
-                                    month: 'short', 
-                                    day: 'numeric'
-                                  })}
-                                </div>
-                                <div style={{ fontSize: '11px', color: '#64748b' }}>
-                                  {payment.created_at ? new Date(payment.created_at).toLocaleTimeString('en-PK', { 
-                                    hour: '2-digit', 
-                                    minute: '2-digit',
-                                    hour12: true 
-                                  }) : 'Time not recorded'}
-                                </div>
-                                {payment.payment_method && (
-                                  <div style={{ fontSize: '10px', color: '#7c2d12', background: '#fef3c7', padding: '1px 4px', borderRadius: '3px', marginTop: '2px', display: 'inline-block' }}>
-                                    {payment.payment_method}
-                                  </div>
-                                )}
-                              </td>
-                              <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', color: '#059669', fontWeight: '600', fontSize: '14px' }}>
-                                {formatCurrency(parseFloat(payment.amount))}
-                              </td>
-                              <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', color: remaining > 0 ? '#dc2626' : '#059669', fontWeight: '700', fontSize: '14px' }}>
-                                {formatCurrency(remaining)}
-                              </td>
+                <div style={{ marginBottom: '0.75rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', overflow: 'hidden' }}>
+                  {/* Clickable toggle header */}
+                  <div
+                    onClick={() => setShowLedger(prev => !prev)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: showLedger ? '#dcfce7' : 'transparent',
+                      borderBottom: showLedger ? '1px solid #bbf7d0' : 'none',
+                      padding: '10px 12px',
+                      cursor: 'pointer',
+                      transition: 'background 0.2s ease',
+                      userSelect: 'none'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#dcfce7'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = showLedger ? '#dcfce7' : 'transparent'}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '16px' }}>📅</span>
+                      <span style={{ color: '#047857', fontWeight: '600', fontSize: '13px' }}>
+                        Annual Package — Running Ledger
+                      </span>
+                      {voucherPayments.length > 0 && (
+                        <span style={{
+                          background: '#059669',
+                          color: '#fff',
+                          fontSize: '10px',
+                          fontWeight: '700',
+                          padding: '2px 6px',
+                          borderRadius: '10px',
+                          minWidth: '20px',
+                          textAlign: 'center'
+                        }}>
+                          {voucherPayments.length}
+                        </span>
+                      )}
+                    </div>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '22px',
+                      height: '22px',
+                      borderRadius: '4px',
+                      background: '#bbf7d0',
+                      color: '#047857',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      transition: 'transform 0.2s ease'
+                    }}>
+                      {showLedger ? '▲' : '▼'}
+                    </span>
+                  </div>
+                  {/* Collapsible body */}
+                  {showLedger && (
+                    <div style={{ padding: '8px 12px 10px 12px', maxHeight: '220px', overflowY: 'auto' }}>
+                      {voucherPaymentsLoading ? (
+                        <p style={{ color: '#6b7280', fontSize: '11px', textAlign: 'center', padding: '8px 0' }}>Loading payment history...</p>
+                      ) : voucherPayments.length > 0 ? (
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                          <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+                            <tr style={{ background: '#dcfce7' }}>
+                              <th style={{ padding: '6px 8px', textAlign: 'left', border: '1px solid #bbf7d0', fontWeight: '700', color: '#047857' }}>Date</th>
+                              <th style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #bbf7d0', fontWeight: '700', color: '#047857' }}>Paid</th>
+                              <th style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #bbf7d0', fontWeight: '700', color: '#047857' }}>Balance</th>
                             </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  ) : (
-                    <p style={{ color: '#6b7280', fontSize: '13px' }}>No payments recorded yet.</p>
+                          </thead>
+                          <tbody>
+                            {voucherPayments.map((payment, idx) => {
+                              const cumulativePaid = voucherPayments
+                                .slice(0, idx + 1)
+                                .reduce((sum, p) => sum + parseFloat(p.amount), 0)
+                              const remaining = selectedVoucher.total_amount - cumulativePaid
+                              return (
+                                <tr key={payment.id} style={{ background: idx % 2 === 0 ? '#fff' : '#f0fdf4' }}>
+                                  <td style={{ padding: '6px 8px', border: '1px solid #e5e7eb' }}>
+                                    <span style={{ fontWeight: '600', color: '#1e293b' }}>
+                                      {new Date(payment.payment_date).toLocaleDateString('en-PK', {
+                                        weekday: 'short',
+                                        month: 'short',
+                                        day: 'numeric'
+                                      })}
+                                    </span>
+                                    {payment.created_at && (
+                                      <span style={{ color: '#64748b', marginLeft: '4px', fontSize: '10px' }}>
+                                        {new Date(payment.created_at).toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #e5e7eb', color: '#059669', fontWeight: '600' }}>
+                                    {formatCurrency(parseFloat(payment.amount))}
+                                  </td>
+                                  <td style={{ padding: '6px 8px', textAlign: 'right', border: '1px solid #e5e7eb', color: remaining > 0 ? '#dc2626' : '#059669', fontWeight: '700' }}>
+                                    {formatCurrency(remaining)}
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <p style={{ color: '#6b7280', fontSize: '12px', margin: 0, textAlign: 'center', padding: '10px 0' }}>
+                          No payments recorded yet.
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
@@ -2253,7 +2304,7 @@ const FeeVoucherManagement = () => {
       {/* Edit Items Modal */}
       {showEditItemsModal && editingVoucher && (
         <div className="modal-overlay" onClick={closeEditItemsModal}>
-          <div className="modal-content edit-items-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content edit-items-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
             <div className="modal-header">
               <h3>Edit Voucher Items</h3>
               <button className="modal-close" onClick={closeEditItemsModal}>×</button>
