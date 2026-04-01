@@ -36,7 +36,11 @@ const CompactClassCard = ({
     try {
       setLoadingSections(true)
       const response = await sectionService.list(id)
-      setSections(response.data || [])
+      const visibleSections = (response.data || []).filter((section) => {
+        const sectionName = String(section.name || '').trim().toUpperCase()
+        return !sectionName.startsWith('ARCHIVED_')
+      })
+      setSections(visibleSections)
     } catch (err) {
       console.error('Failed to load sections:', err)
       setSections([])

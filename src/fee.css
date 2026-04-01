@@ -1355,11 +1355,13 @@
 }
 
 .analytics-dashboard .stat-card .stat-value {
-  font-size: var(--font-size-3xl);
+  font-size: clamp(1.25rem, 2.2vw, var(--font-size-3xl));
   font-weight: var(--font-extrabold);
   color: var(--color-text-primary);
   margin-bottom: var(--spacing-xs);
-  line-height: 1;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .analytics-dashboard .stat-card .stat-change {
@@ -2126,9 +2128,12 @@ th.sortable:hover {
 }
 
 .stat-value {
-  font-size: var(--font-size-2xl);
+  font-size: clamp(1.1rem, 2vw, var(--font-size-2xl));
   font-weight: var(--font-extrabold);
   color: var(--color-text-primary);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .stat-detail {

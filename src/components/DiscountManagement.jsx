@@ -769,7 +769,11 @@ const DiscountManagement = () => {
         </div>
       )}
 
-      {/* Filters */}
+      {/*
+        Filters section intentionally hidden per request.
+        Keep this block commented so it can be restored quickly if needed.
+      */}
+      {/**
       <div className="filters-section">
         <div className="filter-group">
           <label>Class Filter</label>
@@ -830,7 +834,6 @@ const DiscountManagement = () => {
           />
         </div>
         
-        {/* Clear Filters Button */}
         <div className="filter-group">
           <label>&nbsp;</label>
           <button 
@@ -849,8 +852,13 @@ const DiscountManagement = () => {
           </button>
         </div>
       </div>
+      */}
 
-      {/* Discounts List */}
+      {/*
+        Discounted students list intentionally hidden per request.
+        Keep this block commented so it can be restored quickly if needed.
+      */}
+      {/**
       <div className="table-container">
         {discountsLoading ? (
           <div className="loading">Loading discounts...</div>
@@ -939,6 +947,7 @@ const DiscountManagement = () => {
           </table>
         )}
       </div>
+      */}
 
       {/* Create/Edit Modal */}
       {showModal && (

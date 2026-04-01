@@ -99,7 +99,13 @@ const navigationItems = [
   { path: '/dashboard', label: 'Dashboard', icon: <IconDashboard />, roles: ['ADMIN', 'ACCOUNTANT'] },
   { path: '/admissions', label: 'Admissions', icon: <IconAdmissions />, roles: ['ADMIN', 'ACCOUNTANT'] },
   { path: '/students', label: 'Students', icon: <IconStudents />, roles: ['ADMIN', 'ACCOUNTANT'] },
-  { path: '/classes', label: 'Classes', icon: <IconClasses />, roles: ['ADMIN'] },
+  {
+    path: '/classes', label: 'Classes', icon: <IconClasses />, roles: ['ADMIN'], subItems: [
+      { path: '/classes', label: 'Classes', roles: ['ADMIN'] },
+      { path: '/classes/promotion', label: 'Promotion', roles: ['ADMIN'] },
+      { path: '/classes/passout-classes', label: 'Passout Classes', roles: ['ADMIN'] }
+    ]
+  },
   { path: '/guardians', label: 'Guardians', icon: <IconGuardians />, roles: ['ADMIN', 'ACCOUNTANT'] },
   {
     path: '/faculty', label: 'Faculty', icon: <IconFaculty />, roles: ['ADMIN'], subItems: [

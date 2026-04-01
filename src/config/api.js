@@ -40,6 +40,15 @@ export const API_ENDPOINTS = {
   CLASS_FEE_STRUCTURE: (id) => `/api/classes/${id}/fee-structure`,
   CLASS_FEE_HISTORY: (id) => `/api/classes/${id}/fee-history`,
 
+  // Promotions
+  PROMOTIONS_FULL_SCHOOL: '/api/promotions/full-school',
+  PROMOTIONS_FULL_COLLEGE: '/api/promotions/full-college',
+  PROMOTIONS_CLASS: '/api/promotions/class',
+  PROMOTIONS_HISTORY: '/api/promotions/history',
+  PROMOTIONS_UNDO: (id) => `/api/promotions/${id}/undo`,
+  PROMOTIONS_EX_CLASSES: '/api/promotions/ex-classes',
+  PROMOTIONS_EX_CLASS_DETAIL: (batchId) => `/api/promotions/ex-classes/${batchId}`,
+
   // Sections
   SECTIONS: '/api/sections',
   SECTION_DETAIL: (id) => `/api/sections/${id}`,

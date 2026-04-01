@@ -126,6 +126,11 @@ const StudentDetail = () => {
     const [deletingDoc, setDeletingDoc] = useState(false)
     const [editFormData, setEditFormData] = useState({
         name: '',
+        email: '',
+        date_of_birth: '',
+        gender: '',
+        father_name: '',
+        father_cnic: '',
         phone: '',
         address: '',
         caste: '',
@@ -156,6 +161,11 @@ const StudentDetail = () => {
         const s = studentResponse?.data || {}
         setEditFormData({
             name: s.name || '',
+            email: s.email || '',
+            date_of_birth: s.date_of_birth ? new Date(s.date_of_birth).toISOString().split('T')[0] : '',
+            gender: s.gender || '',
+            father_name: s.father_name || s.guardians?.find(g => g.relation === 'Father')?.name || '',
+            father_cnic: s.father_cnic || s.guardians?.find(g => g.relation === 'Father')?.cnic || '',
             phone: s.phone || '',
             address: s.address || '',
             caste: s.caste || '',
@@ -585,12 +595,67 @@ const StudentDetail = () => {
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label>CNIC / B-Form</label>
+                                        <label>Student CNIC / B-Form</label>
                                         <input
                                             type="text"
                                             value={editFormData.bay_form}
                                             onChange={(e) => setEditFormData({ ...editFormData, bay_form: e.target.value })}
                                             className="form-control"
+                                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #cbd5e0', borderRadius: '4px' }}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Email</label>
+                                        <input
+                                            type="email"
+                                            value={editFormData.email}
+                                            onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                                            className="form-control"
+                                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #cbd5e0', borderRadius: '4px' }}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Date of Birth</label>
+                                        <input
+                                            type="date"
+                                            value={editFormData.date_of_birth}
+                                            onChange={(e) => setEditFormData({ ...editFormData, date_of_birth: e.target.value })}
+                                            className="form-control"
+                                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #cbd5e0', borderRadius: '4px' }}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Gender</label>
+                                        <select
+                                            value={editFormData.gender}
+                                            onChange={(e) => setEditFormData({ ...editFormData, gender: e.target.value })}
+                                            className="form-control"
+                                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #cbd5e0', borderRadius: '4px' }}
+                                        >
+                                            <option value="">Select Gender</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Father Name</label>
+                                        <input
+                                            type="text"
+                                            value={editFormData.father_name}
+                                            onChange={(e) => setEditFormData({ ...editFormData, father_name: e.target.value })}
+                                            className="form-control"
+                                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #cbd5e0', borderRadius: '4px' }}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Father CNIC</label>
+                                        <input
+                                            type="text"
+                                            value={editFormData.father_cnic}
+                                            onChange={(e) => setEditFormData({ ...editFormData, father_cnic: e.target.value })}
+                                            className="form-control"
+                                            placeholder="00000-0000000-0"
                                             style={{ width: '100%', padding: '0.5rem', border: '1px solid #cbd5e0', borderRadius: '4px' }}
                                         />
                                     </div>
@@ -919,11 +984,19 @@ const StudentDetail = () => {
                             <div className="info-grid">
                                 <div className="info-item">
                                     <label>Father's Name</label>
-                                    <span>{student.guardians?.find(g => g.relation === 'Father')?.name || 'N/A'}</span>
+                                    <span>{student.father_name || student.guardians?.find(g => g.relation === 'Father')?.name || 'N/A'}</span>
+                                </div>
+                                <div className="info-item">
+                                    <label>Father CNIC</label>
+                                    <span>{student.father_cnic || student.guardians?.find(g => g.relation === 'Father')?.cnic || 'N/A'}</span>
                                 </div>
                                 <div className="info-item">
                                     <label>CNIC/B-Form</label>
                                     <span>{student.bay_form || 'N/A'}</span>
+                                </div>
+                                <div className="info-item">
+                                    <label>Email</label>
+                                    <span>{student.email || 'N/A'}</span>
                                 </div>
                                 <div className="info-item">
                                     <label>Date of Birth</label>

@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useState, useCallback, lazy, Suspense } from 'react'
 import { AuthProvider } from './context/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -40,6 +40,8 @@ const StudentDetail = lazy(() => import('./components/students/StudentDetail'))
 const Profile = lazy(() => import('./components/Profile'))
 const BulkStudentImport = lazy(() => import('./components/students/BulkStudentImport'))
 const TestReport = lazy(() => import('./components/TestReport'))
+const PromotionManagement = lazy(() => import('./components/PromotionManagement'))
+const PassoutClasses = lazy(() => import('./components/ExClasses'))
 const NotFound = lazy(() => import('./components/NotFound'))
 
 // Loading fallback component
@@ -120,6 +122,17 @@ function AppLayout() {
                   <FeeStructureManagement />
                 </ProtectedRoute>
               } />
+              <Route path="/classes/promotion" element={
+                <ProtectedRoute requireAdmin={true}>
+                  <PromotionManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="/classes/passout-classes" element={
+                <ProtectedRoute requireAdmin={true}>
+                  <PassoutClasses />
+                </ProtectedRoute>
+              } />
+              <Route path="/classes/ex-classes" element={<Navigate to="/classes/passout-classes" replace />} />
 
               {/* Faculty Routes */}
               <Route path="/faculty" element={
