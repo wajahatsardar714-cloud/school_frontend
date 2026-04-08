@@ -265,7 +265,13 @@ const FeeVoucherManagement = () => {
       // When a student is selected, fetch ALL their vouchers regardless of month/year
       ...(selectedListStudent
         ? { student_id: selectedListStudent.id }
-        : { month: filters.month, year: filters.year }
+        : (filters.month
+          ? { month: filters.month, year: filters.year }
+          : {
+              from_date: `${filters.year}-01-01`,
+              to_date: `${filters.year}-12-31`
+            }
+        )
       ),
       class_id: filters.class_id || undefined,
       section_id: filters.section_id || undefined,
@@ -273,6 +279,28 @@ const FeeVoucherManagement = () => {
     }),
     [filters.month, filters.year, filters.class_id, filters.section_id, filters.status, selectedListStudent?.id],
     { enabled: true }
+  )
+
+  // Data Fetching - class/section totals source (without status filter)
+  const {
+    data: voucherTotalsData
+  } = useFetch(
+    () => feeVoucherService.list({
+      ...(selectedListStudent
+        ? { student_id: selectedListStudent.id }
+        : (filters.month
+          ? { month: filters.month, year: filters.year }
+          : {
+              from_date: `${filters.year}-01-01`,
+              to_date: `${filters.year}-12-31`
+            }
+        )
+      ),
+      class_id: filters.class_id || undefined,
+      section_id: filters.section_id || undefined,
+    }),
+    [filters.month, filters.year, filters.class_id, filters.section_id, selectedListStudent?.id],
+    { enabled: !!(filters.class_id || filters.section_id) }
   )
 
   // Data Fetching - students for generate form (filtered by class and optionally section)
@@ -477,6 +505,40 @@ const FeeVoucherManagement = () => {
       v.voucher_no?.toLowerCase().includes(searchLower)
     )
   }, [vouchersData, debouncedSearch, parseVoucherMonth, amountSortOrder, selectedListStudent])
+
+  const shouldShowClassSectionTotals = Boolean(filters.class_id || filters.section_id)
+
+  const classSectionFinancialSummary = useMemo(() => {
+    const vouchers = shouldShowClassSectionTotals
+      ? (voucherTotalsData?.data || voucherTotalsData?.vouchers || voucherTotalsData || [])
+      : []
+
+    if (!Array.isArray(vouchers)) {
+      return {
+        totalPending: 0,
+        totalPaid: 0,
+      }
+    }
+
+    const totalPending = vouchers.reduce((sum, voucher) => {
+      if (voucher.status === VOUCHER_STATUS.UNPAID || voucher.status === VOUCHER_STATUS.PARTIAL) {
+        return sum + (parseFloat(voucher.due_amount ?? voucher.balance_amount) || 0)
+      }
+      return sum
+    }, 0)
+
+    const totalPaid = vouchers.reduce((sum, voucher) => {
+      if (voucher.status === VOUCHER_STATUS.PAID || voucher.status === VOUCHER_STATUS.PARTIAL) {
+        return sum + (parseFloat(voucher.paid_amount) || 0)
+      }
+      return sum
+    }, 0)
+
+    return {
+      totalPending,
+      totalPaid,
+    }
+  }, [shouldShowClassSectionTotals, voucherTotalsData])
 
   // Clear selection when filters change or tab changes
   useEffect(() => {
@@ -1378,9 +1440,10 @@ const FeeVoucherManagement = () => {
 
             <select
               value={filters.month}
-              onChange={(e) => handleFilterChange('month', parseInt(e.target.value))}
+              onChange={(e) => handleFilterChange('month', e.target.value === '' ? '' : parseInt(e.target.value))}
               className="filter-select"
             >
+              <option value="">All Months</option>
               {MONTHS.map(m => (
                 <option key={m.value} value={m.value}>{m.label}</option>
               ))}
@@ -1396,6 +1459,23 @@ const FeeVoucherManagement = () => {
               max="2030"
             />
           </div>
+
+          {shouldShowClassSectionTotals && (
+            <div className="voucher-amount-summary-row">
+              <div className="voucher-amount-summary-card pending">
+                <span className="voucher-amount-summary-label">Total Pending</span>
+                <span className="voucher-amount-summary-value">
+                  {formatCurrency(classSectionFinancialSummary.totalPending)}
+                </span>
+              </div>
+              <div className="voucher-amount-summary-card paid">
+                <span className="voucher-amount-summary-label">Total Paid</span>
+                <span className="voucher-amount-summary-value">
+                  {formatCurrency(classSectionFinancialSummary.totalPaid)}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Bulk Action Buttons */}
           {selectedVouchers.length > 0 && (

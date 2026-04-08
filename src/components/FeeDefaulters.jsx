@@ -10,6 +10,7 @@ const FeeDefaulters = () => {
     class_id: '',
     section_id: '',
     min_due_amount: '',
+    month: '',
     overdue_only: false,
   })
 
@@ -44,7 +45,7 @@ const FeeDefaulters = () => {
     refetch: refreshDefaulters
   } = useFetch(
     () => feePaymentService.getDefaulters(filters),
-    [filters.class_id, filters.section_id, filters.min_due_amount, filters.overdue_only],
+    [filters.class_id, filters.section_id, filters.min_due_amount, filters.month, filters.overdue_only],
     { enabled: true }
   )
 
@@ -442,6 +443,15 @@ const FeeDefaulters = () => {
             onWheel={(e) => e.target.blur()}
             placeholder="e.g., 1000"
             min="0"
+          />
+        </div>
+
+        <div className="filter-group">
+          <label>Month</label>
+          <input
+            type="month"
+            value={filters.month}
+            onChange={(e) => setFilters({ ...filters, month: e.target.value })}
           />
         </div>
 

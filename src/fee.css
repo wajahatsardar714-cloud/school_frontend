@@ -1905,6 +1905,46 @@
   margin-bottom: var(--spacing-xl);
 }
 
+/* Voucher list amount summary (shown when class/section is selected) */
+.voucher-amount-summary-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.voucher-amount-summary-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+
+.voucher-amount-summary-card.pending {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.voucher-amount-summary-card.paid {
+  background: #dcfce7;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.voucher-amount-summary-label {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.voucher-amount-summary-value {
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .fee-header h1 {
   margin: 0;
   font-size: var(--font-size-2xl);

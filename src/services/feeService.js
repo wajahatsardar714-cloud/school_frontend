@@ -431,7 +431,7 @@ export const feePaymentService = {
 
   /**
    * Get defaulters list
-   * GET /api/fees/defaulters?class_id=&section_id=&min_due_amount=&overdue_only=
+   * GET /api/fees/defaulters?class_id=&section_id=&min_due_amount=&overdue_only=&month=
    */
   async getDefaulters(filters = {}) {
     const params = new URLSearchParams()
@@ -439,6 +439,7 @@ export const feePaymentService = {
     if (filters.class_id) params.append('class_id', filters.class_id)
     if (filters.section_id) params.append('section_id', filters.section_id)
     if (filters.min_due_amount) params.append('min_due_amount', filters.min_due_amount)
+    if (filters.month) params.append('month', filters.month)
     if (filters.overdue_only) params.append('overdue_only', 'true')
     
     const query = params.toString() ? `?${params.toString()}` : ''
