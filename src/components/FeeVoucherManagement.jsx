@@ -65,7 +65,7 @@ const EDIT_FEE_TYPES = [
   { value: 'ADMISSION',  label: 'Admission Fee' },
   { value: 'PAPER_FUND', label: 'Paper Fund' },
   { value: 'TRANSPORT',  label: 'Transport Fee' },
-  { value: 'ARREARS',    label: 'Arrears' },
+  { value: 'ARREARS',    label: 'Dues' },
   { value: 'CUSTOM',     label: 'Custom Charge' },
 ]
 
@@ -609,8 +609,8 @@ const FeeVoucherManagement = () => {
       if (field === 'amount') {
         newItems[index] = { ...newItems[index], amount: parseFloat(value) || 0 }
       } else if (field === 'item_type') {
-        // Clear description when switching away from CUSTOM
-        newItems[index] = { ...newItems[index], item_type: value, description: value === 'CUSTOM' ? (newItems[index].description || '') : '' }
+        // Keep description only for item types that support display labels.
+        newItems[index] = { ...newItems[index], item_type: value, description: (value === 'CUSTOM' || value === 'ARREARS') ? (newItems[index].description || '') : '' }
       } else {
         newItems[index] = { ...newItems[index], [field]: value }
       }
@@ -641,7 +641,7 @@ const FeeVoucherManagement = () => {
     const itemsToSave = editItems.map(item => ({
       item_type: item.item_type,
       amount: item.amount,
-      ...(item.item_type === 'CUSTOM' && item.description ? { description: item.description.trim() } : {})
+      ...((item.item_type === 'CUSTOM' || item.item_type === 'ARREARS') && item.description ? { description: item.description.trim() } : {})
     }))
     await editItemsMutation.mutate({
       voucher_id: editingVoucher.voucher_id || editingVoucher.id,
@@ -758,6 +758,21 @@ const FeeVoucherManagement = () => {
 
   const openPaymentModal = useCallback(async (voucher) => {
     setSelectedVoucher(voucher)
+
+    try {
+      const detailResponse = await feeVoucherService.getById(voucher.id)
+      const detailVoucher = detailResponse?.data || detailResponse
+      if (detailVoucher) {
+        setSelectedVoucher(prev => ({
+          ...prev,
+          ...detailVoucher,
+          id: prev?.id || detailVoucher.voucher_id || detailVoucher.id,
+        }))
+      }
+    } catch (error) {
+      console.error('Failed to load voucher item details:', error)
+    }
+
     setPaymentForm({
       amount: (voucher.total_amount - (voucher.paid_amount || 0)).toString(),
       payment_date: new Date().toISOString().split('T')[0],
@@ -791,6 +806,50 @@ const FeeVoucherManagement = () => {
     }
     setShowPaymentModal(true)
   }, [])
+
+  // Open a specific voucher directly when navigated with ?id=<voucher_id>
+  useEffect(() => {
+    const voucherIdParam = searchParams.get('id')
+    if (!voucherIdParam) return
+
+    let cancelled = false
+
+    const openFromQueryParam = async () => {
+      try {
+        const response = await feeVoucherService.getById(voucherIdParam)
+        const voucher = response?.data || response
+        if (!voucher || cancelled) return
+
+        const mappedVoucher = {
+          id: voucher.voucher_id || voucher.id,
+          voucher_no: `V-${voucher.voucher_id || voucher.id}`,
+          student_name: voucher.student_name,
+          total_amount: parseFloat(voucher.total_fee) || 0,
+          paid_amount: parseFloat(voucher.paid_amount) || 0,
+          due_amount: parseFloat(voucher.due_amount) || 0,
+          voucher_type: voucher.voucher_type || 'MONTHLY',
+        }
+
+        await openPaymentModal(mappedVoucher)
+      } catch (error) {
+        console.error('Failed to open voucher from query parameter:', error)
+      } finally {
+        if (!cancelled) {
+          setSearchParams(prev => {
+            const next = new URLSearchParams(prev)
+            next.delete('id')
+            return next
+          }, { replace: true })
+        }
+      }
+    }
+
+    openFromQueryParam()
+
+    return () => {
+      cancelled = true
+    }
+  }, [searchParams, openPaymentModal, setSearchParams])
 
   const closePaymentModal = useCallback(() => {
     setShowPaymentModal(false)
@@ -2034,7 +2093,7 @@ const FeeVoucherManagement = () => {
                         <td>
                           {(voucher.items || []).map((item, idx) => (
                             <div key={idx} style={{ fontSize: '12px' }}>
-                              {item.item_type === 'CUSTOM' && item.description
+                              {(item.item_type === 'CUSTOM' || item.item_type === 'ARREARS') && item.description
                                 ? item.description
                                 : (EDIT_FEE_TYPES.find(ft => ft.value === item.item_type)?.label || item.item_type.replace('_', ' '))
                               }: Rs. {item.amount}
@@ -2122,6 +2181,24 @@ const FeeVoucherManagement = () => {
                 <p><strong>Paid:</strong> {formatCurrency(selectedVoucher.paid_amount)}</p>
                 <p><strong>Balance:</strong> {formatCurrency(selectedVoucher.due_amount)}</p>
               </div>
+
+              {Array.isArray(selectedVoucher.items) && selectedVoucher.items.length > 0 && (
+                <div style={{ marginBottom: '0.9rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '0.7rem 0.8rem' }}>
+                  <div style={{ fontWeight: 700, fontSize: '13px', color: '#334155', marginBottom: '0.4rem' }}>Fee Items</div>
+                  {(selectedVoucher.items || []).map((item, idx) => {
+                    const itemLabel = ((item.item_type === 'CUSTOM' || item.item_type === 'ARREARS') && item.description)
+                      ? item.description
+                      : (EDIT_FEE_TYPES.find(ft => ft.value === item.item_type)?.label || item.item_type?.replace('_', ' '))
+
+                    return (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '0.15rem 0' }}>
+                        <span style={{ color: '#334155' }}>{itemLabel}</span>
+                        <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatCurrency(parseFloat(item.amount) || 0)}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
 
               {selectedVoucher.voucher_type === 'YEARLY_COLLEGE' && (
                 <div style={{ marginBottom: '0.75rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', overflow: 'hidden' }}>

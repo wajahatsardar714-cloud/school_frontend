@@ -298,7 +298,12 @@ const StudentDetail = () => {
     )
 
     const student = studentResponse?.data || {}
-    const feeHistory = feeHistoryResponse?.data?.history || feeHistoryResponse?.history || []
+    const feeHistory =
+        feeHistoryResponse?.data?.vouchers ||
+        feeHistoryResponse?.data?.history ||
+        feeHistoryResponse?.vouchers ||
+        feeHistoryResponse?.history ||
+        []
     const dueInfo = dueResponse?.data || { total_due: 0 }
 
     // Define isCollegeStudent early so it can be used in availableClasses
@@ -789,7 +794,7 @@ const StudentDetail = () => {
 
                                 {dueInfo.total_due > 0 && (
                                     <div style={{ background: '#fffbeb', border: '1px solid #f6e05e', borderRadius: '6px', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.83rem', color: '#744210' }}>
-                                        ⚠️ <strong>Outstanding dues of Rs. {dueInfo.total_due?.toLocaleString()} will carry forward.</strong> The next voucher generated in the new class will include these dues as arrears plus the new class monthly fee.
+                                        ⚠️ <strong>Outstanding dues of Rs. {dueInfo.total_due?.toLocaleString()} will carry forward.</strong> The next voucher generated in the new class will include these dues plus the new class monthly fee.
                                     </div>
                                 )}
 
@@ -849,7 +854,7 @@ const StudentDetail = () => {
 
                                 <p style={{ fontSize: '0.8rem', color: '#718096', marginTop: '0.5rem' }}>
                                     {enrollmentAction === 'promote'
-                                        ? 'Monthly fee will be updated to the new class fee structure. Outstanding dues carry forward as arrears on the next voucher.'
+                                        ? 'Monthly fee will be updated to the new class fee structure. Outstanding dues carry forward as dues on the next voucher.'
                                         : 'Monthly fee and outstanding dues remain unchanged. Student will be placed at the next available serial number in the new section.'}
                                 </p>
                             </div>
@@ -1074,13 +1079,15 @@ const StudentDetail = () => {
                                         ) : (
                                             feeHistory.map(record => {
                                                 const isOverdue = record.status !== 'PAID' && record.due_date && new Date(record.due_date) < new Date()
+                                                const discountAmount = parseFloat(record.discount_amount) || 0
+                                                const netAmount = parseFloat(record.net_amount ?? record.total_fee) || 0
                                                 return (
                                                     <tr key={record.voucher_id} className={isOverdue ? 'row-overdue' : ''}>
                                                         <td><strong>{new Date(record.month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</strong></td>
                                                         <td>{record.class_name}</td>
                                                         <td>Rs. {record.total_fee?.toLocaleString()}</td>
-                                                        <td>{record.discount_amount > 0 ? <span style={{ color: '#38a169' }}>-Rs. {record.discount_amount?.toLocaleString()}</span> : '-'}</td>
-                                                        <td><strong>Rs. {record.net_amount?.toLocaleString()}</strong></td>
+                                                        <td>{discountAmount > 0 ? <span style={{ color: '#38a169' }}>-Rs. {discountAmount.toLocaleString()}</span> : '-'}</td>
+                                                        <td><strong>Rs. {netAmount.toLocaleString()}</strong></td>
                                                         <td>Rs. {record.paid_amount?.toLocaleString()}</td>
                                                         <td><span style={{ color: record.due_amount > 0 ? '#e53e3e' : '#38a169', fontWeight: 600 }}>Rs. {record.due_amount?.toLocaleString()}</span></td>
                                                         <td><span className={`badge-status ${record.status === 'PAID' ? 'badge-active' : 'badge-inactive'}`}>{record.status} {isOverdue && '(Overdue)'}</span></td>

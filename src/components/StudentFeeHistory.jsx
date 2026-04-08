@@ -158,7 +158,7 @@ const StudentFeeHistory = () => {
         paid_vouchers: backendSummary.paid_vouchers || 0,
         partial_vouchers: backendSummary.partial_vouchers || 0,
         unpaid_vouchers: backendSummary.unpaid_vouchers || 0,
-        total_amount: backendSummary.total_amount || 0,
+        total_amount: backendSummary.total_amount || backendSummary.total_fee || 0,
         total_paid: backendSummary.total_paid || 0,
       }
     }
@@ -346,7 +346,7 @@ const StudentFeeHistory = () => {
                   Rs. {due.total_due?.toLocaleString()}
                 </div>
                 <div className="stat-detail">
-                  {due.voucher_count || 0} unpaid voucher{due.voucher_count !== 1 ? 's' : ''}
+                  {due.unpaid_vouchers || due.voucher_count || 0} unpaid voucher{(due.unpaid_vouchers || due.voucher_count || 0) !== 1 ? 's' : ''}
                 </div>
               </div>
             </div>
@@ -492,7 +492,7 @@ const StudentFeeHistory = () => {
                           {record.status}
                         </span>
                         <span className="timeline-amount">
-                          Rs. {record.paid_amount?.toLocaleString()} / {record.net_amount?.toLocaleString()}
+                          Rs. {record.paid_amount?.toLocaleString()} / {(record.net_amount ?? record.total_fee)?.toLocaleString()}
                         </span>
                       </div>
                     </div>
