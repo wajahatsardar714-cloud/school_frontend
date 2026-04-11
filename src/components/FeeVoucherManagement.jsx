@@ -520,14 +520,45 @@ const FeeVoucherManagement = () => {
       }
     }
 
-    const totalPending = vouchers.reduce((sum, voucher) => {
+    // In All-Months view, use only the latest voucher snapshot per student
+    // so previous arrears are not counted repeatedly across months.
+    const vouchersForSummary = !filters.month
+      ? Object.values(
+          vouchers.reduce((acc, voucher) => {
+            const studentId = voucher.student_id
+            if (!studentId) return acc
+
+            const existing = acc[studentId]
+            if (!existing) {
+              acc[studentId] = voucher
+              return acc
+            }
+
+            const existingMonthTs = new Date(existing.month).getTime()
+            const currentMonthTs = new Date(voucher.month).getTime()
+
+            const isCurrentNewer =
+              (!Number.isNaN(currentMonthTs) && Number.isNaN(existingMonthTs)) ||
+              currentMonthTs > existingMonthTs ||
+              (currentMonthTs === existingMonthTs && (parseInt(voucher.voucher_id, 10) || 0) > (parseInt(existing.voucher_id, 10) || 0))
+
+            if (isCurrentNewer) {
+              acc[studentId] = voucher
+            }
+
+            return acc
+          }, {})
+        )
+      : vouchers
+
+    const totalPending = vouchersForSummary.reduce((sum, voucher) => {
       if (voucher.status === VOUCHER_STATUS.UNPAID || voucher.status === VOUCHER_STATUS.PARTIAL) {
         return sum + (parseFloat(voucher.due_amount ?? voucher.balance_amount) || 0)
       }
       return sum
     }, 0)
 
-    const totalPaid = vouchers.reduce((sum, voucher) => {
+    const totalPaid = vouchersForSummary.reduce((sum, voucher) => {
       if (voucher.status === VOUCHER_STATUS.PAID || voucher.status === VOUCHER_STATUS.PARTIAL) {
         return sum + (parseFloat(voucher.paid_amount) || 0)
       }
@@ -538,7 +569,7 @@ const FeeVoucherManagement = () => {
       totalPending,
       totalPaid,
     }
-  }, [shouldShowClassSectionTotals, voucherTotalsData])
+  }, [shouldShowClassSectionTotals, voucherTotalsData, filters.month])
 
   // Clear selection when filters change or tab changes
   useEffect(() => {

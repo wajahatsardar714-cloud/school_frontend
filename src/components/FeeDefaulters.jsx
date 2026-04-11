@@ -134,8 +134,8 @@ const FeeDefaulters = () => {
   // Export to CSV
   const exportToCSV = useCallback(() => {
     const headers = [
-      'Section', 'S.No', 'Student Name', 'Roll No', 'Class', 'Section',
-      'Father/Guardian', 'Contact', 'Total Vouchers',
+      'Section', 'S.No', 'Student Name', 'Class', 'Section',
+      'Father Name', 'Contact', 'Total Vouchers',
       'Total Fee', 'Paid Amount', 'Due Amount'
     ]
     
@@ -149,7 +149,6 @@ const FeeDefaulters = () => {
         'SCHOOL',
         index + 1,
         d.student_name,
-        d.roll_no,
         d.class_name,
         d.section_name || '-',
         fatherName,
@@ -171,7 +170,6 @@ const FeeDefaulters = () => {
         'COLLEGE',
         groupedDefaulters.schoolDefaulters.length + index + 1,
         d.student_name,
-        d.roll_no,
         d.class_name,
         d.section_name || '-',
         fatherName,
@@ -217,7 +215,6 @@ const FeeDefaulters = () => {
         return `<tr style="background:${bg};-webkit-print-color-adjust:exact;print-color-adjust:exact;">
           <td style="text-align:center;">${startIndex + index + 1}</td>
           <td><strong>${d.student_name}</strong></td>
-          <td>${d.roll_no || '-'}</td>
           <td>${d.class_name}</td>
           <td>${d.section_name || '-'}</td>
           <td>${fatherName}</td>
@@ -253,10 +250,9 @@ const FeeDefaulters = () => {
     table { width:100%; border-collapse:collapse; table-layout:fixed; }
     col.sno { width:4%; }
     col.student { width:14%; }
-    col.roll { width:6%; }
     col.class { width:9%; }
     col.section { width:7%; }
-    col.guardian { width:12%; }
+    col.guardian { width:16%; }
     col.contact { width:10%; }
     col.vouchers { width:6%; }
     col.total { width:10%; }
@@ -286,7 +282,7 @@ const FeeDefaulters = () => {
   <div class="section-header">🏫 SCHOOL SECTION (PG to 10th)</div>
   <table>
     <colgroup>
-      <col class="sno"/><col class="student"/><col class="roll"/><col class="class"/>
+      <col class="sno"/><col class="student"/><col class="class"/>
       <col class="section"/><col class="guardian"/><col class="contact"/>
       <col class="vouchers"/><col class="total"/><col class="paid"/><col class="due"/>
     </colgroup>
@@ -294,10 +290,9 @@ const FeeDefaulters = () => {
       <tr>
         <th style="text-align:center;">S.No</th>
         <th>Student</th>
-        <th>Roll</th>
         <th>Class</th>
         <th>Section</th>
-        <th>Father/Guardian</th>
+        <th>Father Name</th>
         <th>Contact</th>
         <th style="text-align:center;">Vouchers</th>
         <th style="text-align:right;">Total Fee</th>
@@ -307,7 +302,7 @@ const FeeDefaulters = () => {
     </thead>
     <tbody>${schoolRows}</tbody>
     <tfoot>
-      <tr><td colspan="10" style="text-align:right;"><strong>School Section Total:</strong></td><td style="text-align:right;">Rs. ${schoolDueTotal.toLocaleString()}</td></tr>
+      <tr><td colspan="9" style="text-align:right;"><strong>School Section Total:</strong></td><td style="text-align:right;">Rs. ${schoolDueTotal.toLocaleString()}</td></tr>
     </tfoot>
   </table>` : '<div class="no-data">No school defaulters found</div>'}
   
@@ -315,7 +310,7 @@ const FeeDefaulters = () => {
   <div class="section-header college" style="page-break-before: ${schoolDefaulters.length > 15 ? 'always' : 'auto'};">🎓 COLLEGE SECTION (1st Year & 2nd Year)</div>
   <table>
     <colgroup>
-      group class="sno"/><col class="student"/><col class="roll"/><col class="class"/>
+      <col class="sno"/><col class="student"/><col class="class"/>
       <col class="section"/><col class="guardian"/><col class="contact"/>
       <col class="vouchers"/><col class="total"/><col class="paid"/><col class="due"/>
     </colgroup>
@@ -323,10 +318,9 @@ const FeeDefaulters = () => {
       <tr>
         <th style="text-align:center;">S.No</th>
         <th>Student</th>
-        <th>Roll</th>
         <th>Class</th>
         <th>Section</th>
-        <th>Father/Guardian</th>
+        <th>Father Name</th>
         <th>Contact</th>
         <th style="text-align:center;">Vouchers</th>
         <th style="text-align:right;">Total Fee</th>
@@ -336,14 +330,14 @@ const FeeDefaulters = () => {
     </thead>
     <tbody>${collegeRows}</tbody>
     <tfoot>
-      <tr><td colspan="10" style="text-align:right;"><strong>College Section Total:</strong></td><td style="text-align:right;">Rs. ${collegeDueTotal.toLocaleString()}</td></tr>
+      <tr><td colspan="9" style="text-align:right;"><strong>College Section Total:</strong></td><td style="text-align:right;">Rs. ${collegeDueTotal.toLocaleString()}</td></tr>
     </tfoot>
   </table>` : '<div class="no-data">No college defaulters found</div>'}
   
   ${(schoolDefaulters.length > 0 || collegeDefaulters.length > 0) ? `
   <table style="margin-top:.5rem;margin-bottom:.5rem;">
     <tfoot>
-      <tr><td colspan="11" style="text-align:center;font-size:9pt;"><strong>GRAND TOTAL DUE:</strong> Rs. ${summary.total_due_amount?.toLocaleString() || 0}</td></tr>
+      <tr><td colspan="10" style="text-align:center;font-size:9pt;"><strong>GRAND TOTAL DUE:</strong> Rs. ${summary.total_due_amount?.toLocaleString() || 0}</td></tr>
     </tfoot>
   </table>` : ''}
 </body>
@@ -493,10 +487,9 @@ const FeeDefaulters = () => {
                     <tr>
                       <th style={{ width: '5%' }}>S.No</th>
                       <th>Student</th>
-                      <th>Roll No</th>
                       <th>Class</th>
                       <th>Section</th>
-                      <th>Father/Guardian</th>
+                      <th>Father Name</th>
                       <th>Vouchers</th>
                       <th>Total Fee</th>
                       <th>Paid</th>
@@ -516,7 +509,6 @@ const FeeDefaulters = () => {
                           <td>
                             <strong>{defaulter.student_name}</strong>
                           </td>
-                          <td>{defaulter.roll_no || '-'}</td>
                           <td><strong>{defaulter.class_name}</strong></td>
                           <td>{defaulter.section_name || '-'}</td>
                           <td>
@@ -545,7 +537,7 @@ const FeeDefaulters = () => {
                       )
                     })}
                     <tr style={{ background: '#f0f9ff', fontWeight: '700' }}>
-                      <td colSpan="9" style={{ textAlign: 'right', padding: '12px' }}>
+                      <td colSpan="8" style={{ textAlign: 'right', padding: '12px' }}>
                         <strong>School Section Total Due:</strong>
                       </td>
                       <td className="amount-due" style={{ fontSize: '16px' }}>
@@ -577,10 +569,9 @@ const FeeDefaulters = () => {
                     <tr>
                       <th style={{ width: '5%' }}>S.No</th>
                       <th>Student</th>
-                      <th>Roll No</th>
                       <th>Class</th>
                       <th>Section</th>
-                      <th>Father/Guardian</th>
+                      <th>Father Name</th>
                       <th>Vouchers</th>
                       <th>Total Fee</th>
                       <th>Paid</th>
@@ -600,7 +591,6 @@ const FeeDefaulters = () => {
                           <td>
                             <strong>{defaulter.student_name}</strong>
                           </td>
-                          <td>{defaulter.roll_no || '-'}</td>
                           <td><strong>{defaulter.class_name}</strong></td>
                           <td>{defaulter.section_name || '-'}</td>
                           <td>
@@ -629,7 +619,7 @@ const FeeDefaulters = () => {
                       )
                     })}
                     <tr style={{ background: '#ecfdf5', fontWeight: '700' }}>
-                      <td colSpan="9" style={{ textAlign: 'right', padding: '12px' }}>
+                      <td colSpan="8" style={{ textAlign: 'right', padding: '12px' }}>
                         <strong>College Section Total Due:</strong>
                       </td>
                       <td className="amount-due" style={{ fontSize: '16px' }}>
