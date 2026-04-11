@@ -37,6 +37,7 @@ const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard'))
 const StudentDashboard = lazy(() => import('./components/students/StudentDashboard'))
 const ClassStudentList = lazy(() => import('./components/students/ClassStudentList'))
 const StudentDetail = lazy(() => import('./components/students/StudentDetail'))
+const StudentProfileDocument = lazy(() => import('./components/students/StudentProfileDocument'))
 const Profile = lazy(() => import('./components/Profile'))
 const BulkStudentImport = lazy(() => import('./components/students/BulkStudentImport'))
 const TestReport = lazy(() => import('./components/TestReport'))
@@ -105,6 +106,7 @@ function AppLayout() {
               <Route path="/students/class/:classId" element={<ClassStudentList />} />
               <Route path="/classes/:classId/students" element={<ClassStudentList />} />
               <Route path="/students/:studentId" element={<StudentDetail />} />
+              <Route path="/students/:studentId/profile-document" element={<StudentProfileDocument />} />
 
               {/* Class Management Routes */}
               <Route path="/classes" element={

@@ -453,6 +453,14 @@ const StudentDetail = () => {
         }
     }, [])
 
+    const handleOpenProfileDocument = useCallback(() => {
+        const route = `/students/${studentId}/profile-document`
+        const popup = window.open(route, '_blank', 'noopener,noreferrer')
+        if (!popup) {
+            navigate(route)
+        }
+    }, [navigate, studentId])
+
     if (studentLoading) {
         return (
             <div className="students-container">
@@ -573,7 +581,7 @@ const StudentDetail = () => {
                 </div>
                 <div className="header-actions">
                     <button className="btn-secondary" onClick={openEditModal}>Edit Profile</button>
-                    <button className="btn-primary">Print Card</button>
+                    <button className="btn-primary" onClick={handleOpenProfileDocument}>Print Card</button>
                 </div>
             </header>
 
