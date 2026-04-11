@@ -375,6 +375,7 @@ export const feePaymentService = {
     if (filters.student_id) params.append('student_id', filters.student_id)
     if (filters.class_id) params.append('class_id', filters.class_id)
     if (filters.section_id) params.append('section_id', filters.section_id)
+    if (filters.month) params.append('month', filters.month)
     if (filters.from_date) params.append('from_date', filters.from_date)
     if (filters.to_date) params.append('to_date', filters.to_date)
     if (filters.page) params.append('page', filters.page)

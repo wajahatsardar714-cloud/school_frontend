@@ -10,6 +10,8 @@ import { useSearchParams } from 'react-router-dom';
 import { useFetch, useMutation, useDebounce } from '../hooks/useApi';
 import { feeService } from '../services/feeService';
 import { studentService } from '../services/studentService';
+import { classService } from '../services/classService';
+import { sortClassesBySequence } from '../utils/classSorting';
 import { PrintReportHeader, ReportTable, ReportActions } from './PrintReport';
 import '../fee.css';
 
@@ -25,16 +27,34 @@ export default function FeePaymentManagement() {
     setActiveTabInternal(tab);
     setSearchParams(prev => { const next = new URLSearchParams(prev); next.set('tab', tab); return next; }, { replace: true });
   }, [setSearchParams]);
+
+  // Payments page now shows history view only.
+  useEffect(() => {
+    if (activeTab !== 'history') {
+      setActiveTab('history');
+    }
+  }, [activeTab, setActiveTab]);
   
   // Get today's date in YYYY-MM-DD format
   const getTodayDate = () => new Date().toISOString().split('T')[0];
   
   // Filters state - Initialize without calling function in initial state
   const [filters, setFilters] = useState({
-    search: '',
+    student_id: '',
+    class_id: '',
+    section_id: '',
+    month: '',
     dateFrom: '',
     dateTo: '',
   });
+
+  // Student search state for payment history filters
+  const [historySearchTerm, setHistorySearchTerm] = useState('');
+  const [historySearchResults, setHistorySearchResults] = useState([]);
+  const [historySearchLoading, setHistorySearchLoading] = useState(false);
+  const [showHistoryResults, setShowHistoryResults] = useState(false);
+  const [selectedHistoryStudent, setSelectedHistoryStudent] = useState(null);
+  const historySearchRef = useRef(null);
   
   // Set filters from URL params on component mount
   useEffect(() => {
@@ -42,14 +62,20 @@ export default function FeePaymentManagement() {
     const today = getTodayDate();
     if (dateParam) {
       setFilters({
-        search: '',
+        student_id: '',
+        class_id: '',
+        section_id: '',
+        month: '',
         dateFrom: dateParam,
         dateTo: dateParam
       });
     } else {
       // Set to today by default
       setFilters({
-        search: '',
+        student_id: '',
+        class_id: '',
+        section_id: '',
+        month: '',
         dateFrom: today,
         dateTo: today
       });
@@ -57,7 +83,7 @@ export default function FeePaymentManagement() {
   }, [searchParams]);
   
   // Debounce search for performance
-  const debouncedSearch = useDebounce(filters.search, 300);
+  const debouncedHistorySearch = useDebounce(historySearchTerm, 300);
   
   // Payment detail modal
   const [selectedPayment, setSelectedPayment] = useState(null);
@@ -69,6 +95,11 @@ export default function FeePaymentManagement() {
     voucherId: '',
     amount: '',
     paymentDate: new Date().toISOString().split('T')[0],
+  });
+
+  const [isTightStatsLayout, setIsTightStatsLayout] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth <= 1500;
   });
 
   // Student search state for record payment modal
@@ -84,10 +115,34 @@ export default function FeePaymentManagement() {
   // Build query params for API - using backend format
   const queryParams = useMemo(() => {
     const params = {};
+    if (filters.student_id) params.student_id = filters.student_id;
+    if (filters.class_id) params.class_id = filters.class_id;
+    if (filters.section_id) params.section_id = filters.section_id;
+    if (filters.month) params.month = filters.month;
     if (filters.dateFrom) params.from_date = filters.dateFrom;
     if (filters.dateTo) params.to_date = filters.dateTo;
     return params;
-  }, [filters.dateFrom, filters.dateTo]);
+  }, [filters.student_id, filters.class_id, filters.section_id, filters.month, filters.dateFrom, filters.dateTo]);
+
+  // Fetch classes and sections for filters
+  const { data: classesData } = useFetch(
+    () => classService.list(),
+    [],
+    { enabled: true }
+  );
+
+  const { data: sectionsData } = useFetch(
+    () => classService.getSections(filters.class_id),
+    [filters.class_id],
+    { enabled: !!filters.class_id }
+  );
+
+  const sortedClasses = useMemo(
+    () => sortClassesBySequence(classesData?.data || []),
+    [classesData]
+  );
+
+  const filterSections = sectionsData?.data || [];
   
   // Fetch payment history
   const {
@@ -106,10 +161,47 @@ export default function FeePaymentManagement() {
       if (studentSearchRef.current && !studentSearchRef.current.contains(event.target)) {
         setShowStudentResults(false);
       }
+      if (historySearchRef.current && !historySearchRef.current.contains(event.target)) {
+        setShowHistoryResults(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsTightStatsLayout(window.innerWidth <= 1500);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Debounced student search for payment history filter
+  useEffect(() => {
+    const runSearch = async () => {
+      if (debouncedHistorySearch.trim().length < 2) {
+        setHistorySearchResults([]);
+        setShowHistoryResults(false);
+        return;
+      }
+
+      setHistorySearchLoading(true);
+      try {
+        const response = await studentService.search(debouncedHistorySearch.trim());
+        const students = response.data?.data || response.data || [];
+        setHistorySearchResults(students);
+        setShowHistoryResults(true);
+      } catch (err) {
+        setHistorySearchResults([]);
+      } finally {
+        setHistorySearchLoading(false);
+      }
+    };
+
+    runSearch();
+  }, [debouncedHistorySearch]);
 
   // Debounced student search
   useEffect(() => {
@@ -209,11 +301,36 @@ export default function FeePaymentManagement() {
   // Clear filters - reset to today
   const clearFilters = useCallback(() => {
     const todayDate = getTodayDate();
+    setSelectedHistoryStudent(null);
+    setHistorySearchTerm('');
+    setShowHistoryResults(false);
     setFilters({
-      search: '',
+      student_id: '',
+      class_id: '',
+      section_id: '',
+      month: '',
       dateFrom: todayDate,
       dateTo: todayDate,
     });
+  }, []);
+
+  const handleSelectHistoryStudent = useCallback((student) => {
+    setSelectedHistoryStudent(student);
+    setHistorySearchTerm('');
+    setShowHistoryResults(false);
+    setFilters(prev => ({ ...prev, student_id: student.id }));
+  }, []);
+
+  const clearHistoryStudent = useCallback(() => {
+    setSelectedHistoryStudent(null);
+    setHistorySearchTerm('');
+    setHistorySearchResults([]);
+    setShowHistoryResults(false);
+    setFilters(prev => ({ ...prev, student_id: '' }));
+  }, []);
+
+  const handleClassFilterChange = useCallback((classId) => {
+    setFilters(prev => ({ ...prev, class_id: classId, section_id: '' }));
   }, []);
   
   // Handle payment form change
@@ -286,6 +403,52 @@ export default function FeePaymentManagement() {
       day: 'numeric',
     });
   }, []);
+
+  // Adaptive stat value sizing based on digit count
+  const getDigitCount = useCallback((value) => {
+    return String(value ?? '').replace(/\D/g, '').length || 1;
+  }, []);
+
+  const getAdaptiveValueStyle = useCallback((value) => {
+    return {
+      '--digit-count': getDigitCount(value)
+    };
+  }, [getDigitCount]);
+
+  const formatCompactAmount = useCallback((value) => {
+    const num = Number(value) || 0;
+    return new Intl.NumberFormat('en-US', {
+      notation: 'compact',
+      maximumFractionDigits: 1,
+      minimumFractionDigits: 0,
+    }).format(num).replace(/\s+/g, '');
+  }, []);
+
+  const getMoneyDisplay = useCallback((value) => {
+    const num = Number(value) || 0;
+    const full = num.toLocaleString('en-US');
+    const digitCount = getDigitCount(num);
+    const useCompact = isTightStatsLayout && digitCount >= 5;
+
+    return {
+      display: useCompact ? formatCompactAmount(num) : full,
+      full,
+      useCompact,
+    };
+  }, [formatCompactAmount, getDigitCount, isTightStatsLayout]);
+
+  const getCountDisplay = useCallback((value) => {
+    const num = Number(value) || 0;
+    const full = num.toLocaleString('en-US');
+    const digitCount = getDigitCount(num);
+    const useCompact = isTightStatsLayout && digitCount >= 5;
+
+    return {
+      display: useCompact ? formatCompactAmount(num) : full,
+      full,
+      useCompact,
+    };
+  }, [formatCompactAmount, getDigitCount, isTightStatsLayout]);
   
   // Computed values - backend wraps data in { success, data, ... }
   const payments = paymentsData?.data || paymentsData?.payments || [];
@@ -311,6 +474,26 @@ export default function FeePaymentManagement() {
       todayAmount: todayTotal,
     };
   }, [payments]);
+
+  const totalCollectedDisplay = useMemo(
+    () => getMoneyDisplay(stats.totalAmount),
+    [getMoneyDisplay, stats.totalAmount]
+  );
+
+  const totalPaymentsDisplay = useMemo(
+    () => getCountDisplay(stats.totalPayments),
+    [getCountDisplay, stats.totalPayments]
+  );
+
+  const todayCollectedDisplay = useMemo(
+    () => getMoneyDisplay(stats.todayAmount),
+    [getMoneyDisplay, stats.todayAmount]
+  );
+
+  const todayPaymentsDisplay = useMemo(
+    () => getCountDisplay(stats.todayCount),
+    [getCountDisplay, stats.todayCount]
+  );
   
   // Print report — isolated popup so app CSS never interferes
   const handlePrint = useCallback(() => {
@@ -325,7 +508,8 @@ export default function FeePaymentManagement() {
       const statusHtml = isFullPaid
         ? `<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:999px;font-size:7.5pt;font-weight:700;">Full Paid</span>`
         : `<span style="background:#fff7ed;color:#9a3412;padding:2px 6px;border-radius:4px;font-size:7.5pt;font-weight:600;display:inline-block;text-align:center;">Partial<br/><span style="font-size:6.5pt;">Rs. ${remaining.toLocaleString()} left</span></span>`;
-      const cls = `${payment.class_name}${payment.section_name ? ' - ' + payment.section_name : ''}`;
+      const cls = payment.class_name || '-';
+      const sec = payment.section_name || '-';
       const month = payment.month ? new Date(payment.month).toLocaleDateString('en-PK', { year:'numeric', month:'short' }) : '-';
       const date  = payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('en-PK', { year:'numeric', month:'short', day:'numeric' }) : '-';
       const bg = index % 2 === 0 ? '#ffffff' : '#f0f4ff';
@@ -333,6 +517,7 @@ export default function FeePaymentManagement() {
         <td style="text-align:center;">${index + 1}</td>
         <td>${payment.student_name || 'N/A'}</td>
         <td>${cls}</td>
+        <td>${sec}</td>
         <td style="text-align:center;">${month}</td>
         <td style="text-align:right;font-weight:700;">Rs. ${paidAmount.toLocaleString()}</td>
         <td style="text-align:center;">${statusHtml}</td>
@@ -357,10 +542,11 @@ export default function FeePaymentManagement() {
     table { width:100%; border-collapse:collapse; table-layout:fixed; }
     col.sno    { width:5%; }
     col.student{ width:24%; }
-    col.class  { width:13%; }
-    col.month  { width:12%; }
+    col.class  { width:12%; }
+    col.section{ width:10%; }
+    col.month  { width:11%; }
     col.amount { width:13%; }
-    col.status { width:18%; }
+    col.status { width:15%; }
     col.date   { width:15%; }
     th { background:#1e3a8a; color:#fff; font-size:7pt; font-weight:700; text-transform:uppercase; letter-spacing:.03em; padding:.25rem .4rem; border:1px solid #1e3a8a; white-space:nowrap; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
     td { padding:.18rem .4rem; border:.5px solid #c0c0c0; font-size:8.5pt; vertical-align:middle; line-height:1.2; white-space:nowrap; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
@@ -381,13 +567,14 @@ export default function FeePaymentManagement() {
   <table>
     <colgroup>
       <col class="sno"/><col class="student"/><col class="class"/>
-      <col class="month"/><col class="amount"/><col class="status"/><col class="date"/>
+      <col class="section"/><col class="month"/><col class="amount"/><col class="status"/><col class="date"/>
     </colgroup>
     <thead>
       <tr>
         <th style="text-align:center;">S.No</th>
         <th>Student</th>
         <th>Class</th>
+        <th>Section</th>
         <th style="text-align:center;">Month</th>
         <th style="text-align:right;">Amount</th>
         <th style="text-align:center;">Payment Status</th>
@@ -396,7 +583,7 @@ export default function FeePaymentManagement() {
     </thead>
     <tbody>${rows}</tbody>
     <tfoot>
-      <tr><td colspan="7">Grand Total: Rs. ${stats.totalAmount.toLocaleString()}</td></tr>
+      <tr><td colspan="8">Grand Total: Rs. ${stats.totalAmount.toLocaleString()}</td></tr>
     </tfoot>
   </table>
 </body>
@@ -411,11 +598,12 @@ export default function FeePaymentManagement() {
 
   // Save report as CSV
   const handleSave = useCallback(() => {
-    const headers = ['ID', 'Student', 'Class', 'Month', 'Amount', 'Payment Date'];
+    const headers = ['ID', 'Student', 'Class', 'Section', 'Month', 'Amount', 'Payment Date'];
     const csvData = payments.map(p => [
       p.id,
       p.student_name || 'N/A',
-      `${p.class_name}${p.section_name ? ' - ' + p.section_name : ''}`,
+      p.class_name || '-',
+      p.section_name || '-',
       formatMonth(p.month),
       parseFloat(p.amount || 0).toFixed(2),
       formatDate(p.payment_date)
@@ -447,18 +635,6 @@ export default function FeePaymentManagement() {
           >
             Payment History
           </button>
-          <button
-            className={`tab-btn ${activeTab === 'defaulters' ? 'active' : ''}`}
-            onClick={() => setActiveTab('defaulters')}
-          >
-            Defaulters
-          </button>
-          <button
-            className={`tab-btn ${activeTab === 'stats' ? 'active' : ''}`}
-            onClick={() => setActiveTab('stats')}
-          >
-            Statistics
-          </button>
         </div>
       </div>
       
@@ -467,19 +643,41 @@ export default function FeePaymentManagement() {
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-label">Total Payments</div>
-            <div className="stat-value">{stats.totalPayments}</div>
+            <div
+              className={`stat-value stat-value--adaptive ${totalPaymentsDisplay.useCompact ? 'is-compact' : ''}`}
+              style={getAdaptiveValueStyle(stats.totalPayments)}
+              title={totalPaymentsDisplay.full}
+            >
+              {totalPaymentsDisplay.display}
+            </div>
           </div>
           <div className="stat-card">
             <div className="stat-label">Total Collected</div>
-            <div className="stat-value">Rs. {stats.totalAmount.toLocaleString()}</div>
+            <div className="stat-value stat-value--money-block" title={`Rs. ${totalCollectedDisplay.full}`}>
+              <span className="money-prefix">Rs.</span>
+              <span className={`money-amount ${totalCollectedDisplay.useCompact ? 'is-compact' : ''}`}>
+                {totalCollectedDisplay.display}
+              </span>
+            </div>
           </div>
           <div className="stat-card">
             <div className="stat-label">Today's Payments</div>
-            <div className="stat-value">{stats.todayCount}</div>
+            <div
+              className={`stat-value stat-value--adaptive ${todayPaymentsDisplay.useCompact ? 'is-compact' : ''}`}
+              style={getAdaptiveValueStyle(stats.todayCount)}
+              title={todayPaymentsDisplay.full}
+            >
+              {todayPaymentsDisplay.display}
+            </div>
           </div>
           <div className="stat-card">
             <div className="stat-label">Today's Collection</div>
-            <div className="stat-value">Rs. {stats.todayAmount.toLocaleString()}</div>
+            <div className="stat-value stat-value--money-block" title={`Rs. ${todayCollectedDisplay.full}`}>
+              <span className="money-prefix">Rs.</span>
+              <span className={`money-amount ${todayCollectedDisplay.useCompact ? 'is-compact' : ''}`}>
+                {todayCollectedDisplay.display}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -488,13 +686,102 @@ export default function FeePaymentManagement() {
         <>
           {/* Filters */}
           <div className="filters-section">
+            <div ref={historySearchRef} style={{ position: 'relative', flex: '1', minWidth: '220px' }}>
+              {!selectedHistoryStudent ? (
+                <>
+                  <input
+                    type="text"
+                    className="search-input"
+                    placeholder="Search by student name..."
+                    value={historySearchTerm}
+                    onChange={(e) => setHistorySearchTerm(e.target.value)}
+                    onFocus={() => historySearchResults.length > 0 && setShowHistoryResults(true)}
+                    style={{ width: '100%' }}
+                    autoComplete="off"
+                  />
+                  {historySearchLoading && (
+                    <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '12px', color: '#6b7280' }}>⏳</span>
+                  )}
+                  {showHistoryResults && (
+                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1000, background: '#fff', border: '1px solid #dee2e6', borderRadius: '4px', maxHeight: '240px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+                      {historySearchResults.length === 0 ? (
+                        <div style={{ padding: '10px 14px', color: '#6c757d', fontSize: '13px' }}>No students found</div>
+                      ) : historySearchResults.map((student) => {
+                        const fatherName = student.father_name || student.father_guardian_name || 'N/A';
+                        const className = student.current_class_name || student.current_enrollment?.class_name || student.class_name || 'N/A';
+                        const sectionName = student.current_section_name || student.current_enrollment?.section_name || student.section_name || '';
+                        return (
+                          <div
+                            key={student.id}
+                            onClick={() => handleSelectHistoryStudent(student)}
+                            style={{ padding: '8px 14px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', gap: '10px' }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#f0f4ff'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}
+                          >
+                            <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#3b82f6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '13px', flexShrink: 0 }}>
+                              {student.name?.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: '600', fontSize: '13px' }}>{student.name}</div>
+                              <div style={{ fontSize: '11px', color: '#6c757d' }}>
+                                {fatherName} · {className}{sectionName ? ` - ${sectionName}` : ''}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#e8f4fd', border: '1px solid #bee3f8', borderRadius: '4px', padding: '6px 10px', height: '38px' }}>
+                  <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#3b82f6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '12px', flexShrink: 0 }}>
+                    {selectedHistoryStudent.name?.charAt(0).toUpperCase()}
+                  </div>
+                  <span style={{ fontWeight: '600', fontSize: '13px', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {selectedHistoryStudent.name}
+                  </span>
+                  <button
+                    onClick={clearHistoryStudent}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#e53e3e', fontSize: '16px', lineHeight: 1, padding: 0, flexShrink: 0 }}
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <select
+              value={filters.class_id}
+              onChange={(e) => handleClassFilterChange(e.target.value)}
+              className="filter-select"
+            >
+              <option value="">All Classes</option>
+              {sortedClasses.map(cls => (
+                <option key={cls.id} value={cls.id}>{cls.name}</option>
+              ))}
+            </select>
+
+            <select
+              value={filters.section_id}
+              onChange={(e) => handleFilterChange('section_id', e.target.value)}
+              className="filter-select"
+              disabled={!filters.class_id}
+            >
+              <option value="">All Sections</option>
+              {filterSections.map(sec => (
+                <option key={sec.id} value={sec.id}>{sec.name}</option>
+              ))}
+            </select>
+
             <input
-              type="text"
-              className="search-input"
-              placeholder="Search by student name, roll number, or reference..."
-              value={filters.search}
-              onChange={(e) => handleFilterChange('search', e.target.value)}
+              type="month"
+              className="filter-input"
+              value={filters.month}
+              onChange={(e) => handleFilterChange('month', e.target.value)}
+              placeholder="Voucher Month"
             />
+
             <input
               type="date"
               className="filter-input"
@@ -568,11 +855,12 @@ export default function FeePaymentManagement() {
               columns={[
                 { key: "id",          label: "S.No",           printWidth: "6%",  printAlign: "center" },
                 { key: "student",     label: "Student",        printWidth: "25%", printAlign: "left"   },
-                { key: "class_",      label: "Class",          printWidth: "14%", printAlign: "left"   },
-                { key: "month",       label: "Month",          printWidth: "13%", printAlign: "center" },
-                { key: "amount",      label: "Amount",         printWidth: "13%", printAlign: "right"  },
-                { key: "status",      label: "Payment Status", printWidth: "16%", printAlign: "center" },
-                { key: "paymentDate", label: "Payment Date",   printWidth: "13%", printAlign: "center" },
+                { key: "class_",      label: "Class",          printWidth: "12%", printAlign: "left"   },
+                { key: "section",     label: "Section",        printWidth: "10%", printAlign: "left"   },
+                { key: "month",       label: "Month",          printWidth: "12%", printAlign: "center" },
+                { key: "amount",      label: "Amount",         printWidth: "12%", printAlign: "right"  },
+                { key: "status",      label: "Payment Status", printWidth: "14%", printAlign: "center" },
+                { key: "paymentDate", label: "Payment Date",   printWidth: "12%", printAlign: "center" },
                 { key: "actions",     label: "Actions",        printHide: true },
               ]}
               rows={payments.map((payment, index) => {
@@ -585,7 +873,8 @@ export default function FeePaymentManagement() {
                   student: (
                     <span className="student-name">{payment.student_name || 'N/A'}</span>
                   ),
-                  class_: `${payment.class_name}${payment.section_name ? ' - ' + payment.section_name : ''}`,
+                  class_: payment.class_name || '-',
+                  section: payment.section_name || '-',
                   month: formatMonth(payment.month),
                   amount: <strong>Rs. {paidAmount.toLocaleString()}</strong>,
                   status: isFullPaid ? (
@@ -610,7 +899,7 @@ export default function FeePaymentManagement() {
                 };
               })}
               footerCells={[
-                { colSpan: 7, content: `Grand Total: Rs. ${stats.totalAmount.toLocaleString()}`, align: "center" },
+                { colSpan: 8, content: `Grand Total: Rs. ${stats.totalAmount.toLocaleString()}`, align: "center" },
               ]}
             />
           )}

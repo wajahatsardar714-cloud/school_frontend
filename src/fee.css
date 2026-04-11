@@ -1349,7 +1349,7 @@
   font-size: var(--font-size-sm);
   font-weight: var(--font-medium);
   color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: 0.2rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -1358,10 +1358,79 @@
   font-size: clamp(1.25rem, 2.2vw, var(--font-size-3xl));
   font-weight: var(--font-extrabold);
   color: var(--color-text-primary);
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: 0;
   line-height: 1.1;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  font-variant-numeric: tabular-nums;
+}
+
+.analytics-dashboard .stat-card .stat-value.stat-value--adaptive {
+  font-size: clamp(0.95rem, calc(2.35rem - (var(--digit-count, 4) * 0.11rem)), 2.15rem);
+}
+
+.analytics-dashboard .stat-card .stat-value.stat-value--adaptive.is-compact {
+  letter-spacing: 0.01em;
+}
+
+.analytics-dashboard .stat-card .stat-value.stat-value--money-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.05rem;
+  white-space: normal;
+  overflow: visible;
+  line-height: 1.05;
+}
+
+.analytics-dashboard .stat-card .stat-value.stat-value--money-block .money-prefix {
+  font-size: 0.82rem;
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.analytics-dashboard .stat-card .stat-value.stat-value--money-block .money-amount {
+  font-size: clamp(1rem, 1.6vw, 1.9rem);
+  font-weight: var(--font-extrabold);
+  color: var(--color-text-primary);
+  line-height: 1.05;
+  max-width: 100%;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.analytics-dashboard .stat-card .stat-value.stat-value--money-block .money-amount.is-compact {
+  letter-spacing: 0.01em;
+}
+
+.analytics-dashboard .stat-card .stat-value.stat-value--money {
+  font-size: clamp(0.9rem, calc(2.2rem - (var(--digit-count, 6) * 0.1rem)), 1.85rem);
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+}
+
+@media (max-width: 1024px) {
+  .analytics-dashboard .stat-card .stat-value.stat-value--adaptive {
+    font-size: clamp(0.9rem, calc(1.9rem - (var(--digit-count, 4) * 0.095rem)), 1.55rem);
+  }
+
+  .analytics-dashboard .stat-card .stat-value.stat-value--money {
+    font-size: clamp(0.82rem, calc(1.8rem - (var(--digit-count, 6) * 0.085rem)), 1.45rem);
+  }
+
+  .analytics-dashboard .stat-card .stat-value.stat-value--money-block .money-prefix {
+    font-size: 0.74rem;
+  }
+
+  .analytics-dashboard .stat-card .stat-value.stat-value--money-block .money-amount {
+    font-size: clamp(0.92rem, 1.5vw, 1.45rem);
+  }
 }
 
 .analytics-dashboard .stat-card .stat-change {
