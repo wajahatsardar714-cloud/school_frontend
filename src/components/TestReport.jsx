@@ -612,13 +612,13 @@ const TestReport = () => {
               <div className="report-viewer">
                 {selectedReport.file_type?.includes('pdf') ? (
                   <iframe 
-                    src={`${import.meta.env.VITE_API_BASE_URL || 'https://school-backend-onou.onrender.com'}/${selectedReport.file_path}`}
+                    src={`${import.meta.env.VITE_API_BASE_URL || 'https://api.mphsslar.com'}/${selectedReport.file_path}`}
                     className="pdf-viewer"
                     title={selectedReport.file_name}
                   />
                 ) : (
                   <img 
-                    src={`${import.meta.env.VITE_API_BASE_URL || 'https://school-backend-onou.onrender.com'}/${selectedReport.file_path}`}
+                    src={`${import.meta.env.VITE_API_BASE_URL || 'https://api.mphsslar.com'}/${selectedReport.file_path}`}
                     alt={selectedReport.file_name}
                     className="image-viewer"
                   />
@@ -626,7 +626,7 @@ const TestReport = () => {
               </div>
               <div className="report-modal-actions">
                 <a 
-                  href={`${import.meta.env.VITE_API_BASE_URL || 'https://school-backend-onou.onrender.com'}/${selectedReport.file_path}`}
+                  href={`${import.meta.env.VITE_API_BASE_URL || 'https://api.mphsslar.com'}/${selectedReport.file_path}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-secondary"

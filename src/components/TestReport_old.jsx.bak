@@ -299,7 +299,7 @@ const TestReport = () => {
                                   </div>
                                   <div className="report-actions">
                                     <a 
-                                      href={`${import.meta.env.VITE_API_BASE_URL || 'https://school-backend-onou.onrender.com'}/${report.file_path}`}
+                                      href={`${import.meta.env.VITE_API_BASE_URL || 'https://api.mphsslar.com'}/${report.file_path}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="btn-view-small"
