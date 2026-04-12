@@ -9,6 +9,18 @@ export default defineConfig({
     port: 5173,
     strictPort: false,
     host: true,
+    proxy: {
+      '/api': {
+        target: 'https://api.mphsslar.com',
+        changeOrigin: true,
+        secure: true,
+      },
+      '/health': {
+        target: 'https://api.mphsslar.com',
+        changeOrigin: true,
+        secure: true,
+      },
+    },
     // This is the key fix for SPA routing in development
     historyApiFallback: {
       index: '/index.html',
