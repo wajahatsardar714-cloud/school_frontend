@@ -69,6 +69,8 @@ const EDIT_FEE_TYPES = [
   { value: 'CUSTOM',     label: 'Custom Charge' },
 ]
 
+const SYSTEM_DUES_DESC_PATTERN = /^Dues \([A-Za-z]{3} \d{4}\)$/
+
 const FeeVoucherManagement = () => {
   // Auth
   const { isAdmin } = useAuth()
@@ -133,6 +135,10 @@ const FeeVoucherManagement = () => {
     fee_types: ['MONTHLY'], // Default to monthly fee only
     custom_charges: [] // Array of {description: string, amount: number}
   })
+  const [selectedGenerateMonths, setSelectedGenerateMonths] = useState([new Date().getMonth() + 1])
+  const [multiGenerateLoading, setMultiGenerateLoading] = useState(false)
+  const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false)
+  const monthDropdownRef = useRef(null)
   
   // Preview State (NEW - Issue #3)
   const [previewData, setPreviewData] = useState(null)
@@ -149,6 +155,61 @@ const FeeVoucherManagement = () => {
   const [selectedStudentClassType, setSelectedStudentClassType] = useState('') // 'SCHOOL' | 'COLLEGE'
   const [yearlyPackageInput, setYearlyPackageInput] = useState('')
   const studentSearchRef = useRef(null)
+
+  // In-page notification popup for voucher actions
+  const [voucherNotice, setVoucherNotice] = useState(null)
+  const voucherNoticeTimerRef = useRef(null)
+
+  const clearVoucherNotice = useCallback(() => {
+    if (voucherNoticeTimerRef.current) {
+      window.clearTimeout(voucherNoticeTimerRef.current)
+      voucherNoticeTimerRef.current = null
+    }
+    setVoucherNotice(null)
+  }, [])
+
+  const showVoucherNotice = useCallback((type, title, message) => {
+    if (voucherNoticeTimerRef.current) {
+      window.clearTimeout(voucherNoticeTimerRef.current)
+    }
+
+    setVoucherNotice({ type, title, message })
+    voucherNoticeTimerRef.current = window.setTimeout(() => {
+      setVoucherNotice(null)
+      voucherNoticeTimerRef.current = null
+    }, 4500)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (voucherNoticeTimerRef.current) {
+        window.clearTimeout(voucherNoticeTimerRef.current)
+      }
+    }
+  }, [])
+
+  const resetGenerateFormState = useCallback(() => {
+    const currentMonth = new Date().getMonth() + 1
+    setGenerateForm({
+      type: 'single',
+      student_id: '',
+      class_id: '',
+      section_id: '',
+      month: currentMonth,
+      year: new Date().getFullYear(),
+      due_date: '',
+      fee_types: ['MONTHLY'],
+      custom_charges: [],
+    })
+    setSelectedGenerateMonths([currentMonth])
+    setIsMonthDropdownOpen(false)
+    setSelectedStudentName('')
+    setSelectedStudentClassType('')
+    setYearlyPackageInput('')
+    setStudentSearchTerm('')
+    setStudentSearchResults([])
+    setShowStudentSearchResults(false)
+  }, [])
 
   // Payment Form State
   const [paymentForm, setPaymentForm] = useState({
@@ -327,57 +388,62 @@ const FeeVoucherManagement = () => {
     { enabled: !!generateForm.class_id }
   )
 
+  const submitGenerateRequest = useCallback(async (data) => {
+    // Backend expects month in format "2026-02-01"
+    const monthStr = `${data.year}-${String(data.month).padStart(2, '0')}-01`
+
+    // Filter valid custom charges (non-empty description and positive amount)
+    const validCustomCharges = (data.custom_charges || []).filter(
+      c => c.description && c.description.trim() && parseFloat(c.amount) > 0
+    ).map(c => ({ description: c.description.trim(), amount: parseFloat(c.amount) }))
+
+    if (data.type === 'bulk') {
+      return feeVoucherService.bulkGenerate({
+        class_id: parseInt(data.class_id),
+        section_id: data.section_id ? parseInt(data.section_id) : undefined,
+        month: monthStr,
+        due_date: data.due_date || undefined,
+        fee_types: data.fee_types?.length > 0 ? data.fee_types : undefined,
+        custom_charges: validCustomCharges.length > 0 ? validCustomCharges : undefined,
+      })
+    }
+
+    // Single generate: include item_type: 'CUSTOM' as backend requires it
+    const customItems = validCustomCharges.map(c => ({
+      item_type: 'CUSTOM',
+      description: c.description,
+      amount: c.amount,
+    }))
+
+    return feeVoucherService.generate({
+      student_id: parseInt(data.student_id),
+      month: monthStr,
+      due_date: data.due_date || undefined,
+      fee_types: data.fee_types?.length > 0 ? data.fee_types : undefined,
+      custom_items: customItems.length > 0 ? customItems : undefined,
+      ...(data.yearly_package_amount ? { yearly_package_amount: parseFloat(data.yearly_package_amount) } : {}),
+    })
+  }, [])
+
   // Mutations with race condition prevention
   const generateMutation = useMutation(
-    async (data) => {
-      // Backend expects month in format "2026-02-01"
-      const monthStr = `${data.year}-${String(data.month).padStart(2, '0')}-01`
-      
-      // Filter valid custom charges (non-empty description and positive amount)
-      const validCustomCharges = (data.custom_charges || []).filter(
-        c => c.description && c.description.trim() && parseFloat(c.amount) > 0
-      ).map(c => ({ description: c.description.trim(), amount: parseFloat(c.amount) }))
-
-      if (data.type === 'bulk') {
-        return feeVoucherService.bulkGenerate({
-          class_id: parseInt(data.class_id),
-          section_id: data.section_id ? parseInt(data.section_id) : undefined,
-          month: monthStr,
-          due_date: data.due_date || undefined,
-          fee_types: data.fee_types?.length > 0 ? data.fee_types : undefined,
-          custom_charges: validCustomCharges.length > 0 ? validCustomCharges : undefined,
-        })
-      } else {
-        // Single generate: include item_type: 'CUSTOM' as backend requires it
-        const customItems = validCustomCharges.map(c => ({
-          item_type: 'CUSTOM',
-          description: c.description,
-          amount: c.amount,
-        }))
-        return feeVoucherService.generate({
-          student_id: parseInt(data.student_id),
-          month: monthStr,
-          due_date: data.due_date || undefined,
-          fee_types: data.fee_types?.length > 0 ? data.fee_types : undefined,
-          custom_items: customItems.length > 0 ? customItems : undefined,
-          ...(data.yearly_package_amount ? { yearly_package_amount: parseFloat(data.yearly_package_amount) } : {}),
-        })
-      }
-    },
+    submitGenerateRequest,
     {
       onSuccess: () => {
         refreshVouchers()
-        setGenerateForm({
-          type: 'single',
-          student_id: '',
-          class_id: '',
-          section_id: '',
-          month: new Date().getMonth() + 1,
-          year: new Date().getFullYear(),
-          due_date: '',
-          fee_types: ['MONTHLY'],
-        })
+        resetGenerateFormState()
         setActiveTab('list')
+      },
+      onError: (error) => {
+        const rawMessage = error?.response?.data?.message || error?.data?.message || error?.message || 'Unable to generate voucher'
+        const isDuplicateVoucher = /duplicate entry|already exists|voucher already exists|record already exists/i.test(rawMessage)
+        showVoucherNotice(
+          isDuplicateVoucher ? 'warning' : 'error',
+          isDuplicateVoucher ? 'Voucher already exists' : 'Voucher generation failed',
+          isDuplicateVoucher
+            ? 'A voucher for this student and month already exists. Open the existing voucher instead.'
+            : rawMessage
+        )
       },
     }
   )
@@ -407,6 +473,10 @@ const FeeVoucherManagement = () => {
       onSuccess: () => {
         refreshVouchers()
         closePaymentModal()
+      },
+      onError: (error) => {
+        const message = error?.response?.data?.message || error?.data?.message || error?.message || 'Payment failed'
+        showVoucherNotice('error', 'Payment failed', message)
       },
     }
   )
@@ -457,6 +527,10 @@ const FeeVoucherManagement = () => {
         due_amount: parseFloat(v.due_amount) || 0,
         status: v.status,
         voucher_type: v.voucher_type || 'MONTHLY',
+        is_latest_for_student:
+          v.is_latest_for_student === true ||
+          v.is_latest_for_student === 'true' ||
+          v.is_latest_for_student === 1,
         created_at: v.created_at,
         last_payment_date: v.last_payment_date,
       }
@@ -592,9 +666,44 @@ const FeeVoucherManagement = () => {
     })
   }, [])
 
+  const currentVoucherBoundary = useMemo(() => {
+    const now = new Date()
+    return {
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+    }
+  }, [])
+
+  const isPastVoucherMonth = useCallback((year, month) => {
+    if (!Number.isFinite(year) || !Number.isFinite(month)) return true
+    return year < currentVoucherBoundary.year || (year === currentVoucherBoundary.year && month < currentVoucherBoundary.month)
+  }, [currentVoucherBoundary.month, currentVoucherBoundary.year])
+
   const handleGenerateFormChange = useCallback((key, value) => {
     setGenerateForm(prev => {
       const newForm = { ...prev, [key]: value }
+
+      if (key === 'year') {
+        const numericYear = parseInt(value, 10)
+        if (Number.isFinite(numericYear)) {
+          newForm.year = Math.max(numericYear, currentVoucherBoundary.year)
+        } else {
+          newForm.year = prev.year
+        }
+
+        if (newForm.year === currentVoucherBoundary.year && (parseInt(newForm.month, 10) || 0) < currentVoucherBoundary.month) {
+          newForm.month = currentVoucherBoundary.month
+        }
+      }
+
+      if (key === 'month') {
+        const numericMonth = parseInt(value, 10)
+        if (Number.isFinite(numericMonth)) {
+          const isPastInCurrentYear = prev.year === currentVoucherBoundary.year && numericMonth < currentVoucherBoundary.month
+          newForm.month = isPastInCurrentYear ? currentVoucherBoundary.month : numericMonth
+        }
+      }
+
       // Reset dependent fields
       if (key === 'class_id') {
         newForm.student_id = ''
@@ -605,7 +714,66 @@ const FeeVoucherManagement = () => {
       }
       return newForm
     })
+  }, [currentVoucherBoundary.month, currentVoucherBoundary.year])
+
+  const handleGenerateMonthToggle = useCallback((monthValue) => {
+    setSelectedGenerateMonths(prev => {
+      if (isPastVoucherMonth(generateForm.year, monthValue)) {
+        return prev
+      }
+      if (prev.includes(monthValue)) {
+        return prev.filter(month => month !== monthValue)
+      }
+      return [...prev, monthValue].sort((a, b) => a - b)
+    })
+  }, [generateForm.year, isPastVoucherMonth])
+
+  useEffect(() => {
+    if (generateForm.type !== 'single' || selectedStudentClassType === 'COLLEGE') {
+      setSelectedGenerateMonths([generateForm.month])
+      setIsMonthDropdownOpen(false)
+    }
+  }, [generateForm.type, selectedStudentClassType, generateForm.month])
+
+  useEffect(() => {
+    if (generateForm.type !== 'single' || selectedStudentClassType === 'COLLEGE') return
+
+    setSelectedGenerateMonths(prev => {
+      const filtered = prev.filter(month => !isPastVoucherMonth(generateForm.year, month))
+      if (filtered.length === prev.length) {
+        return prev
+      }
+      return filtered
+    })
+  }, [generateForm.type, generateForm.year, isPastVoucherMonth, selectedStudentClassType])
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (monthDropdownRef.current && !monthDropdownRef.current.contains(event.target)) {
+        setIsMonthDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  const selectedMonthsLabel = useMemo(() => {
+    if (selectedGenerateMonths.length === 0) {
+      return 'Select month(s)'
+    }
+
+    const monthLabels = [...selectedGenerateMonths]
+      .sort((a, b) => a - b)
+      .map(monthValue => MONTHS.find(m => m.value === monthValue)?.label)
+      .filter(Boolean)
+
+    if (monthLabels.length <= 2) {
+      return monthLabels.join(', ')
+    }
+
+    return `${monthLabels[0]}, ${monthLabels[1]} +${monthLabels.length - 2} more`
+  }, [selectedGenerateMonths])
 
   // Toggle fee type selection
   const handleFeeTypeToggle = useCallback((feeType) => {
@@ -702,8 +870,24 @@ const FeeVoucherManagement = () => {
       if (field === 'amount') {
         newItems[index] = { ...newItems[index], amount: parseFloat(value) || 0 }
       } else if (field === 'item_type') {
-        // Keep description only for item types that support display labels.
-        newItems[index] = { ...newItems[index], item_type: value, description: (value === 'CUSTOM' || value === 'ARREARS') ? (newItems[index].description || '') : '' }
+        // Manual dues must be saved as CUSTOM so they affect outstanding totals.
+        if (value === 'CUSTOM') {
+          newItems[index] = {
+            ...newItems[index],
+            item_type: 'CUSTOM',
+            description: (newItems[index].description || '').trim() || 'Dues'
+          }
+        } else if (value === 'ARREARS') {
+          newItems[index] = {
+            ...newItems[index],
+            item_type: 'ARREARS',
+            description: SYSTEM_DUES_DESC_PATTERN.test((newItems[index].description || '').trim())
+              ? newItems[index].description
+              : ''
+          }
+        } else {
+          newItems[index] = { ...newItems[index], item_type: value, description: '' }
+        }
       } else {
         newItems[index] = { ...newItems[index], [field]: value }
       }
@@ -713,7 +897,7 @@ const FeeVoucherManagement = () => {
 
   // Add new item
   const handleAddItem = useCallback(() => {
-    setEditItems(prev => [...prev, { item_type: 'CUSTOM', amount: 0, description: '' }])
+    setEditItems(prev => [...prev, { item_type: 'CUSTOM', amount: 0, description: 'Dues' }])
   }, [])
 
   // Remove item
@@ -725,20 +909,44 @@ const FeeVoucherManagement = () => {
   const handleEditItemsSubmit = useCallback(async (e) => {
     e.preventDefault()
     if (!editingVoucher || editItems.length === 0) return
+
+    const normalizedItems = editItems.map(item => {
+      const description = (item.description || '').trim()
+
+      // Guardrail: ARREARS without a system-generated label are treated as manual dues.
+      if (item.item_type === 'ARREARS' && !SYSTEM_DUES_DESC_PATTERN.test(description)) {
+        return {
+          item_type: 'CUSTOM',
+          amount: item.amount,
+          description: description || 'Dues'
+        }
+      }
+
+      if (item.item_type === 'CUSTOM') {
+        return {
+          item_type: 'CUSTOM',
+          amount: item.amount,
+          description: description || 'Dues'
+        }
+      }
+
+      return {
+        item_type: item.item_type,
+        amount: item.amount,
+        ...(description ? { description } : {})
+      }
+    })
+
     // Validate all CUSTOM items have a description
-    const missingDesc = editItems.some(item => item.item_type === 'CUSTOM' && !item.description?.trim())
+    const missingDesc = normalizedItems.some(item => item.item_type === 'CUSTOM' && !item.description?.trim())
     if (missingDesc) {
       alert('Please enter a custom name for all "Custom Charge" items.')
       return
     }
-    const itemsToSave = editItems.map(item => ({
-      item_type: item.item_type,
-      amount: item.amount,
-      ...((item.item_type === 'CUSTOM' || item.item_type === 'ARREARS') && item.description ? { description: item.description.trim() } : {})
-    }))
+
     await editItemsMutation.mutate({
       voucher_id: editingVoucher.voucher_id || editingVoucher.id,
-      items: itemsToSave,
+      items: normalizedItems,
     })
   }, [editingVoucher, editItems, editItemsMutation])
 
@@ -759,6 +967,12 @@ const FeeVoucherManagement = () => {
       await generateMutation.mutate({ ...generateForm, yearly_package_amount: parseFloat(yearlyPackageInput) })
       return
     }
+
+    if (generateForm.type === 'single' && selectedStudentClassType !== 'COLLEGE' && selectedGenerateMonths.length === 0) {
+      alert('Please select at least one month')
+      return
+    }
+
     if (generateForm.type === 'bulk' && !generateForm.class_id) {
       alert('Please select a class')
       return
@@ -772,8 +986,68 @@ const FeeVoucherManagement = () => {
       return
     }
 
-    await generateMutation.mutate(generateForm)
-  }, [generateForm, generateMutation])
+    if (generateForm.type === 'single' && selectedStudentClassType !== 'COLLEGE') {
+      setMultiGenerateLoading(true)
+      const monthsToGenerate = [...selectedGenerateMonths].sort((a, b) => a - b)
+      const failedMonths = []
+      let generatedCount = 0
+
+      try {
+        for (const month of monthsToGenerate) {
+          try {
+            await submitGenerateRequest({ ...generateForm, month })
+            generatedCount += 1
+          } catch (error) {
+            failedMonths.push({
+              month,
+              message: error?.response?.data?.message || error?.data?.message || error?.message || 'Failed to generate',
+            })
+          }
+        }
+
+        await refreshVouchers()
+
+        if (generatedCount > 0) {
+          resetGenerateFormState()
+          setActiveTab('list')
+        }
+
+        if (failedMonths.length === 0) {
+          showVoucherNotice('success', 'Vouchers generated', `Generated ${generatedCount} voucher(s) successfully.`)
+        } else {
+          const failedMonthNames = failedMonths
+            .map(item => MONTHS.find(month => month.value === item.month)?.label || `Month ${item.month}`)
+            .join(', ')
+
+          showVoucherNotice(
+            generatedCount > 0 ? 'warning' : 'error',
+            generatedCount > 0 ? 'Partially generated' : 'Voucher generation failed',
+            `${generatedCount} generated, ${failedMonths.length} failed. Failed months: ${failedMonthNames}`
+          )
+        }
+      } finally {
+        setMultiGenerateLoading(false)
+      }
+      return
+    }
+
+    try {
+      await generateMutation.mutate(generateForm)
+    } catch {
+      // Notification popup is handled by the mutation error callback.
+    }
+  }, [
+    generateForm,
+    generateMutation,
+    refreshVouchers,
+    resetGenerateFormState,
+    selectedGenerateMonths,
+    selectedStudentClassType,
+    showVoucherNotice,
+    submitGenerateRequest,
+    yearlyPackageInput,
+    setActiveTab,
+  ])
 
   // Handle preview bulk vouchers (NEW - Issue #3)
   const handlePreviewBulk = useCallback(async () => {
@@ -812,7 +1086,11 @@ const FeeVoucherManagement = () => {
   // Handle generate and save from preview (NEW - Issue #3)
   const handleGenerateAndSave = useCallback(async () => {
     setShowPreview(false)
-    await generateMutation.mutate(generateForm)
+    try {
+      await generateMutation.mutate(generateForm)
+    } catch {
+      // Notification popup is handled by the mutation error callback.
+    }
   }, [generateForm, generateMutation])
 
   // Handle print without saving (NEW - Issue #3)
@@ -849,8 +1127,40 @@ const FeeVoucherManagement = () => {
     setPreviewDisplayLimit(100)
   }, [])
 
+  const getVoucherDueAmount = useCallback((voucher) => {
+    const explicitDue = parseFloat(voucher?.due_amount)
+    if (Number.isFinite(explicitDue)) {
+      return Math.max(explicitDue, 0)
+    }
+
+    const totalAmount = parseFloat(voucher?.total_amount) || 0
+    const paidAmount = parseFloat(voucher?.paid_amount) || 0
+    return Math.max(totalAmount - paidAmount, 0)
+  }, [])
+
+  const handlePaymentAmountChange = useCallback((rawValue) => {
+    if (rawValue === '') {
+      setPaymentForm(prev => ({ ...prev, amount: '' }))
+      return
+    }
+
+    const parsedAmount = parseFloat(rawValue)
+    if (!Number.isFinite(parsedAmount)) {
+      return
+    }
+
+    const dueAmount = getVoucherDueAmount(selectedVoucher)
+    const clampedAmount = Math.min(Math.max(parsedAmount, 0), dueAmount)
+
+    setPaymentForm(prev => ({
+      ...prev,
+      amount: clampedAmount.toString(),
+    }))
+  }, [getVoucherDueAmount, selectedVoucher])
+
   const openPaymentModal = useCallback(async (voucher) => {
     setSelectedVoucher(voucher)
+    const initialDueAmount = getVoucherDueAmount(voucher)
 
     try {
       const detailResponse = await feeVoucherService.getById(voucher.id)
@@ -867,7 +1177,7 @@ const FeeVoucherManagement = () => {
     }
 
     setPaymentForm({
-      amount: (voucher.total_amount - (voucher.paid_amount || 0)).toString(),
+      amount: initialDueAmount > 0 ? initialDueAmount.toString() : '',
       payment_date: new Date().toISOString().split('T')[0],
       payment_method: 'CASH',
       reference_no: '',
@@ -898,7 +1208,7 @@ const FeeVoucherManagement = () => {
       setVoucherPayments([])
     }
     setShowPaymentModal(true)
-  }, [])
+  }, [getVoucherDueAmount])
 
   // Open a specific voucher directly when navigated with ?id=<voucher_id>
   useEffect(() => {
@@ -958,9 +1268,40 @@ const FeeVoucherManagement = () => {
 
   const handlePaymentSubmit = useCallback(async (e) => {
     e.preventDefault()
-    if (!paymentForm.amount || parseFloat(paymentForm.amount) <= 0) return
+
+    const dueAmount = getVoucherDueAmount(selectedVoucher)
+    const paymentAmount = parseFloat(paymentForm.amount)
+
+    if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
+      alert('Please enter a valid payment amount greater than 0')
+      return
+    }
+
+    if (paymentAmount > dueAmount) {
+      alert(`Payment amount cannot exceed voucher due amount (Rs. ${dueAmount.toLocaleString()})`)
+      return
+    }
+
+    if (!paymentForm.payment_date) {
+      alert('Please select a payment date')
+      return
+    }
+
+    const selectedDate = new Date(paymentForm.payment_date)
+    if (Number.isNaN(selectedDate.getTime())) {
+      alert('Please select a valid payment date')
+      return
+    }
+
+    const today = new Date()
+    today.setHours(23, 59, 59, 999)
+    if (selectedDate > today) {
+      alert('Payment date cannot be in the future')
+      return
+    }
+
     await paymentMutation.mutate(paymentForm)
-  }, [paymentForm, paymentMutation])
+  }, [paymentForm, paymentMutation, getVoucherDueAmount, selectedVoucher])
 
   // Handle print voucher (NEW - Issue #3)
   const handlePrintVoucher = useCallback((voucher) => {
@@ -1354,9 +1695,19 @@ const FeeVoucherManagement = () => {
         </div>
       </div>
 
-      {(vouchersError || generateMutation.error || paymentMutation.error) && (
+      {voucherNotice && (
+        <div className={`voucher-notification voucher-notification-${voucherNotice.type}`} role="status" aria-live="polite">
+          <div className="voucher-notification-title">{voucherNotice.title}</div>
+          <div className="voucher-notification-message">{voucherNotice.message}</div>
+          <button type="button" className="voucher-notification-close" onClick={clearVoucherNotice} aria-label="Dismiss notification">
+            ×
+          </button>
+        </div>
+      )}
+
+      {vouchersError && (
         <div className="alert alert-error">
-          {vouchersError || generateMutation.error || paymentMutation.error}
+          {vouchersError}
         </div>
       )}
 
@@ -1667,7 +2018,7 @@ const FeeVoucherManagement = () => {
                       <td>{renderStatusBadge(voucher.status)}</td>
                       <td>
                         <div className="action-buttons" style={{ display: 'flex', flexDirection: 'row', gap: '0.35rem', alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'center', whiteSpace: 'nowrap' }}>
-                          {voucher.status !== VOUCHER_STATUS.PAID && (
+                          {voucher.is_latest_for_student && voucher.status !== VOUCHER_STATUS.PAID && (
                             <>
                               <button 
                                 className="btn-action btn-pay btn-small"
@@ -1715,7 +2066,7 @@ const FeeVoucherManagement = () => {
                               )}
                             </>
                           )}
-                          {(voucher.status === VOUCHER_STATUS.PAID || voucher.status === VOUCHER_STATUS.PARTIAL) && isAdmin() && (
+                          {voucher.is_latest_for_student && (voucher.status === VOUCHER_STATUS.PAID || voucher.status === VOUCHER_STATUS.PARTIAL) && isAdmin() && (
                             <button 
                               className="btn-action btn-undo btn-small"
                               onClick={() => handleUndoPayments(voucher)}
@@ -1738,7 +2089,7 @@ const FeeVoucherManagement = () => {
                               ↩️
                             </button>
                           )}
-                          {voucher.status === VOUCHER_STATUS.UNPAID && isAdmin() && (
+                          {voucher.is_latest_for_student && voucher.status === VOUCHER_STATUS.UNPAID && isAdmin() && (
                             <button 
                               className="btn-action btn-delete btn-small"
                               onClick={() => handleDelete(voucher)}
@@ -1881,7 +2232,15 @@ const FeeVoucherManagement = () => {
                         onFocus={() => studentSearchResults.length > 0 && setShowStudentSearchResults(true)}
                         className="student-search-input"
                       />
-                      {studentSearchLoading && <span className="search-loading">Searching...</span>}
+                      {studentSearchLoading && (
+                        <span
+                          className="search-loading"
+                          role="status"
+                          aria-live="polite"
+                          aria-label="Searching students"
+                          title="Searching students"
+                        />
+                      )}
                       {studentSearchTerm && !studentSearchLoading && (
                         <button 
                           type="button" 
@@ -1986,15 +2345,57 @@ const FeeVoucherManagement = () => {
             <div className="form-row">
               <div className="form-group">
                 <label>Month *</label>
-                <select
-                  value={generateForm.month}
-                  onChange={(e) => handleGenerateFormChange('month', parseInt(e.target.value))}
-                  required
-                >
-                  {MONTHS.map(m => (
-                    <option key={m.value} value={m.value}>{m.label}</option>
-                  ))}
-                </select>
+
+                {generateForm.type === 'single' && selectedStudentClassType !== 'COLLEGE' ? (
+                  <div className="month-dropdown" ref={monthDropdownRef}>
+                    <button
+                      type="button"
+                      className={`month-dropdown-trigger ${isMonthDropdownOpen ? 'open' : ''}`}
+                      onClick={() => setIsMonthDropdownOpen(prev => !prev)}
+                    >
+                      <span>{selectedMonthsLabel}</span>
+                      <span className="month-dropdown-caret" aria-hidden="true">▾</span>
+                    </button>
+
+                    {isMonthDropdownOpen && (
+                      <div className="month-dropdown-panel">
+                        {MONTHS.map(m => (
+                          <label key={m.value} className="month-dropdown-option">
+                            <input
+                              type="checkbox"
+                              disabled={isPastVoucherMonth(generateForm.year, m.value)}
+                              checked={selectedGenerateMonths.includes(m.value)}
+                              onChange={() => handleGenerateMonthToggle(m.value)}
+                            />
+                            <span>{m.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+
+                    <small className="month-dropdown-summary">
+                      {selectedGenerateMonths.length > 0
+                        ? `${selectedGenerateMonths.length} month(s) selected`
+                        : 'Select at least one month'}
+                    </small>
+                  </div>
+                ) : (
+                  <select
+                    value={generateForm.month}
+                    onChange={(e) => handleGenerateFormChange('month', parseInt(e.target.value))}
+                    required
+                  >
+                    {MONTHS.map(m => (
+                      <option
+                        key={m.value}
+                        value={m.value}
+                        disabled={isPastVoucherMonth(generateForm.year, m.value)}
+                      >
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div className="form-group">
@@ -2004,7 +2405,7 @@ const FeeVoucherManagement = () => {
                   value={generateForm.year}
                   onChange={(e) => handleGenerateFormChange('year', parseInt(e.target.value))}
                   onWheel={(e) => e.target.blur()}
-                  min="2020"
+                  min={currentVoucherBoundary.year}
                   max="2030"
                   required
                 />
@@ -2119,9 +2520,14 @@ const FeeVoucherManagement = () => {
               <button 
                 type="submit" 
                 className="btn-primary"
-                disabled={generateMutation.loading || (!(generateForm.type === 'single' && selectedStudentClassType === 'COLLEGE') && !generateForm.fee_types?.length)}
+                disabled={
+                  generateMutation.loading ||
+                  multiGenerateLoading ||
+                  (!(generateForm.type === 'single' && selectedStudentClassType === 'COLLEGE') && !generateForm.fee_types?.length) ||
+                  (generateForm.type === 'single' && selectedStudentClassType !== 'COLLEGE' && selectedGenerateMonths.length === 0)
+                }
               >
-                {generateMutation.loading ? 'Generating...' : 
+                {(generateMutation.loading || multiGenerateLoading) ? 'Generating...' : 
                   generateForm.type === 'bulk' ? 'Generate & Save to Database' : 'Generate Voucher'}
               </button>
             </div>
@@ -2430,12 +2836,16 @@ const FeeVoucherManagement = () => {
                   <input
                     type="number"
                     value={paymentForm.amount}
-                    onChange={(e) => setPaymentForm(prev => ({ ...prev, amount: e.target.value }))}
+                    onChange={(e) => handlePaymentAmountChange(e.target.value)}
                     onWheel={(e) => e.target.blur()}
-                    min="1"
-                    max={selectedVoucher.due_amount}
+                    min="0"
+                    step="0.01"
+                    max={getVoucherDueAmount(selectedVoucher)}
                     required
                   />
+                  <small style={{ color: '#475569' }}>
+                    Allowed range: greater than 0 and up to Rs. {getVoucherDueAmount(selectedVoucher).toLocaleString()}
+                  </small>
                 </div>
 
                 <div className="form-group">
@@ -2478,7 +2888,12 @@ const FeeVoucherManagement = () => {
                   <button 
                     type="submit" 
                     className="btn-primary"
-                    disabled={paymentMutation.loading}
+                    disabled={
+                      paymentMutation.loading ||
+                      !paymentForm.amount ||
+                      parseFloat(paymentForm.amount) <= 0 ||
+                      parseFloat(paymentForm.amount) > getVoucherDueAmount(selectedVoucher)
+                    }
                   >
                     {paymentMutation.loading ? 'Processing...' : 'Record Payment'}
                   </button>

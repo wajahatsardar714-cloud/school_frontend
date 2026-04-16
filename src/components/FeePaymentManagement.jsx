@@ -332,34 +332,100 @@ export default function FeePaymentManagement() {
   const handleClassFilterChange = useCallback((classId) => {
     setFilters(prev => ({ ...prev, class_id: classId, section_id: '' }));
   }, []);
+
+  const getVoucherDueAmount = useCallback((voucher) => {
+    const parsedDue = parseFloat(voucher?.due_amount);
+    if (!Number.isFinite(parsedDue)) return 0;
+    return Math.max(parsedDue, 0);
+  }, []);
   
   // Handle payment form change
   const handlePaymentFormChange = useCallback((key, value) => {
     setPaymentForm(prev => ({ ...prev, [key]: value }));
   }, []);
 
+  const handlePaymentAmountChange = useCallback((rawValue) => {
+    if (rawValue === '') {
+      setPaymentForm(prev => ({ ...prev, amount: '' }));
+      return;
+    }
+
+    const parsedValue = parseFloat(rawValue);
+    if (!Number.isFinite(parsedValue)) {
+      return;
+    }
+
+    const currentSelectedVoucher = studentVouchers.find(v => String(v.voucher_id) === String(paymentForm.voucherId));
+    const maxAllowed = currentSelectedVoucher ? getVoucherDueAmount(currentSelectedVoucher) : Number.POSITIVE_INFINITY;
+    const clampedValue = Math.min(Math.max(parsedValue, 0), maxAllowed);
+
+    setPaymentForm(prev => ({
+      ...prev,
+      amount: clampedValue.toString(),
+    }));
+  }, [getVoucherDueAmount, paymentForm.voucherId, studentVouchers]);
+
   // Get selected voucher details from the student's fetched vouchers
   const selectedVoucher = studentVouchers.find(v => String(v.voucher_id) === String(paymentForm.voucherId));
-  const dueAmount = selectedVoucher ? parseFloat(selectedVoucher.due_amount) : 0;
+  const dueAmount = selectedVoucher ? getVoucherDueAmount(selectedVoucher) : 0;
   const paymentAmount = parseFloat(paymentForm.amount) || 0;
   const isFullPayment = paymentAmount >= dueAmount && dueAmount > 0;
   const isPartialPayment = paymentAmount > 0 && paymentAmount < dueAmount;
+  const selectedPaymentDate = paymentForm.paymentDate ? new Date(paymentForm.paymentDate) : null;
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+  const isPaymentDateInvalid = !!selectedPaymentDate && Number.isNaN(selectedPaymentDate.getTime());
+  const isFuturePaymentDate = !!selectedPaymentDate && !Number.isNaN(selectedPaymentDate.getTime()) && selectedPaymentDate > todayEnd;
   
   // Submit payment
   const handleSubmitPayment = useCallback(async (e) => {
     e.preventDefault();
     
     if (!paymentForm.voucherId || !paymentForm.amount) {
+      alert('Please select a voucher and enter payment amount');
       return;
     }
 
     const paymentAmount = parseFloat(paymentForm.amount);
     const selectedVoucher = studentVouchers.find(v => String(v.voucher_id) === String(paymentForm.voucherId));
-    const dueAmount = selectedVoucher ? parseFloat(selectedVoucher.due_amount) : 0;
+    const dueAmount = selectedVoucher ? getVoucherDueAmount(selectedVoucher) : 0;
+
+    if (!selectedVoucher) {
+      alert('Please select a valid voucher');
+      return;
+    }
+
+    if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
+      alert('Payment amount must be greater than 0');
+      return;
+    }
+
+    if (!Number.isFinite(dueAmount) || dueAmount <= 0) {
+      alert('Selected voucher has no pending due amount');
+      return;
+    }
     
     // Prevent overpayment
     if (paymentAmount > dueAmount) {
       alert(`Payment amount (Rs. ${paymentAmount.toLocaleString()}) cannot exceed due amount (Rs. ${dueAmount.toLocaleString()})`);
+      return;
+    }
+
+    if (!paymentForm.paymentDate) {
+      alert('Please select payment date');
+      return;
+    }
+
+    const paymentDate = new Date(paymentForm.paymentDate);
+    if (Number.isNaN(paymentDate.getTime())) {
+      alert('Please select a valid payment date');
+      return;
+    }
+
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    if (paymentDate > today) {
+      alert('Payment date cannot be in the future');
       return;
     }
 
@@ -377,7 +443,7 @@ export default function FeePaymentManagement() {
     }
     
     await recordPayment(paymentForm);
-  }, [paymentForm, recordPayment, studentVouchers]);
+  }, [paymentForm, recordPayment, studentVouchers, getVoucherDueAmount]);
   
   // View payment details
   const handleViewPayment = useCallback((payment) => {
@@ -1177,10 +1243,11 @@ export default function FeePaymentManagement() {
                     <input
                       type="number"
                       value={paymentForm.amount}
-                      onChange={(e) => handlePaymentFormChange('amount', e.target.value)}
+                      onChange={(e) => handlePaymentAmountChange(e.target.value)}
                       onWheel={(e) => e.target.blur()}
                       required
-                      min="1"
+                      min="0"
+                      step="0.01"
                       max={selectedVoucher ? dueAmount : undefined}
                       placeholder={selectedVoucher ? `Enter amount (Max: Rs. ${dueAmount.toLocaleString()})` : "Enter amount"}
                     />
@@ -1214,6 +1281,11 @@ export default function FeePaymentManagement() {
                       onChange={(e) => handlePaymentFormChange('paymentDate', e.target.value)}
                       required
                     />
+                    {isFuturePaymentDate && (
+                      <div style={{ marginTop: '5px', fontSize: '12px', color: '#dc3545' }}>
+                        Payment date cannot be in the future.
+                      </div>
+                    )}
                   </div>
                 </div>
                 
@@ -1234,7 +1306,9 @@ export default function FeePaymentManagement() {
                       !paymentForm.voucherId || 
                       !paymentForm.amount || 
                       paymentAmount <= 0 ||
-                      (selectedVoucher && paymentAmount > dueAmount)
+                      (selectedVoucher && paymentAmount > dueAmount) ||
+                      isPaymentDateInvalid ||
+                      isFuturePaymentDate
                     }
                   >
                     {recordingPayment ? 'Recording...' : 

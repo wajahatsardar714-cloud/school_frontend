@@ -7,6 +7,8 @@ import './StudentProfileDocument.css'
 
 const EMPTY_VALUE = 'Empty'
 
+const hasValue = (value) => value !== null && value !== undefined && value !== ''
+
 const formatValue = (value) => {
   if (value === null || value === undefined || value === '') return EMPTY_VALUE
   if (typeof value === 'boolean') return value ? 'Yes' : 'No'
@@ -82,32 +84,47 @@ const StudentProfileDocument = () => {
   }, [documents])
 
   const fatherGuardian = useMemo(() => {
-    return student.guardians?.find((guardian) => guardian.relation === 'Father') || null
+    return student.guardians?.find((guardian) => guardian.relation?.toLowerCase() === 'father') || null
   }, [student.guardians])
 
-  const profileFields = useMemo(() => {
+  const studentInfoFields = useMemo(() => {
     return [
       { label: 'Student Name', value: student.name },
-      { label: 'Student ID', value: student.id },
-      { label: 'Admission Date', value: formatDate(student.admission_date || student.created_at) },
       { label: 'Date of Birth', value: formatDate(student.date_of_birth) },
       { label: 'Gender', value: student.gender },
       { label: 'Phone', value: student.phone },
       { label: 'Email', value: student.email },
-      { label: 'CNIC / B-Form', value: student.bay_form },
+      { label: 'CNIC / B-Form', value: student.bay_form }
+    ]
+  }, [student])
+
+  const fatherInfoFields = useMemo(() => {
+    return [
       { label: 'Father Name', value: student.father_name || fatherGuardian?.name },
       { label: 'Father CNIC', value: student.father_cnic || fatherGuardian?.cnic },
       { label: 'Father Phone', value: student.father_phone || fatherGuardian?.phone },
-      { label: 'Father Occupation', value: student.father_occupation || fatherGuardian?.occupation },
-      { label: 'Caste', value: student.caste },
-      { label: 'Previous School', value: student.previous_school },
-      { label: 'Address', value: student.address },
-      { label: 'Current Class', value: student.current_enrollment?.class_name },
-      { label: 'Current Section', value: student.current_enrollment?.section_name },
-      { label: 'Roll Number', value: student.roll_no },
-      { label: 'Status', value: student.is_expelled ? 'Expelled' : student.is_active ? 'Active' : 'Inactive' }
+      { label: 'Father Occupation', value: student.father_occupation || fatherGuardian?.occupation }
     ]
   }, [student, fatherGuardian])
+
+  const academicInfoFields = useMemo(() => {
+    return [
+      { label: 'Admission Date', value: formatDate(student.admission_date || student.created_at) },
+      { label: 'Current Class', value: student.current_enrollment?.class_name },
+      { label: 'Current Section', value: student.current_enrollment?.section_name },
+      { label: 'Status', value: student.is_expelled ? 'Expelled' : student.is_active ? 'Active' : 'Inactive' }
+    ]
+  }, [student])
+
+  const otherInfoFields = useMemo(() => {
+    const fields = [
+      { label: 'Address', value: student.address },
+      { label: 'Caste', value: student.caste },
+      { label: 'Previous School', value: student.previous_school }
+    ]
+
+    return fields.filter((field) => hasValue(field.value))
+  }, [student])
 
   const handlePrint = useCallback(() => {
     window.print()
@@ -182,10 +199,10 @@ const StudentProfileDocument = () => {
           </header>
 
           <section className="student-document-section">
-            <h2>Student and Family Information</h2>
-            <div className="student-document-grid">
-              {profileFields.map((field) => (
-                <div className="student-document-item" key={field.label}>
+            <h2>Student Information</h2>
+            <div className="student-document-field-list">
+              {studentInfoFields.map((field) => (
+                <div className="student-document-field-row" key={field.label}>
                   <label>{field.label}</label>
                   <p>{formatValue(field.value)}</p>
                 </div>
@@ -194,27 +211,65 @@ const StudentProfileDocument = () => {
           </section>
 
           <section className="student-document-section">
-            <h2>Documents</h2>
-            {docsLoading ? (
-              <p className="student-document-muted">Loading documents...</p>
-            ) : documents.length === 0 ? (
-              <p className="student-document-muted">No document uploaded.</p>
-            ) : (
-              <div className="student-document-doc-list">
-                {documents.map((doc) => (
-                  <div className="student-document-doc-row" key={doc.id}>
-                    <div>
-                      <p className="student-document-doc-name">{doc.file_name || 'Unnamed file'}</p>
-                      <p className="student-document-doc-type">{DOCUMENT_TYPE_LABELS[doc.document_type] || doc.document_type || 'Document'}</p>
-                    </div>
-                    <button type="button" className="student-document-btn secondary no-print" onClick={() => openDocument(doc)}>
-                      View
-                    </button>
+            <h2>Father Information</h2>
+            <div className="student-document-field-list">
+              {fatherInfoFields.map((field) => (
+                <div className="student-document-field-row" key={field.label}>
+                  <label>{field.label}</label>
+                  <p>{formatValue(field.value)}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="student-document-section">
+            <h2>Academic Information</h2>
+            <div className="student-document-field-list">
+              {academicInfoFields.map((field) => (
+                <div className="student-document-field-row" key={field.label}>
+                  <label>{field.label}</label>
+                  <p>{formatValue(field.value)}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {otherInfoFields.length > 0 && (
+            <section className="student-document-section">
+              <h2>Other Information</h2>
+              <div className="student-document-field-list">
+                {otherInfoFields.map((field) => (
+                  <div className="student-document-field-row" key={field.label}>
+                    <label>{field.label}</label>
+                    <p>{formatValue(field.value)}</p>
                   </div>
                 ))}
               </div>
-            )}
-          </section>
+            </section>
+          )}
+
+          {(docsLoading || documents.length > 0) && (
+            <section className="student-document-section">
+              <h2>Documents</h2>
+              {docsLoading ? (
+                <p className="student-document-muted">Loading documents...</p>
+              ) : (
+                <div className="student-document-doc-list">
+                  {documents.map((doc) => (
+                    <div className="student-document-doc-row" key={doc.id}>
+                      <div>
+                        <p className="student-document-doc-name">{doc.file_name || 'Unnamed file'}</p>
+                        <p className="student-document-doc-type">{DOCUMENT_TYPE_LABELS[doc.document_type] || doc.document_type || 'Document'}</p>
+                      </div>
+                      <button type="button" className="student-document-btn secondary no-print" onClick={() => openDocument(doc)}>
+                        View
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
 
           <footer className="student-document-footer">
             <p>Generated on: {new Date().toLocaleString()}</p>
