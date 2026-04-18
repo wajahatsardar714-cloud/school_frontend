@@ -1,17 +1,121 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { feePaymentService } from '../services/feeService'
 import { studentService } from '../services/studentService'
-import { useFetch } from '../hooks/useApi'
+import { PrintReportHeader, ReportTable } from './PrintReport'
+import schoolLogo from '../assets/logo.png'
 import '../fee.css'
 import './StudentFeeHistory.css'
 
+const MAX_SELECTED_STUDENTS = 5
+
+const normalizeStudent = (student) => {
+  const className = student.current_enrollment?.class_name ||
+    student.current_class_name ||
+    student.current_class?.name ||
+    student.class_name ||
+    'Not Enrolled'
+
+  const sectionName = student.current_enrollment?.section_name ||
+    student.current_section_name ||
+    student.current_section?.name ||
+    student.section_name ||
+    'N/A'
+
+  const fatherName = student.father_name ||
+    student.guardians?.find(g => g.relation === 'Father')?.name ||
+    'N/A'
+
+  return {
+    ...student,
+    class_name: className,
+    section_name: sectionName,
+    father_name: fatherName,
+  }
+}
+
+const extractHistoryRows = (response) => {
+  const root = response?.data ?? response
+  let rows = root?.data ?? root
+
+  if (rows && typeof rows === 'object' && !Array.isArray(rows)) {
+    rows = rows.history || rows.payments || rows.vouchers || []
+  }
+
+  return Array.isArray(rows) ? rows : []
+}
+
+const buildReportRows = (history, student) => {
+  return history.map((record, index) => {
+    const items = Array.isArray(record.items) ? record.items : []
+    const hasItemBreakdown = items.length > 0
+    const monthlyFee = items.reduce((sum, item) => {
+      const itemType = String(item?.item_type || '').toUpperCase()
+      const amount = parseFloat(item?.amount)
+      if (Number.isNaN(amount) || amount <= 0) return sum
+      return itemType === 'MONTHLY' || itemType === 'MONTHLY_FEE' ? sum + amount : sum
+    }, 0)
+    const dues = items.reduce((sum, item) => {
+      const itemType = String(item?.item_type || '').toUpperCase()
+      const amount = parseFloat(item?.amount)
+      if (Number.isNaN(amount) || amount <= 0) return sum
+      return itemType === 'MONTHLY' || itemType === 'MONTHLY_FEE' ? sum : sum + amount
+    }, 0)
+    const parsedTotalFee = parseFloat(record.total_fee)
+    const totalFee = hasItemBreakdown
+      ? monthlyFee + dues
+      : (Number.isNaN(parsedTotalFee) ? 0 : parsedTotalFee)
+    const paidAmount = parseFloat(record.paid_amount) || 0
+    const dueAmount = Math.max(totalFee - paidAmount, 0)
+    const status = dueAmount <= 0 ? 'PAID' : paidAmount > 0 ? 'PARTIAL' : 'UNPAID'
+    const monthDate = record.month ? new Date(record.month) : null
+    const monthYear = monthDate && !Number.isNaN(monthDate.getTime())
+      ? monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      : 'N/A'
+
+    return {
+      id: record.voucher_id || index,
+      name: <strong>{record.student_name || student.name || 'N/A'}</strong>,
+      fatherName: record.father_name || student.father_name || 'N/A',
+      className: record.class_name || student.class_name || 'N/A',
+      sectionName: record.section_name || student.section_name || 'N/A',
+      monthYear,
+      monthlyFee: <strong>Rs. {monthlyFee.toLocaleString()}</strong>,
+      dues: <span style={{ color: dues > 0 ? '#dc3545' : '#6c757d' }}>Rs. {dues.toLocaleString()}</span>,
+      totalFee: <strong>Rs. {totalFee.toLocaleString()}</strong>,
+      paidAmount: <span style={{ color: '#28a745' }}>Rs. {paidAmount.toLocaleString()}</span>,
+      dueAmount: <span style={{ color: dueAmount > 0 ? '#dc3545' : '#6c757d' }}>Rs. {dueAmount.toLocaleString()}</span>,
+      status: (
+        <span className={`status-badge status-${String(status).toLowerCase()}`}>
+          {status}
+        </span>
+      ),
+    }
+  })
+}
+
+const reportColumns = [
+  { key: 'name', label: 'Name', printWidth: '12%', printAlign: 'left' },
+  { key: 'fatherName', label: 'Father Name', printWidth: '12%', printAlign: 'left' },
+  { key: 'className', label: 'Class', printWidth: '7%', printAlign: 'left' },
+  { key: 'sectionName', label: 'Section', printWidth: '7%', printAlign: 'left' },
+  { key: 'monthYear', label: 'MonthYear', printWidth: '10%', printAlign: 'center' },
+  { key: 'monthlyFee', label: 'Monthly Fee', printWidth: '9%', printAlign: 'right' },
+  { key: 'dues', label: 'Dues', printWidth: '9%', printAlign: 'right' },
+  { key: 'totalFee', label: 'Total Fee', printWidth: '9%', printAlign: 'right' },
+  { key: 'paidAmount', label: 'Paid Amount', printWidth: '9%', printAlign: 'right' },
+  { key: 'dueAmount', label: 'Due Amount', printWidth: '9%', printAlign: 'right' },
+  { key: 'status', label: 'Status', printWidth: '7%', printAlign: 'center' },
+]
+
 const StudentFeeHistory = () => {
-  const [studentId, setStudentId] = useState('')
+  const [selectedStudents, setSelectedStudents] = useState([])
+  const [historiesByStudent, setHistoriesByStudent] = useState({})
+  const [reloadTick, setReloadTick] = useState(0)
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [searchLoading, setSearchLoading] = useState(false)
   const [showResults, setShowResults] = useState(false)
-  const [selectedStudent, setSelectedStudent] = useState(null)
+  const [selectionMessage, setSelectionMessage] = useState('')
   const searchRef = useRef(null)
 
   // Close dropdown when clicking outside
@@ -32,7 +136,7 @@ const StudentFeeHistory = () => {
         setSearchLoading(true)
         try {
           const response = await studentService.search(searchTerm.trim())
-          const students = response.data || []
+          const students = response?.data?.data || response?.data || []
           setSearchResults(students)
           setShowResults(true)
         } catch (err) {
@@ -49,159 +153,135 @@ const StudentFeeHistory = () => {
     return () => clearTimeout(delayDebounce)
   }, [searchTerm])
 
-  // Fetch student fee history
-  const {
-    data: historyData,
-    loading: historyLoading,
-    error: historyError,
-    refetch: refreshHistory
-  } = useFetch(
-    () => {
-      console.log('Fetching history for student ID:', studentId)
-      return feePaymentService.getStudentHistory(studentId)
-    },
-    [studentId],
-    { enabled: !!studentId }
-  )
+  useEffect(() => {
+    let cancelled = false
 
-  // Log the response immediately when it changes
-  console.log('>>> HISTORY DATA UPDATED:', historyData)
-
-  // Log any errors
-  if (historyError) {
-    console.error('Fee History Error:', historyError)
-  }
-
-  // Fetch student due
-  const { data: dueData } = useFetch(
-    () => feePaymentService.getStudentDue(studentId),
-    [studentId],
-    { enabled: !!studentId }
-  )
-
-  const history = useMemo(() => {
-    console.log('=== FEE HISTORY DEBUG ===')
-    console.log('Raw historyData:', historyData)
-    console.log('Type:', typeof historyData)
-    console.log('Keys:', historyData ? Object.keys(historyData) : 'null')
-    console.log('historyData.data:', historyData?.data)
-    console.log('historyData.data keys:', historyData?.data ? Object.keys(historyData.data) : 'null')
-    
-    // Use same structure as FeePaymentManagement: data is wrapped in { data: [...] }
-    let historyArray = historyData?.data || []
-    
-    // If data is an object with nested arrays, try common patterns
-    if (historyArray && typeof historyArray === 'object' && !Array.isArray(historyArray)) {
-      console.log('Data is object, checking nested properties...')
-      historyArray = historyArray.history || historyArray.payments || historyArray.vouchers || []
+    if (selectedStudents.length === 0) {
+      setHistoriesByStudent({})
+      return () => {
+        cancelled = true
+      }
     }
-    
-    console.log('Final historyArray:', historyArray)
-    console.log('Array length:', Array.isArray(historyArray) ? historyArray.length : 'not an array')
-    console.log('First item:', historyArray[0])
-    if (historyArray[0]) {
-      console.log('First item keys:', Object.keys(historyArray[0]))
-      console.log('First item values:', Object.entries(historyArray[0]))
-    }
-    
-    return Array.isArray(historyArray) ? historyArray : []
-  }, [historyData])
 
-  const due = useMemo(() => {
-    return dueData?.data || dueData || { total_due: 0, voucher_count: 0 }
-  }, [dueData])
+    const loadHistories = async () => {
+      setHistoriesByStudent((prev) => {
+        const next = {}
+        selectedStudents.forEach((student) => {
+          const key = String(student.id)
+          next[key] = {
+            history: prev[key]?.history || [],
+            loading: true,
+            error: '',
+          }
+        })
+        return next
+      })
+
+      const results = await Promise.all(
+        selectedStudents.map(async (student) => {
+          try {
+            const response = await feePaymentService.getStudentHistory(student.id)
+            return {
+              id: String(student.id),
+              history: extractHistoryRows(response),
+              error: '',
+            }
+          } catch (err) {
+            return {
+              id: String(student.id),
+              history: [],
+              error: err?.response?.data?.message || err?.message || 'Failed to load history',
+            }
+          }
+        })
+      )
+
+      if (cancelled) return
+
+      setHistoriesByStudent((prev) => {
+        const next = { ...prev }
+
+        results.forEach((result) => {
+          next[result.id] = {
+            history: result.history,
+            loading: false,
+            error: result.error,
+          }
+        })
+
+        Object.keys(next).forEach((key) => {
+          if (!selectedStudents.some(student => String(student.id) === key)) {
+            delete next[key]
+          }
+        })
+
+        return next
+      })
+    }
+
+    loadHistories()
+
+    return () => {
+      cancelled = true
+    }
+  }, [selectedStudents, reloadTick])
 
   // Handle selecting a student from search results
   const handleSelectStudent = (student) => {
-    // Extract class and section info
-    const className = student.current_enrollment?.class_name || 
-                      student.current_class_name || 
-                      student.current_class?.name || 
-                      student.class_name || 
-                      'Not Enrolled'
-    const sectionName = student.current_enrollment?.section_name || 
-                        student.current_section_name || 
-                        student.current_section?.name || 
-                        student.section_name || 
-                        'N/A'
-    const fatherName = student.father_name || 
-                       student.guardians?.find(g => g.relation === 'Father')?.name || 
-                       'N/A'
-    
-    setSelectedStudent({
-      ...student,
-      class_name: className,
-      section_name: sectionName,
-      father_name: fatherName
-    })
-    setStudentId(student.id.toString())
+    const normalized = normalizeStudent(student)
+
+    if (selectedStudents.some(s => String(s.id) === String(normalized.id))) {
+      setSelectionMessage('Student is already selected.')
+      setSearchTerm('')
+      setShowResults(false)
+      return
+    }
+
+    if (selectedStudents.length >= MAX_SELECTED_STUDENTS) {
+      setSelectionMessage(`You can select up to ${MAX_SELECTED_STUDENTS} students only.`)
+      setSearchTerm('')
+      setShowResults(false)
+      return
+    }
+
+    setSelectedStudents((prev) => [...prev, normalized])
+    setSelectionMessage('')
     setSearchTerm('')
     setShowResults(false)
   }
 
-  // Clear selection
-  const handleClearSelection = () => {
-    setStudentId('')
-    setSelectedStudent(null)
-    setSearchTerm('')
+  const handleRemoveStudent = (studentId) => {
+    setSelectedStudents((prev) => prev.filter(student => String(student.id) !== String(studentId)))
+    setHistoriesByStudent((prev) => {
+      const next = { ...prev }
+      delete next[String(studentId)]
+      return next
+    })
   }
 
-  // Calculate summary statistics - use backend summary if available
-  const summary = useMemo(() => {
-    // First, try to use the summary from the backend response
-    const backendSummary = historyData?.data?.summary
-    
-    if (backendSummary) {
-      console.log('Using backend summary:', backendSummary)
-      return {
-        total_vouchers: backendSummary.total_vouchers || history.length,
-        paid_vouchers: backendSummary.paid_vouchers || 0,
-        partial_vouchers: backendSummary.partial_vouchers || 0,
-        unpaid_vouchers: backendSummary.unpaid_vouchers || 0,
-        total_amount: backendSummary.total_amount || backendSummary.total_fee || 0,
-        total_paid: backendSummary.total_paid || 0,
-      }
-    }
-    
-    // Fallback: calculate from history array
-    if (!history.length) {
-      return {
-        total_vouchers: 0,
-        paid_vouchers: 0,
-        partial_vouchers: 0,
-        unpaid_vouchers: 0,
-        total_amount: 0,
-        total_paid: 0,
-      }
-    }
+  const handleClearSelection = () => {
+    setSelectedStudents([])
+    setHistoriesByStudent({})
+    setSelectionMessage('')
+    setSearchTerm('')
+    setShowResults(false)
+  }
 
-    return {
-      total_vouchers: history.length,
-      paid_vouchers: history.filter(h => h.status === 'PAID').length,
-      partial_vouchers: history.filter(h => h.status === 'PARTIAL').length,
-      unpaid_vouchers: history.filter(h => h.status === 'UNPAID').length,
-      total_amount: history.reduce((sum, h) => sum + (h.total_fee || 0), 0),
-      total_paid: history.reduce((sum, h) => sum + (h.paid_amount || 0), 0),
-    }
-  }, [history, historyData])
+  const handlePrintReport = () => {
+    window.print()
+  }
+
+  const handleRefreshAll = () => {
+    setReloadTick(value => value + 1)
+  }
 
   return (
     <div className="fee-management">
+      <img src={schoolLogo} alt="" className="fee-report-watermark print-only" />
+
       <div className="fee-header">
         <h1>Student Fee History</h1>
-        {studentId && (
-          <button onClick={refreshHistory} className="btn-primary">
-            🔄 Refresh
-          </button>
-        )}
       </div>
-
-      {/* Error Display */}
-      {historyError && (
-        <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
-          <strong>Error loading fee history:</strong> {historyError.message || 'Unknown error'}
-        </div>
-      )}
 
       {/* Student Search Section */}
       <div className="student-search-section">
@@ -243,15 +323,19 @@ const StudentFeeHistory = () => {
                   </div>
                   <div className="search-results-list">
                     {searchResults.map((student) => {
-                      const fatherName = student.father_name || student.guardians?.find(g => g.relation === 'Father')?.name || 'N/A'
-                      const className = student.current_enrollment?.class_name || student.current_class_name || student.class_name || 'Not Enrolled'
-                      const sectionName = student.current_enrollment?.section_name || student.current_section_name || student.section_name || ''
+                        const normalized = normalizeStudent(student)
+                        const fatherName = normalized.father_name || 'N/A'
+                        const className = normalized.class_name || 'Not Enrolled'
+                        const sectionName = normalized.section_name || ''
+                        const isAlreadySelected = selectedStudents.some(s => String(s.id) === String(student.id))
+                        const isMaxReached = selectedStudents.length >= MAX_SELECTED_STUDENTS
+                        const isDisabled = isAlreadySelected || isMaxReached
                       
                       return (
                         <div 
                           key={student.id}
-                          className="search-result-item"
-                          onClick={() => handleSelectStudent(student)}
+                            className={`search-result-item${isDisabled ? ' search-result-item-disabled' : ''}`}
+                            onClick={() => !isDisabled && handleSelectStudent(student)}
                         >
                           <div className="student-card-left">
                             <div className="student-avatar">
@@ -278,7 +362,7 @@ const StudentFeeHistory = () => {
                             </div>
                           </div>
                           <button className="btn-view-details">
-                            View History →
+                            {isAlreadySelected ? 'Added' : isMaxReached ? 'Limit Reached' : 'Add Student →'}
                           </button>
                         </div>
                       )
@@ -290,230 +374,111 @@ const StudentFeeHistory = () => {
           )}
         </div>
 
-        {/* Selected Student Badge */}
-        {selectedStudent && (
+        {selectionMessage && (
+          <div className="alert alert-warning" style={{ marginTop: '12px' }}>
+            {selectionMessage}
+          </div>
+        )}
+
+        {/* Selected Students */}
+        {selectedStudents.length > 0 && (
           <div className="selected-student-badge">
-            <div className="selected-info">
-              <span className="selected-text">
-                Selected: <strong>{selectedStudent.name}</strong> ({selectedStudent.class_name})
-              </span>
+            <div className="selected-students-list">
+              {selectedStudents.map((student) => (
+                <div key={student.id} className="selected-student-chip">
+                  <span>
+                    <strong>{student.name}</strong> ({student.class_name}{student.section_name ? ` - ${student.section_name}` : ''})
+                  </span>
+                  <button
+                    className="selected-chip-remove"
+                    onClick={() => handleRemoveStudent(student.id)}
+                    title="Remove student"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
             </div>
-            <button 
-              className="clear-selection-btn"
-              onClick={handleClearSelection}
-            >✕</button>
+            <div className="selected-actions">
+              <span className="selected-text">{selectedStudents.length}/{MAX_SELECTED_STUDENTS} selected</span>
+              <button
+                className="clear-selection-btn"
+                onClick={handleClearSelection}
+                title="Clear all students"
+              >
+                ✕
+              </button>
+            </div>
           </div>
         )}
       </div>
 
-      {studentId && selectedStudent && (
+      {selectedStudents.length > 0 && (
         <>
-          {/* Student Info Card */}
-          <div className="student-info-card">
-            <div className="student-info-header">
-              <div className="student-avatar">
-                {selectedStudent.name?.charAt(0).toUpperCase()}
-              </div>
-              <div className="student-details">
-                <h2>{selectedStudent.name}</h2>
-                <div className="student-meta">
-                  <span className="meta-item">
-                    <strong>Father:</strong> {selectedStudent.father_name || 'N/A'}
-                  </span>
-                  <span className="meta-item">
-                    <strong>Roll No:</strong> {selectedStudent.roll_no || 'N/A'}
-                  </span>
-                  <span className="meta-item">
-                    <strong>Class:</strong> {selectedStudent.class_name || 'N/A'}
-                  </span>
-                  {selectedStudent.section_name && (
-                    <span className="meta-item">
-                      <strong>Section:</strong> {selectedStudent.section_name}
-                    </span>
+          <div className="fee-history-report-header no-print">
+            <h3>Student Fee History Report</h3>
+            <div className="report-header-actions">
+              <button className="btn-secondary" onClick={handleRefreshAll}>Refresh All</button>
+              <button className="rpt-btn rpt-btn--print" onClick={handlePrintReport}>
+                Print Report
+              </button>
+            </div>
+          </div>
+
+          {selectedStudents.map((student, index) => {
+            const studentState = historiesByStudent[String(student.id)] || {
+              history: [],
+              loading: true,
+              error: '',
+            }
+
+            return (
+              <div
+                className={`table-section fee-history-report-only student-history-block${index === 0 ? ' student-history-first' : ''}`}
+                key={student.id}
+              >
+                <div className="student-history-info no-print">
+                  <h4>{index + 1}. {student.name || 'N/A'}</h4>
+                  <div className="student-history-meta">
+                    <span><strong>Father:</strong> {student.father_name || 'N/A'}</span>
+                    <span><strong>Class:</strong> {student.class_name || 'N/A'}</span>
+                    <span><strong>Section:</strong> {student.section_name || 'N/A'}</span>
+                  </div>
+                </div>
+
+                <PrintReportHeader
+                  title="Student Fee History Report"
+                  meta={[
+                    { label: 'Student', value: student.name || 'N/A' },
+                    { label: 'Father Name', value: student.father_name || 'N/A' },
+                    { label: 'Class', value: student.class_name || 'N/A' },
+                    { label: 'Section', value: student.section_name || 'N/A' },
+                    { label: 'Order', value: `${index + 1} of ${selectedStudents.length}` },
+                    { label: 'Printed On', value: new Date().toLocaleDateString('en-GB') },
+                  ]}
+                />
+
+                <div className="table-container">
+                  {studentState.loading ? (
+                    <div className="loading">Loading history...</div>
+                  ) : studentState.error ? (
+                    <div className="alert alert-error" style={{ margin: '0.5rem' }}>
+                      <strong>Unable to load history:</strong> {studentState.error}
+                    </div>
+                  ) : studentState.history.length === 0 ? (
+                    <div className="empty-state">
+                      <p>No fee history found for this student</p>
+                    </div>
+                  ) : (
+                    <ReportTable
+                      columns={reportColumns}
+                      rows={buildReportRows(studentState.history, student)}
+                    />
                   )}
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Summary Stats */}
-          <div className="stats-grid">
-            <div className="stat-card stat-danger">
-              <div className="stat-icon">💰</div>
-              <div className="stat-content">
-                <div className="stat-label">Total Outstanding</div>
-                <div className="stat-value">
-                  Rs. {due.total_due?.toLocaleString()}
-                </div>
-                <div className="stat-detail">
-                  {due.unpaid_vouchers || due.voucher_count || 0} unpaid voucher{(due.unpaid_vouchers || due.voucher_count || 0) !== 1 ? 's' : ''}
-                </div>
-              </div>
-            </div>
-
-            <div className="stat-card stat-primary">
-              <div className="stat-icon">📄</div>
-              <div className="stat-content">
-                <div className="stat-label">Total Vouchers</div>
-                <div className="stat-value">{summary.total_vouchers}</div>
-                <div className="stat-detail">
-                  All time
-                </div>
-              </div>
-            </div>
-
-            <div className="stat-card stat-success">
-              <div className="stat-icon">✅</div>
-              <div className="stat-content">
-                <div className="stat-label">Paid Vouchers</div>
-                <div className="stat-value">{summary.paid_vouchers}</div>
-                <div className="stat-detail">
-                  {summary.total_vouchers > 0
-                    ? ((summary.paid_vouchers / summary.total_vouchers) * 100).toFixed(1)
-                    : 0}% paid
-                </div>
-              </div>
-            </div>
-
-            <div className="stat-card stat-info">
-              <div className="stat-icon">💵</div>
-              <div className="stat-content">
-                <div className="stat-label">Total Collected</div>
-                <div className="stat-value">
-                  Rs. {summary.total_paid?.toLocaleString()}
-                </div>
-                <div className="stat-detail">
-                  of Rs. {summary.total_amount?.toLocaleString()}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Fee History Table */}
-          <div className="table-section">
-            <h3>Payment History</h3>
-            <div className="table-container">
-              {historyLoading ? (
-                <div className="loading">Loading history...</div>
-              ) : (
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Voucher ID</th>
-                      <th>Month</th>
-                      <th>Class/Section</th>
-                      <th>Total Fee</th>
-                      <th>Paid Amount</th>
-                      <th>Due Amount</th>
-                      <th>Status</th>
-                      <th>Created Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {history.length === 0 ? (
-                      <tr>
-                        <td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>
-                          No fee history found for this student
-                        </td>
-                      </tr>
-                    ) : (
-                      history.map(record => {
-                        const totalFee = parseFloat(record.total_fee) || 0
-                        const paidAmount = parseFloat(record.paid_amount) || 0
-                        const dueAmount = parseFloat(record.due_amount) || 0
-
-                        return (
-                          <tr key={record.voucher_id}>
-                            <td>
-                              <strong>#{record.voucher_id}</strong>
-                            </td>
-                            <td>
-                              {new Date(record.month).toLocaleDateString('en-US', {
-                                month: 'long',
-                                year: 'numeric'
-                              })}
-                            </td>
-                            <td>
-                              {record.class_name}
-                              {record.section_name && ` - ${record.section_name}`}
-                            </td>
-                            <td>
-                              <strong>Rs. {totalFee.toLocaleString()}</strong>
-                            </td>
-                            <td>
-                              <span style={{ color: '#28a745' }}>
-                                Rs. {paidAmount.toLocaleString()}
-                              </span>
-                            </td>
-                            <td>
-                              <span style={{ color: dueAmount > 0 ? '#dc3545' : '#6c757d' }}>
-                                Rs. {dueAmount.toLocaleString()}
-                              </span>
-                            </td>
-                            <td>
-                              <span className={`status-badge status-${record.status.toLowerCase()}`}>
-                                {record.status}
-                              </span>
-                            </td>
-                            <td>
-                              {new Date(record.created_at).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric'
-                              })}
-                            </td>
-                          </tr>
-                        )
-                      })
-                    )}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-
-          {/* Payment Timeline */}
-          {history.length > 0 && (
-            <div className="timeline-section">
-              <h3>Payment Timeline</h3>
-              <div className="timeline">
-                {history.slice(0, 5).map((record, index) => (
-                  <div key={record.voucher_id} className="timeline-item">
-                    <div className="timeline-marker"></div>
-                    <div className="timeline-content">
-                      <div className="timeline-date">
-                        {new Date(record.month).toLocaleDateString('en-US', {
-                          month: 'long',
-                          year: 'numeric'
-                        })}
-                      </div>
-                      <div className="timeline-details">
-                        <span className={`status-badge status-${record.status.toLowerCase()}`}>
-                          {record.status}
-                        </span>
-                        <span className="timeline-amount">
-                          Rs. {record.paid_amount?.toLocaleString()} / {(record.net_amount ?? record.total_fee)?.toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Help Text */}
-          <div className="help-text">
-            <h4>💡 Understanding Fee History</h4>
-            <ul>
-              <li><strong>Total Outstanding:</strong> Current amount the student owes across all unpaid vouchers</li>
-              <li><strong>Status PAID:</strong> Voucher is fully paid, no amount due</li>
-              <li><strong>Status PARTIAL:</strong> Some payment made, but balance remains</li>
-              <li><strong>Status UNPAID:</strong> No payment recorded yet</li>
-              <li><strong>Overdue:</strong> Payment due date has passed and voucher is not fully paid</li>
-              <li><strong>Actions:</strong> Click 👁️ to view voucher details, 💳 to make payment</li>
-            </ul>
-          </div>
+            )
+          })}
         </>
       )}
     </div>

@@ -517,7 +517,89 @@ export default function FeePaymentManagement() {
   }, [formatCompactAmount, getDigitCount, isTightStatsLayout]);
   
   // Computed values - backend wraps data in { success, data, ... }
-  const payments = paymentsData?.data || paymentsData?.payments || [];
+  const rawPayments = useMemo(() => {
+    if (Array.isArray(paymentsData?.data)) return paymentsData.data;
+    if (Array.isArray(paymentsData?.payments)) return paymentsData.payments;
+    if (Array.isArray(paymentsData?.data?.payments)) return paymentsData.data.payments;
+    return [];
+  }, [paymentsData]);
+
+  // Derive payment status from cumulative payments per voucher.
+  // This keeps installment rows accurate (final installment becomes Full Paid).
+  const payments = useMemo(() => {
+    if (rawPayments.length === 0) {
+      return [];
+    }
+
+    const parseAmount = (value) => {
+      const parsed = parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    const parseTimestamp = (value) => {
+      if (!value) return 0;
+      const parsed = new Date(value).getTime();
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    const paymentStatusByRow = new WeakMap();
+    const paymentsByVoucher = new Map();
+
+    rawPayments.forEach((payment, index) => {
+      const voucherKey = payment?.voucher_id != null
+        ? String(payment.voucher_id)
+        : `unknown-voucher-${payment?.id ?? index}`;
+
+      if (!paymentsByVoucher.has(voucherKey)) {
+        paymentsByVoucher.set(voucherKey, []);
+      }
+
+      paymentsByVoucher.get(voucherKey).push(payment);
+    });
+
+    paymentsByVoucher.forEach((voucherPayments) => {
+      const sortedTimeline = [...voucherPayments].sort((a, b) => {
+        const paymentDateDiff = parseTimestamp(a.payment_date) - parseTimestamp(b.payment_date);
+        if (paymentDateDiff !== 0) return paymentDateDiff;
+
+        const createdAtDiff = parseTimestamp(a.created_at) - parseTimestamp(b.created_at);
+        if (createdAtDiff !== 0) return createdAtDiff;
+
+        return (Number(a.id) || 0) - (Number(b.id) || 0);
+      });
+
+      let cumulativePaid = 0;
+
+      sortedTimeline.forEach((payment) => {
+        const voucherTotal = parseAmount(payment.total_fee);
+        const paidAmount = parseAmount(payment.amount);
+
+        cumulativePaid += paidAmount;
+
+        const remainingAfterPayment = Math.max(voucherTotal - cumulativePaid, 0);
+        const isFullPaidAfterPayment = voucherTotal === 0 || remainingAfterPayment <= 0.005;
+
+        paymentStatusByRow.set(payment, {
+          remaining_after_payment: remainingAfterPayment,
+          is_full_paid_after_payment: isFullPaidAfterPayment,
+        });
+      });
+    });
+
+    return rawPayments.map((payment) => {
+      const fallbackVoucherTotal = parseAmount(payment.total_fee);
+      const fallbackRemaining = Math.max(fallbackVoucherTotal - parseAmount(payment.amount), 0);
+      const statusMeta = paymentStatusByRow.get(payment) || {
+        remaining_after_payment: fallbackRemaining,
+        is_full_paid_after_payment: fallbackVoucherTotal === 0 || fallbackRemaining <= 0.005,
+      };
+
+      return {
+        ...payment,
+        ...statusMeta,
+      };
+    });
+  }, [rawPayments]);
   
   // Extract defaulters data - backend wraps in { success, data: { summary, defaulters } }
   const defaultersRaw = defaultersData?.data || defaultersData || {};
@@ -567,10 +649,9 @@ export default function FeePaymentManagement() {
     const printedOn     = new Date().toLocaleDateString('en-GB');
 
     const rows = payments.map((payment, index) => {
-      const totalFee   = parseFloat(payment.total_fee) || 0;
       const paidAmount = parseFloat(payment.amount)    || 0;
-      const remaining  = totalFee - paidAmount;
-      const isFullPaid = totalFee === 0 || remaining <= 0;
+      const remaining  = Math.max(parseFloat(payment.remaining_after_payment) || 0, 0);
+      const isFullPaid = payment.is_full_paid_after_payment || remaining <= 0.005;
       const statusHtml = isFullPaid
         ? `<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:999px;font-size:7.5pt;font-weight:700;">Full Paid</span>`
         : `<span style="background:#fff7ed;color:#9a3412;padding:2px 6px;border-radius:4px;font-size:7.5pt;font-weight:600;display:inline-block;text-align:center;">Partial<br/><span style="font-size:6.5pt;">Rs. ${remaining.toLocaleString()} left</span></span>`;
@@ -930,10 +1011,9 @@ export default function FeePaymentManagement() {
                 { key: "actions",     label: "Actions",        printHide: true },
               ]}
               rows={payments.map((payment, index) => {
-                const totalFee   = parseFloat(payment.total_fee) || 0;
                 const paidAmount = parseFloat(payment.amount)    || 0;
-                const remaining  = totalFee - paidAmount;
-                const isFullPaid = totalFee === 0 || remaining <= 0;
+                const remaining  = Math.max(parseFloat(payment.remaining_after_payment) || 0, 0);
+                const isFullPaid = payment.is_full_paid_after_payment || remaining <= 0.005;
                 return {
                   id: index + 1,
                   student: (

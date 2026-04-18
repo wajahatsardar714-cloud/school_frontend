@@ -1,12 +1,13 @@
 /* Student Search Section */
 .student-search-section {
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  border-radius: 16px;
+  background: #ffffff;
+  border-radius: 8px;
   padding: 32px;
   margin-bottom: 32px;
   position: relative;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  min-height: 180px;
+  box-shadow: none;
+  border: 1px solid #d7dde8;
+  min-height: auto;
 }
 
 .search-container {
@@ -35,18 +36,18 @@
 .student-search-input {
   width: 100%;
   padding: 16px 50px 16px 18px;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
+  border: 1px solid #cfd8e3;
+  border-radius: 6px;
   font-size: 16px;
   background: #ffffff;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.2s ease;
+  box-shadow: none;
 }
 
 .student-search-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #1e40af;
+  box-shadow: none;
 }
 
 .clear-search-btn {
@@ -88,8 +89,8 @@
   z-index: 1000;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border-radius: 6px;
+  box-shadow: none;
   max-height: 450px;
   overflow-y: auto;
   margin-top: 8px;
@@ -123,11 +124,20 @@
   padding: 18px 22px;
   border-bottom: 1px solid #f1f5f9;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.15s ease;
 }
 
 .search-result-item:hover {
-  background: #f8fafc;
+  background: #f6f8fb;
+}
+
+.search-result-item.search-result-item-disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.search-result-item.search-result-item-disabled:hover {
+  background: #ffffff;
 }
 
 .search-result-item:last-child {
@@ -145,14 +155,14 @@
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: #e2e8f0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: #1e293b;
   font-weight: 600;
   font-size: 20px;
-  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+  box-shadow: none;
 }
 
 .student-card-info {
@@ -193,22 +203,20 @@
 }
 
 .btn-view-details {
-  background: #3b82f6;
-  color: #ffffff;
-  border: none;
+  background: #f8fafc;
+  color: #1e3a8a;
+  border: 1px solid #cfd8e3;
   padding: 10px 18px;
-  border-radius: 8px;
+  border-radius: 6px;
   font-weight: 500;
   cursor: pointer;
   font-size: 13px;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+  transition: background 0.2s ease;
+  box-shadow: none;
 }
 
 .btn-view-details:hover {
-  background: #2563eb;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+  background: #eef2f8;
 }
 
 /* Selected Student Badge */
@@ -216,23 +224,58 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-  border: 1px solid #93c5fd;
-  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #d1d9e6;
+  border-radius: 8px;
   padding: 16px 20px;
   margin-top: 20px;
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+  box-shadow: none;
+  gap: 12px;
 }
 
-.selected-info {
+.selected-students-list {
   display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+}
+
+.selected-student-chip {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
+  background: #f8fafc;
+  border: 1px solid #d7dde8;
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: #334155;
+  font-size: 13px;
+}
+
+.selected-chip-remove {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  line-height: 1;
+}
+
+.selected-chip-remove:hover {
+  color: #dc2626;
+}
+
+.selected-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .selected-text {
   font-weight: 500;
-  color: #1e40af;
+  color: #334155;
   font-size: 14px;
 }
 
@@ -240,7 +283,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: #1e40af;
+  color: #475569;
   font-size: 18px;
   width: 24px;
   height: 24px;
@@ -252,8 +295,279 @@
 }
 
 .clear-selection-btn:hover {
-  background: #3b82f6;
-  color: #ffffff;
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.fee-history-report-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #d7dde8;
+  border-radius: 6px;
+}
+
+.report-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fee-history-report-header h3 {
+  margin: 0;
+}
+
+.student-history-block {
+  background: #fbfcff;
+  border: 1px solid #e2e8f2;
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.student-history-info {
+  border: 1px solid #e2e8f2;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: #f8fbff;
+}
+
+.student-history-info h4 {
+  margin: 0 0 6px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.student-history-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.student-history-block + .student-history-block {
+  margin-top: 14px;
+}
+
+@media print {
+  .student-search-section,
+  .selected-student-badge,
+  .student-info-card,
+  .stats-grid,
+  .timeline-section,
+  .help-text,
+  .fee-header,
+  .fee-history-report-header,
+  .alert {
+    display: none !important;
+  }
+
+  .fee-history-report-only {
+    margin-top: 0 !important;
+    background: #ffffff !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  .fee-management {
+    position: relative !important;
+  }
+
+  .fee-report-watermark {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 320px !important;
+    height: auto !important;
+    opacity: 0.08 !important;
+    z-index: 0 !important;
+    pointer-events: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .fee-management > :not(.fee-report-watermark) {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Print school heading only once at top */
+  .student-history-block:not(.student-history-first) .print-header__title-section,
+  .student-history-block:not(.student-history-first) .print-header__divider {
+    display: none !important;
+  }
+
+  .student-history-block:not(.student-history-first) .print-header {
+    margin-top: 0 !important;
+  }
+
+  .student-history-first .print-header__title-section,
+  .student-history-first .print-header__divider {
+    display: block !important;
+  }
+
+  .student-history-block + .student-history-block {
+    margin-top: 8px !important;
+  }
+
+  .fee-history-report-only .print-header__meta {
+    font-size: 8pt !important;
+    column-gap: 0.75rem !important;
+    row-gap: 0.18rem !important;
+    padding: 0.28rem 0.45rem !important;
+    border: 1px solid #c4d0ea !important;
+    border-top: none !important;
+    background: #eef3fb !important;
+    color: #1e293b !important;
+  }
+
+  .fee-history-report-only .print-header__meta-label {
+    color: #2a4f97 !important;
+    font-weight: 700 !important;
+  }
+
+  .fee-history-report-only .print-header__meta-value {
+    color: #0f172a !important;
+    font-weight: 600 !important;
+  }
+
+  .fee-history-report-only .print-header__divider {
+    border-top: 1px solid #2a4f97 !important;
+  }
+
+  .fee-history-report-only .school-name {
+    color: #0f172a !important;
+  }
+
+  .fee-history-report-only .report-title {
+    color: #2a4f97 !important;
+  }
+
+  .fee-history-report-only .table-container {
+    border: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+  }
+
+  .fee-history-report-only .data-table col:nth-child(1) { width: 12% !important; }
+  .fee-history-report-only .data-table col:nth-child(2) { width: 12% !important; }
+  .fee-history-report-only .data-table col:nth-child(3) { width: 7% !important; }
+  .fee-history-report-only .data-table col:nth-child(4) { width: 7% !important; }
+  .fee-history-report-only .data-table col:nth-child(5) { width: 10% !important; }
+  .fee-history-report-only .data-table col:nth-child(6) { width: 9% !important; }
+  .fee-history-report-only .data-table col:nth-child(7) { width: 9% !important; }
+  .fee-history-report-only .data-table col:nth-child(8) { width: 9% !important; }
+  .fee-history-report-only .data-table col:nth-child(9) { width: 9% !important; }
+  .fee-history-report-only .data-table col:nth-child(10) { width: 9% !important; }
+  .fee-history-report-only .data-table col:nth-child(11) { width: 7% !important; }
+
+  .fee-history-report-only .data-table {
+    table-layout: fixed !important;
+    font-size: 7.4pt !important;
+    border: 1px solid #b5c3e8 !important;
+  }
+
+  .fee-history-report-only .data-table th {
+    font-size: 6.2pt !important;
+    letter-spacing: 0 !important;
+    line-height: 1.05 !important;
+    padding: 0.2rem 0.22rem !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    word-break: break-word !important;
+    border: 1px solid #4a66a8 !important;
+    background: #3158a5 !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .fee-history-report-only .data-table td {
+    font-size: 7.2pt !important;
+    line-height: 1.12 !important;
+    padding: 0.2rem 0.22rem !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    border: 1px solid #c3cede !important;
+    background: #ffffff !important;
+    color: #1e293b !important;
+  }
+
+  .fee-history-report-only .data-table tbody tr:nth-child(odd) td,
+  .fee-history-report-only .data-table tbody tr:nth-child(even) td {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .fee-history-report-only .data-table tbody tr:nth-child(odd) td {
+    background: #ffffff !important;
+  }
+
+  .fee-history-report-only .data-table tbody tr:nth-child(even) td {
+    background: #f8faff !important;
+  }
+
+  .fee-history-report-only .data-table td:nth-child(1),
+  .fee-history-report-only .data-table td:nth-child(2) {
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
+
+  .fee-history-report-only .data-table td:nth-child(3),
+  .fee-history-report-only .data-table td:nth-child(4),
+  .fee-history-report-only .data-table td:nth-child(5),
+  .fee-history-report-only .data-table td:nth-child(11) {
+    text-align: center !important;
+  }
+
+  .fee-history-report-only .status-badge {
+    font-size: 6.8pt !important;
+    padding: 0.08rem 0.38rem !important;
+    border-radius: 999px !important;
+    border: 1px solid transparent !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .fee-history-report-only .status-paid {
+    background: #dcfce7 !important;
+    color: #166534 !important;
+    border-color: #bbf7d0 !important;
+  }
+
+  .fee-history-report-only .status-unpaid {
+    background: #fef3c7 !important;
+    color: #92400e !important;
+    border-color: #fde68a !important;
+  }
+
+  .fee-history-report-only .status-partial {
+    background: #e0f2fe !important;
+    color: #0c4a6e !important;
+    border-color: #bae6fd !important;
+  }
+
+  [role='tooltip'],
+  .tooltip,
+  .popover,
+  .tippy-box,
+  .react-hot-toast,
+  .Toastify,
+  .Toastify__toast-container {
+    display: none !important;
+  }
 }
 
 /* Responsive Design */
@@ -290,6 +604,10 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
+  }
+
+  .selected-students-list {
+    width: 100%;
   }
 
   .clear-selection-btn {

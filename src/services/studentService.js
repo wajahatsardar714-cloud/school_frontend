@@ -119,9 +119,7 @@ export const studentService = {
       url: `${API_ENDPOINTS.STUDENTS_BULK}`,
       baseUrl: apiClient.baseURL
     })
-    return await apiClient.post(API_ENDPOINTS.STUDENTS_BULK, studentsData, { 
-      requiresAuth: false // Disable auth for testing
-    })
+    return await apiClient.post(API_ENDPOINTS.STUDENTS_BULK, studentsData)
   },
 
   // Bulk update existing students with missing data (phone, fee, etc.)
@@ -132,9 +130,7 @@ export const studentService = {
       sectionId: data.section_id,
       endpoint: API_ENDPOINTS.STUDENTS_BULK_UPDATE
     })
-    return await apiClient.post(API_ENDPOINTS.STUDENTS_BULK_UPDATE, data, { 
-      requiresAuth: false
-    })
+    return await apiClient.post(API_ENDPOINTS.STUDENTS_BULK_UPDATE, data)
   },
 
   async bulkDeactivate() {
@@ -151,10 +147,7 @@ export const studentService = {
     console.log('📡 Making bulk delete API call:', { data: requestBody, endpoint: API_ENDPOINTS.STUDENTS_BULK_DELETE })
     
     try {
-      // Use the no-auth bulk delete endpoint directly
-      const response = await apiClient.post(API_ENDPOINTS.STUDENTS_BULK_DELETE, requestBody, { 
-        requiresAuth: false // Explicitly disable auth
-      })
+      const response = await apiClient.post(API_ENDPOINTS.STUDENTS_BULK_DELETE, requestBody)
       
       console.log('✅ Bulk delete successful:', response)
       return response
@@ -172,22 +165,16 @@ export const studentService = {
 
   // Update basic student info (name, father name, contact, fee)
   async updateBasicInfo(id, data) {
-    return await apiClient.patch(`/api/students/${id}/basic-info`, data, {
-      requiresAuth: false
-    })
+    return await apiClient.patch(`/api/students/${id}/basic-info`, data)
   },
 
   // Mark students as fee-free (no voucher generation)
   async markFree(data) {
-    return await apiClient.post('/api/students/mark-free', data, {
-      requiresAuth: false
-    })
+    return await apiClient.post('/api/students/mark-free', data)
   },
 
   // Unmark students as fee-free (resume voucher generation)
   async unmarkFree(data) {
-    return await apiClient.post('/api/students/unmark-free', data, {
-      requiresAuth: false
-    })
+    return await apiClient.post('/api/students/unmark-free', data)
   },
 }

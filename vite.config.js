@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+const backendTarget = process.env.VITE_API_BASE_URL || 'https://school-backend-onou.onrender.com'
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -11,12 +13,12 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'https://api.mphsslar.com',
+        target: backendTarget,
         changeOrigin: true,
         secure: true,
       },
       '/health': {
-        target: 'https://api.mphsslar.com',
+        target: backendTarget,
         changeOrigin: true,
         secure: true,
       },

@@ -524,7 +524,7 @@ const FeeVoucherManagement = () => {
         year,
         total_amount: parseFloat(v.total_fee) || 0,
         paid_amount: parseFloat(v.paid_amount) || 0,
-        due_amount: parseFloat(v.due_amount) || 0,
+        due_amount: Math.max(parseFloat(v.due_amount) || 0, 0),
         status: v.status,
         voucher_type: v.voucher_type || 'MONTHLY',
         is_latest_for_student:
@@ -627,7 +627,7 @@ const FeeVoucherManagement = () => {
 
     const totalPending = vouchersForSummary.reduce((sum, voucher) => {
       if (voucher.status === VOUCHER_STATUS.UNPAID || voucher.status === VOUCHER_STATUS.PARTIAL) {
-        return sum + (parseFloat(voucher.due_amount ?? voucher.balance_amount) || 0)
+        return sum + Math.max(parseFloat(voucher.due_amount ?? voucher.balance_amount) || 0, 0)
       }
       return sum
     }, 0)
@@ -839,9 +839,8 @@ const FeeVoucherManagement = () => {
       const response = await feeVoucherService.getById(voucher.id)
       const fullVoucher = response?.data || response
       setEditingVoucher(fullVoucher)
-      // Normalize items: map any 'OTHER' type (legacy) to 'CUSTOM', skip DISCOUNT items
+      // Keep DISCOUNT items in payload so editing other rows does not drop discounts.
       const items = (fullVoucher.items || [])
-        .filter(item => item.item_type !== 'DISCOUNT')
         .map(item => ({
           ...item,
           item_type: item.item_type === 'OTHER' ? 'CUSTOM' : item.item_type,
@@ -867,6 +866,9 @@ const FeeVoucherManagement = () => {
   const handleEditItemChange = useCallback((index, field, value) => {
     setEditItems(prev => {
       const newItems = [...prev]
+      if (newItems[index]?.item_type === 'DISCOUNT') {
+        return newItems
+      }
       if (field === 'amount') {
         newItems[index] = { ...newItems[index], amount: parseFloat(value) || 0 }
       } else if (field === 'item_type') {
@@ -902,7 +904,7 @@ const FeeVoucherManagement = () => {
 
   // Remove item
   const handleRemoveItem = useCallback((index) => {
-    setEditItems(prev => prev.filter((_, i) => i !== index))
+    setEditItems(prev => prev.filter((item, i) => i !== index || item.item_type === 'DISCOUNT'))
   }, [])
 
   // Submit edit items
@@ -912,12 +914,13 @@ const FeeVoucherManagement = () => {
 
     const normalizedItems = editItems.map(item => {
       const description = (item.description || '').trim()
+      const numericAmount = Number.isFinite(parseFloat(item.amount)) ? parseFloat(item.amount) : 0
 
       // Guardrail: ARREARS without a system-generated label are treated as manual dues.
       if (item.item_type === 'ARREARS' && !SYSTEM_DUES_DESC_PATTERN.test(description)) {
         return {
           item_type: 'CUSTOM',
-          amount: item.amount,
+          amount: numericAmount,
           description: description || 'Dues'
         }
       }
@@ -925,14 +928,14 @@ const FeeVoucherManagement = () => {
       if (item.item_type === 'CUSTOM') {
         return {
           item_type: 'CUSTOM',
-          amount: item.amount,
+          amount: numericAmount,
           description: description || 'Dues'
         }
       }
 
       return {
         item_type: item.item_type,
-        amount: item.amount,
+        amount: numericAmount,
         ...(description ? { description } : {})
       }
     })
@@ -941,6 +944,14 @@ const FeeVoucherManagement = () => {
     const missingDesc = normalizedItems.some(item => item.item_type === 'CUSTOM' && !item.description?.trim())
     if (missingDesc) {
       alert('Please enter a custom name for all "Custom Charge" items.')
+      return
+    }
+
+    const invalidSign = normalizedItems.some(item => (
+      item.item_type === 'DISCOUNT' ? item.amount > 0 : item.amount < 0
+    ))
+    if (invalidSign) {
+      alert('Discount amounts must be zero or negative, and all other amounts must be zero or positive.')
       return
     }
 
@@ -2006,7 +2017,7 @@ const FeeVoucherManagement = () => {
                       <td>{formatCurrency(voucher.total_amount)}</td>
                       <td>{formatCurrency(voucher.paid_amount)}</td>
                       <td className="balance-cell">
-                        {formatCurrency(voucher.due_amount)}
+                        {formatCurrency(getVoucherDueAmount(voucher))}
                       </td>
                       <td style={{ fontSize: '13px', color: '#64748b' }}>
                         {voucher.last_payment_date ? new Date(voucher.last_payment_date).toLocaleDateString('en-PK', {
@@ -2066,7 +2077,11 @@ const FeeVoucherManagement = () => {
                               )}
                             </>
                           )}
-                          {voucher.is_latest_for_student && (voucher.status === VOUCHER_STATUS.PAID || voucher.status === VOUCHER_STATUS.PARTIAL) && isAdmin() && (
+                          {isAdmin() && (
+                            voucher.status === VOUCHER_STATUS.PAID ||
+                            voucher.status === VOUCHER_STATUS.PARTIAL ||
+                            (parseFloat(voucher.paid_amount) || 0) > 0
+                          ) && (
                             <button 
                               className="btn-action btn-undo btn-small"
                               onClick={() => handleUndoPayments(voucher)}
@@ -2792,7 +2807,7 @@ const FeeVoucherManagement = () => {
                               const cumulativePaid = voucherPayments
                                 .slice(0, idx + 1)
                                 .reduce((sum, p) => sum + parseFloat(p.amount), 0)
-                              const remaining = selectedVoucher.total_amount - cumulativePaid
+                              const remaining = Math.max((selectedVoucher.total_amount || 0) - cumulativePaid, 0)
                               return (
                                 <tr key={payment.id} style={{ background: idx % 2 === 0 ? '#fff' : '#f0fdf4' }}>
                                   <td style={{ padding: '6px 8px', border: '1px solid #e5e7eb' }}>
@@ -2947,11 +2962,17 @@ const FeeVoucherManagement = () => {
                 <div className="edit-items-list">
                   {editItems.map((item, index) => (
                     <div key={index} className="edit-item-row">
+                      {(() => {
+                        const isDiscount = item.item_type === 'DISCOUNT'
+                        return (
+                          <>
                       <select
                         className="edit-item-select"
                         value={item.item_type}
+                        disabled={isDiscount}
                         onChange={(e) => handleEditItemChange(index, 'item_type', e.target.value)}
                       >
+                        {isDiscount && <option value="DISCOUNT">Discount</option>}
                         {EDIT_FEE_TYPES.map(ft => (
                           <option key={ft.value} value={ft.value}>{ft.label}</option>
                         ))}
@@ -2975,9 +2996,10 @@ const FeeVoucherManagement = () => {
                           type="number"
                           className="edit-item-amount-input"
                           value={item.amount}
+                          disabled={isDiscount}
                           onChange={(e) => handleEditItemChange(index, 'amount', e.target.value)}
                           onWheel={(e) => e.target.blur()}
-                          min="0"
+                          min={isDiscount ? undefined : '0'}
                           step="50"
                         />
                       </div>
@@ -2985,9 +3007,13 @@ const FeeVoucherManagement = () => {
                       <button
                         type="button"
                         className="edit-item-remove-btn"
+                        disabled={isDiscount}
                         onClick={() => handleRemoveItem(index)}
-                        title="Remove item"
+                        title={isDiscount ? 'Discount rows are locked' : 'Remove item'}
                       >×</button>
+                          </>
+                        )
+                      })()}
                     </div>
                   ))}
                 </div>

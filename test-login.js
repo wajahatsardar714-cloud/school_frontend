@@ -4,12 +4,13 @@ import { apiClient } from './src/services/apiClient.js'
 
 // Test API connectivity
 async function testAPI() {
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://school-backend-onou.onrender.com'
   console.log('🔍 Testing API Connection...')
-  console.log('API Base URL:', import.meta.env.VITE_API_BASE_URL || 'https://api.mphsslar.com')
+  console.log('API Base URL:', apiBaseUrl)
   
   try {
     // Simple fetch test
-    const response = await fetch('https://api.mphsslar.com/api/auth/login', {
+    const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -3,6 +3,7 @@ import { classService, sectionService } from '../services/classService'
 import { useFetch } from '../hooks/useApi'
 import { sortClassesByOrder } from '../utils/classOrder'
 import { apiClient } from '../services/apiClient'
+import { API_BASE_URL } from '../config/api'
 import './TestReport.css'
 
 const TestReport = () => {
@@ -612,13 +613,13 @@ const TestReport = () => {
               <div className="report-viewer">
                 {selectedReport.file_type?.includes('pdf') ? (
                   <iframe 
-                    src={`${import.meta.env.VITE_API_BASE_URL || 'https://api.mphsslar.com'}/${selectedReport.file_path}`}
+                    src={`${API_BASE_URL}/${selectedReport.file_path}`}
                     className="pdf-viewer"
                     title={selectedReport.file_name}
                   />
                 ) : (
                   <img 
-                    src={`${import.meta.env.VITE_API_BASE_URL || 'https://api.mphsslar.com'}/${selectedReport.file_path}`}
+                    src={`${API_BASE_URL}/${selectedReport.file_path}`}
                     alt={selectedReport.file_name}
                     className="image-viewer"
                   />
@@ -626,7 +627,7 @@ const TestReport = () => {
               </div>
               <div className="report-modal-actions">
                 <a 
-                  href={`${import.meta.env.VITE_API_BASE_URL || 'https://api.mphsslar.com'}/${selectedReport.file_path}`}
+                  href={`${API_BASE_URL}/${selectedReport.file_path}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-secondary"
