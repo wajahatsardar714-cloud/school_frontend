@@ -1,9 +1,24 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { feePaymentService } from '../services/feeService'
 import { classService } from '../services/classService'
 import { useFetch } from '../hooks/useApi'
 import { sortClassesBySequence, getClassSortOrder } from '../utils/classSorting'
 import '../fee.css'
+
+const MONTHS = [
+  { value: 1, label: 'January' },
+  { value: 2, label: 'February' },
+  { value: 3, label: 'March' },
+  { value: 4, label: 'April' },
+  { value: 5, label: 'May' },
+  { value: 6, label: 'June' },
+  { value: 7, label: 'July' },
+  { value: 8, label: 'August' },
+  { value: 9, label: 'September' },
+  { value: 10, label: 'October' },
+  { value: 11, label: 'November' },
+  { value: 12, label: 'December' },
+]
 
 const FeeDefaulters = () => {
   const [filters, setFilters] = useState({
@@ -11,6 +26,7 @@ const FeeDefaulters = () => {
     section_id: '',
     min_due_amount: '',
     month: '',
+    year: new Date().getFullYear(),
     overdue_only: false,
   })
 
@@ -18,6 +34,20 @@ const FeeDefaulters = () => {
     key: 'due_amount',
     direction: 'desc',
   })
+  const [allMonthsOutstandingByStudent, setAllMonthsOutstandingByStudent] = useState({})
+
+  const normalizedMonthFilter = useMemo(() => {
+    if (!filters.month) return ''
+
+    const numericMonth = parseInt(filters.month, 10)
+    if (!Number.isFinite(numericMonth) || numericMonth < 1 || numericMonth > 12) {
+      return ''
+    }
+
+    return `${filters.year}-${String(numericMonth).padStart(2, '0')}-01`
+  }, [filters.month, filters.year])
+
+  const isAllMonthsSelected = !filters.month
 
   // Fetch classes
   const { data: classesData } = useFetch(
@@ -44,8 +74,11 @@ const FeeDefaulters = () => {
     loading: defaultersLoading,
     refetch: refreshDefaulters
   } = useFetch(
-    () => feePaymentService.getDefaulters(filters),
-    [filters.class_id, filters.section_id, filters.min_due_amount, filters.month, filters.overdue_only],
+    () => feePaymentService.getDefaulters({
+      ...filters,
+      month: normalizedMonthFilter,
+    }),
+    [filters.class_id, filters.section_id, filters.min_due_amount, filters.month, filters.year, filters.overdue_only, normalizedMonthFilter],
     { enabled: true }
   )
 
@@ -87,6 +120,81 @@ const FeeDefaulters = () => {
     
     return { schoolDefaulters, collegeDefaulters, allDefaulters: sorted }
   }, [defaultersData])
+
+  const allMonthsStudents = useMemo(() => {
+    if (!isAllMonthsSelected) return []
+
+    return groupedDefaulters?.allDefaulters?.reduce((acc, defaulter) => {
+      const studentId = defaulter?.student_id
+      if (!studentId) return acc
+      if (acc.some(item => String(item.student_id) === String(studentId))) return acc
+      acc.push({ student_id: studentId, fallback_due_amount: defaulter?.due_amount })
+      return acc
+    }, []) || []
+  }, [isAllMonthsSelected, groupedDefaulters])
+
+  useEffect(() => {
+    if (!isAllMonthsSelected) {
+      setAllMonthsOutstandingByStudent({})
+      return
+    }
+
+    if (allMonthsStudents.length === 0) {
+      setAllMonthsOutstandingByStudent({})
+      return
+    }
+
+    let cancelled = false
+
+    const loadAllMonthsOutstanding = async () => {
+      const entries = await Promise.all(
+        allMonthsStudents.map(async (student) => {
+          const studentId = String(student.student_id)
+          try {
+            const response = await feePaymentService.getStudentDue(student.student_id)
+            const root = response?.data ?? response
+            const payload = root?.data ?? root
+            const totalDue = parseFloat(payload?.total_due ?? payload?.due_amount ?? payload?.totalDue)
+            if (Number.isFinite(totalDue)) {
+              return [studentId, Math.max(totalDue, 0)]
+            }
+          } catch (error) {
+            // Fall back to defaulters API value when per-student due endpoint is unavailable.
+          }
+
+          return [studentId, Math.max(parseFloat(student.fallback_due_amount || 0), 0)]
+        })
+      )
+
+      if (cancelled) return
+      setAllMonthsOutstandingByStudent(Object.fromEntries(entries))
+    }
+
+    loadAllMonthsOutstanding()
+
+    return () => {
+      cancelled = true
+    }
+  }, [isAllMonthsSelected, allMonthsStudents])
+
+  const getDueAmountValue = useCallback((defaulter) => {
+    if (isAllMonthsSelected) {
+      const studentId = String(defaulter?.student_id || '')
+      const mappedOutstanding = allMonthsOutstandingByStudent[studentId]
+      if (Number.isFinite(mappedOutstanding)) {
+        return Math.max(mappedOutstanding, 0)
+      }
+    }
+
+    return Math.max(parseFloat(defaulter?.due_amount || 0), 0)
+  }, [isAllMonthsSelected, allMonthsOutstandingByStudent])
+
+  const getDisplayedTotalFeeValue = useCallback((defaulter) => {
+    if (isAllMonthsSelected) {
+      return getDueAmountValue(defaulter)
+    }
+    return Math.max(parseFloat(defaulter?.total_fee || 0), 0)
+  }, [isAllMonthsSelected, getDueAmountValue])
   
   // Sort by user selection (for backward compatibility)
   const sortedDefaulters = useMemo(() => {
@@ -123,6 +231,20 @@ const FeeDefaulters = () => {
     }
   }, [defaultersData])
 
+  const displayedSummary = useMemo(() => {
+    if (!isAllMonthsSelected) return summary
+
+    const totalDueAmount = groupedDefaulters.allDefaulters.reduce(
+      (sum, defaulter) => sum + getDueAmountValue(defaulter),
+      0
+    )
+
+    return {
+      ...summary,
+      total_due_amount: totalDueAmount,
+    }
+  }, [isAllMonthsSelected, summary, groupedDefaulters, getDueAmountValue])
+
   // Handle sort
   const handleSort = (key) => {
     setSortConfig(prev => ({
@@ -154,7 +276,7 @@ const FeeDefaulters = () => {
         fatherName,
         contact,
         d.total_vouchers,
-        d.total_fee || 0,
+        getDisplayedTotalFeeValue(d),
         d.paid_amount || 0,
         d.due_amount,
       ]
@@ -175,7 +297,7 @@ const FeeDefaulters = () => {
         fatherName,
         contact,
         d.total_vouchers,
-        d.total_fee || 0,
+        getDisplayedTotalFeeValue(d),
         d.paid_amount || 0,
         d.due_amount,
       ]
@@ -196,7 +318,7 @@ const FeeDefaulters = () => {
     a.click()
     window.URL.revokeObjectURL(url)
     document.body.removeChild(a)
-  }, [groupedDefaulters])
+  }, [groupedDefaulters, getDisplayedTotalFeeValue])
 
   // Print function (popup approach with School/College sections)
   const handlePrint = useCallback(() => {
@@ -220,7 +342,7 @@ const FeeDefaulters = () => {
           <td>${fatherName}</td>
           <td>${contact}</td>
           <td style="text-align:center;">${d.total_vouchers || 0}</td>
-          <td style="text-align:right;">Rs. ${parseFloat(d.total_fee || 0).toLocaleString()}</td>
+          <td style="text-align:right;">Rs. ${getDisplayedTotalFeeValue(d).toLocaleString()}</td>
           <td style="text-align:right;">Rs. ${parseFloat(d.paid_amount || 0).toLocaleString()}</td>
           <td style="text-align:right;font-weight:bold;color:#dc2626;">Rs. ${parseFloat(d.due_amount || 0).toLocaleString()}</td>
         </tr>`;
@@ -230,8 +352,8 @@ const FeeDefaulters = () => {
     const schoolRows = generateRows(schoolDefaulters, 0);
     const collegeRows = generateRows(collegeDefaulters, schoolDefaulters.length);
     
-    const schoolDueTotal = schoolDefaulters.reduce((sum, d) => sum + parseFloat(d.due_amount || 0), 0);
-    const collegeDueTotal = collegeDefaulters.reduce((sum, d) => sum + parseFloat(d.due_amount || 0), 0);
+    const schoolDueTotal = schoolDefaulters.reduce((sum, d) => sum + getDueAmountValue(d), 0);
+    const collegeDueTotal = collegeDefaulters.reduce((sum, d) => sum + getDueAmountValue(d), 0);
 
     const html = `<!DOCTYPE html>
 <html>
@@ -273,8 +395,8 @@ const FeeDefaulters = () => {
   <div class="report-title">Fee Defaulters Report</div>
   <hr class="divider"/>
   <div class="meta-bar">
-    <span><strong>Total Defaulters:</strong> ${summary.total_defaulters}</span>
-    <span><strong>Total Due Amount:</strong> Rs. ${summary.total_due_amount?.toLocaleString() || 0}</span>
+    <span><strong>Total Defaulters:</strong> ${displayedSummary.total_defaulters}</span>
+    <span><strong>Total Due Amount:</strong> Rs. ${displayedSummary.total_due_amount?.toLocaleString() || 0}</span>
     <span><strong>Printed On:</strong> ${printedOn}</span>
   </div>
   
@@ -337,7 +459,7 @@ const FeeDefaulters = () => {
   ${(schoolDefaulters.length > 0 || collegeDefaulters.length > 0) ? `
   <table style="margin-top:.5rem;margin-bottom:.5rem;">
     <tfoot>
-      <tr><td colspan="10" style="text-align:center;font-size:9pt;"><strong>GRAND TOTAL DUE:</strong> Rs. ${summary.total_due_amount?.toLocaleString() || 0}</td></tr>
+      <tr><td colspan="10" style="text-align:center;font-size:9pt;"><strong>GRAND TOTAL DUE:</strong> Rs. ${displayedSummary.total_due_amount?.toLocaleString() || 0}</td></tr>
     </tfoot>
   </table>` : ''}
 </body>
@@ -348,7 +470,7 @@ const FeeDefaulters = () => {
     popup.document.close();
     popup.focus();
     setTimeout(() => { popup.print(); popup.close(); }, 400);
-  }, [sortedDefaulters, summary])
+  }, [groupedDefaulters, displayedSummary, getDisplayedTotalFeeValue, getDueAmountValue])
 
   return (
     <div className="fee-management">
@@ -384,7 +506,7 @@ const FeeDefaulters = () => {
           <div className="stat-icon">👥</div>
           <div className="stat-content">
             <div className="stat-label">Total Defaulters</div>
-            <div className="stat-value">{summary.total_defaulters}</div>
+            <div className="stat-value">{displayedSummary.total_defaulters}</div>
           </div>
         </div>
 
@@ -393,7 +515,7 @@ const FeeDefaulters = () => {
           <div className="stat-content">
             <div className="stat-label">Total Due Amount</div>
             <div className="stat-value">
-              Rs. {summary.total_due_amount?.toLocaleString() || 0}
+              Rs. {displayedSummary.total_due_amount?.toLocaleString() || 0}
             </div>
           </div>
         </div>
@@ -442,10 +564,26 @@ const FeeDefaulters = () => {
 
         <div className="filter-group">
           <label>Month</label>
-          <input
-            type="month"
+          <select
             value={filters.month}
             onChange={(e) => setFilters({ ...filters, month: e.target.value })}
+          >
+            <option value="">All Months</option>
+            {MONTHS.map(m => (
+              <option key={m.value} value={m.value}>{m.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="filter-group">
+          <label>Year</label>
+          <input
+            type="number"
+            value={filters.year}
+            onChange={(e) => setFilters({ ...filters, year: parseInt(e.target.value, 10) || new Date().getFullYear() })}
+            onWheel={(e) => e.target.blur()}
+            min="2020"
+            max="2035"
           />
         </div>
 
@@ -526,12 +664,12 @@ const FeeDefaulters = () => {
                               {defaulter.total_vouchers}
                             </span>
                           </td>
-                          <td>Rs. {parseFloat(defaulter.total_fee || 0).toLocaleString()}</td>
+                          <td>Rs. {getDisplayedTotalFeeValue(defaulter).toLocaleString()}</td>
                           <td className="amount-paid">
                             Rs. {parseFloat(defaulter.paid_amount || 0).toLocaleString()}
                           </td>
                           <td className="amount-due">
-                            <strong>Rs. {parseFloat(defaulter.due_amount || 0).toLocaleString()}</strong>
+                            <strong>Rs. {getDueAmountValue(defaulter).toLocaleString()}</strong>
                           </td>
                         </tr>
                       )
@@ -608,12 +746,12 @@ const FeeDefaulters = () => {
                               {defaulter.total_vouchers}
                             </span>
                           </td>
-                          <td>Rs. {parseFloat(defaulter.total_fee || 0).toLocaleString()}</td>
+                          <td>Rs. {getDisplayedTotalFeeValue(defaulter).toLocaleString()}</td>
                           <td className="amount-paid">
                             Rs. {parseFloat(defaulter.paid_amount || 0).toLocaleString()}
                           </td>
                           <td className="amount-due">
-                            <strong>Rs. {parseFloat(defaulter.due_amount || 0).toLocaleString()}</strong>
+                            <strong>Rs. {getDueAmountValue(defaulter).toLocaleString()}</strong>
                           </td>
                         </tr>
                       )

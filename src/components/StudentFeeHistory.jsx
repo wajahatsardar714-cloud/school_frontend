@@ -7,6 +7,10 @@ import '../fee.css'
 import './StudentFeeHistory.css'
 
 const MAX_SELECTED_STUDENTS = 5
+const SCHOOL_NAME = 'Muslim Public Higher Secondary School Lar'
+const SCHOOL_ADDRESS = 'Bahawalpur Road, Adda Laar'
+const SCHOOL_PHONE = '0300-6246297'
+const SCHOOL_EMAIL = 'muslimpublichighersecondarysch@gmail.com'
 
 const normalizeStudent = (student) => {
   const className = student.current_enrollment?.class_name ||
@@ -30,8 +34,9 @@ const normalizeStudent = (student) => {
     class_name: className,
     section_name: sectionName,
     father_name: fatherName,
+    roll_no: student.current_enrollment?.roll_no || student.roll_no || student.student_roll_no || '',
+    serial_number: student.serial_number || student.serial_no || student.admission_no || student.admission_number || '',
     admission_no: student.admission_no || student.admission_number || student.serial_number || '',
-    roll_no: student.roll_no || student.student_roll_no || '',
   }
 }
 
@@ -67,12 +72,40 @@ const parseRecordAmounts = (record) => {
     return itemType === 'MONTHLY' || itemType === 'MONTHLY_FEE' ? sum + amount : sum
   }, 0)
 
-  const dues = items.reduce((sum, item) => {
+  const duesFromItems = items.reduce((sum, item) => {
     const itemType = String(item?.item_type || '').toUpperCase()
+    const description = String(item?.description || '').toLowerCase()
     const amount = parseFloat(item?.amount)
     if (Number.isNaN(amount) || amount <= 0) return sum
-    return itemType === 'MONTHLY' || itemType === 'MONTHLY_FEE' ? sum : sum + amount
+
+    // Only treat outstanding/carry-forward dues as "Dues" in this report.
+    const isOutstandingDuesItem = (
+      itemType === 'ARREARS' ||
+      ((itemType === 'CUSTOM' || itemType === 'DUES') &&
+        (description.includes('dues') || description.includes('outstanding') || description.includes('arrear')))
+    )
+
+    return isOutstandingDuesItem ? sum + amount : sum
   }, 0)
+
+  const parsedOutstanding = parseFloat(
+    record.student_outstanding ??
+    record.studentOutstanding ??
+    record.outstanding ??
+    record.outstanding_due ??
+    record.outstandingDue ??
+    record.outstanding_dues ??
+    record.outstandingDues ??
+    record.previous_due ??
+    record.previousDue ??
+    record.dues
+  )
+
+  const hasOutstandingInRecord = Number.isFinite(parsedOutstanding)
+  const duesFromRecord = hasOutstandingInRecord ? Math.max(parsedOutstanding, 0) : 0
+  const dues = hasOutstandingInRecord
+    ? duesFromRecord
+    : (hasItemBreakdown ? duesFromItems : 0)
 
   const parsedTotalFee = parseFloat(record.total_fee)
   const totalFee = hasItemBreakdown
@@ -102,8 +135,8 @@ const getMonthLabel = (monthValue) => {
 
 const formatCurrency = (value) => `Rs. ${Number(value || 0).toLocaleString()}`
 
-const getStudentAdmissionRoll = (student) => {
-  return student.admission_no || student.admission_number || student.roll_no || student.serial_number || 'N/A'
+const getStudentSerialNo = (student) => {
+  return student.roll_no || student.current_enrollment?.roll_no || student.student_roll_no || student.serial_number || student.serial_no || 'N/A'
 }
 
 const buildStudentSummary = (history, student) => {
@@ -112,7 +145,7 @@ const buildStudentSummary = (history, student) => {
     const voucherNo = toVoucherNo(record, index + 1)
 
     acc.totalPaid += amounts.paidAmount
-    acc.totalDue += amounts.dueAmount
+    acc.totalDues += amounts.dues
     if (!acc.latestVoucherNo || acc.latestVoucherNo === 'N/A') {
       acc.latestVoucherNo = voucherNo
     }
@@ -125,7 +158,7 @@ const buildStudentSummary = (history, student) => {
     return acc
   }, {
     totalPaid: 0,
-    totalDue: 0,
+    totalDues: 0,
     latestVoucherNo: 'N/A',
     monthDates: [],
   })
@@ -143,12 +176,12 @@ const buildStudentSummary = (history, student) => {
     fatherName: student.father_name || 'N/A',
     className: student.class_name || 'N/A',
     sectionName: student.section_name || 'N/A',
-    admissionRoll: getStudentAdmissionRoll(student),
+    serialNo: getStudentSerialNo(student),
     latestVoucherNo: totals.latestVoucherNo,
     dateRange,
     printedOn: new Date().toLocaleDateString('en-GB'),
     totalPaid: formatCurrency(totals.totalPaid),
-    totalDue: formatCurrency(totals.totalDue),
+    totalDues: formatCurrency(totals.totalDues),
   }
 }
 
@@ -505,6 +538,12 @@ const StudentFeeHistory = () => {
             </div>
           </div>
 
+          <div className="student-history-print-header print-only">
+            <div className="school-name">{SCHOOL_NAME}</div>
+            <div className="report-title">Student Fee History Report</div>
+            <hr className="student-report-divider" />
+          </div>
+
           {selectedStudents.map((student, index) => {
             const studentState = historiesByStudent[String(student.id)] || {
               history: [],
@@ -519,23 +558,17 @@ const StudentFeeHistory = () => {
                 className={`table-section fee-history-report-only student-history-block${index === 0 ? ' student-history-first' : ''}`}
                 key={student.id}
               >
-                <div className="student-report-print-header print-only">
-                  <div className="school-name">Muslim Public Higher Secondary School Lar</div>
-                  <div className="report-title">Student Fee History Report</div>
-                  <hr className="student-report-divider" />
-                </div>
-
                 <div className="student-summary-bar">
                   <span className="student-summary-item"><strong>Student:</strong> {reportSummary.studentName}</span>
                   <span className="student-summary-item"><strong>Father:</strong> {reportSummary.fatherName}</span>
                   <span className="student-summary-item"><strong>Class:</strong> {reportSummary.className}</span>
                   <span className="student-summary-item"><strong>Section:</strong> {reportSummary.sectionName}</span>
-                  <span className="student-summary-item"><strong>Admission/Roll:</strong> {reportSummary.admissionRoll}</span>
+                  <span className="student-summary-item"><strong>Serial No:</strong> {reportSummary.serialNo}</span>
                   <span className="student-summary-item"><strong>Voucher No:</strong> {reportSummary.latestVoucherNo}</span>
                   <span className="student-summary-item"><strong>Date Range:</strong> {reportSummary.dateRange}</span>
                   <span className="student-summary-item"><strong>Printed On:</strong> {reportSummary.printedOn}</span>
                   <span className="student-summary-item student-summary-item--strong"><strong>Total Paid:</strong> {reportSummary.totalPaid}</span>
-                  <span className="student-summary-item student-summary-item--strong"><strong>Total Due:</strong> {reportSummary.totalDue}</span>
+                  <span className="student-summary-item student-summary-item--strong"><strong>Total Dues:</strong> {reportSummary.totalDues}</span>
                 </div>
 
                 <div className="student-history-table-wrap">
@@ -559,6 +592,12 @@ const StudentFeeHistory = () => {
               </div>
             )
           })}
+
+          <div className="student-history-print-footer print-only">
+            <div className="student-history-print-footer__line">{SCHOOL_ADDRESS}</div>
+            <div className="student-history-print-footer__line">Phone: {SCHOOL_PHONE} | Email: {SCHOOL_EMAIL}</div>
+            <div className="student-history-print-footer__line student-history-print-footer__line--strong">Pay at school office during working hours. Contact: {SCHOOL_PHONE}</div>
+          </div>
         </>
       )}
     </div>

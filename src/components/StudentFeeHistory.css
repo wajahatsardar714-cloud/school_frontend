@@ -335,6 +335,14 @@
   display: none;
 }
 
+.student-history-print-header {
+  display: none;
+}
+
+.student-history-print-footer {
+  display: none;
+}
+
 .student-report-divider {
   border: none;
   border-top: 2px solid #1e3a8a;
@@ -400,6 +408,7 @@
 
   .fee-management {
     position: relative !important;
+    padding-bottom: 2.3cm !important;
   }
 
   .fee-report-watermark {
@@ -449,13 +458,13 @@
     margin-top: 0 !important;
   }
 
-  .student-report-print-header {
+  .student-history-print-header {
     display: block !important;
-    margin-bottom: 0 !important;
+    margin: 0 0 0.3rem 0 !important;
     text-align: center;
   }
 
-  .student-report-print-header .school-name {
+  .student-history-print-header .school-name {
     font-size: 11pt !important;
     font-weight: 800 !important;
     text-transform: uppercase !important;
@@ -464,7 +473,7 @@
     margin-bottom: 0.15rem !important;
   }
 
-  .student-report-print-header .report-title {
+  .student-history-print-header .report-title {
     font-size: 13pt !important;
     font-weight: 700 !important;
     text-transform: uppercase !important;
@@ -476,7 +485,7 @@
   .student-summary-bar {
     border-radius: 0 !important;
     border: 1px solid #b5c3e8 !important;
-    border-top: none !important;
+    background: transparent !important;
     margin-bottom: 0.35rem !important;
     padding: 0.28rem 0.6rem !important;
     font-size: 8pt !important;
@@ -492,6 +501,7 @@
     border: none !important;
     border-radius: 0 !important;
     box-shadow: none !important;
+    background: transparent !important;
     overflow: visible !important;
     margin: 0 !important;
   }
@@ -501,6 +511,7 @@
     width: 100% !important;
     page-break-inside: auto;
     font-size: 8pt !important;
+    background: transparent !important;
     border: 1px solid #c0c0c0 !important;
   }
 
@@ -524,13 +535,13 @@
   }
 
   .student-history-table-wrap .data-table tbody tr:nth-child(even) td {
-    background: #f0f4ff !important;
+    background: transparent !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
   .student-history-table-wrap .data-table tbody tr:nth-child(odd) td {
-    background: #ffffff !important;
+    background: transparent !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
@@ -565,6 +576,28 @@
     background: #e0f2fe !important;
     color: #0c4a6e !important;
     border-color: #bae6fd !important;
+  }
+
+  .student-history-print-footer {
+    display: block !important;
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 8mm !important;
+    text-align: center !important;
+    color: #0f172a !important;
+    z-index: 2 !important;
+    line-height: 1.35 !important;
+  }
+
+  .student-history-print-footer__line {
+    font-size: 10pt !important;
+    font-weight: 500 !important;
+  }
+
+  .student-history-print-footer__line--strong {
+    font-size: 10.5pt !important;
+    font-weight: 700 !important;
   }
 
   [role='tooltip'],
