@@ -510,6 +510,17 @@ const FeeVoucherManagement = () => {
     // Map backend fields to component expected fields
     const mappedVouchers = vouchers.map(v => {
       const { month, year } = parseVoucherMonth(v.month)
+      const paidAmount = parseFloat(v.paid_amount) || 0
+      const parsedTotalFee = parseFloat(v.total_fee)
+      const parsedBaseTotal = parseFloat(v.base_total)
+      const totalAmount = Number.isFinite(parsedTotalFee)
+        ? parsedTotalFee
+        : (Number.isFinite(parsedBaseTotal) ? parsedBaseTotal : 0)
+      const normalizedDueAmount = Math.max(totalAmount - paidAmount, 0)
+      const normalizedStatus = normalizedDueAmount <= 0.009
+        ? VOUCHER_STATUS.PAID
+        : (paidAmount > 0 ? VOUCHER_STATUS.PARTIAL : VOUCHER_STATUS.UNPAID)
+
       return {
         id: v.voucher_id,
         voucher_no: `V-${v.voucher_id}`,
@@ -523,10 +534,11 @@ const FeeVoucherManagement = () => {
         father_name: v.father_name,
         month,
         year,
-        total_amount: parseFloat(v.total_fee) || 0,
-        paid_amount: parseFloat(v.paid_amount) || 0,
-        due_amount: Math.max(parseFloat(v.due_amount) || 0, 0),
-        status: v.status,
+        total_amount: totalAmount,
+        base_amount: Number.isFinite(parsedBaseTotal) ? parsedBaseTotal : totalAmount,
+        paid_amount: paidAmount,
+        due_amount: normalizedDueAmount,
+        status: normalizedStatus,
         voucher_type: v.voucher_type || 'MONTHLY',
         is_latest_for_student:
           v.is_latest_for_student === true ||
@@ -537,8 +549,22 @@ const FeeVoucherManagement = () => {
       }
     })
 
+    const studentDueTotals = mappedVouchers.reduce((acc, voucher) => {
+      const studentId = voucher.student_id
+      if (!studentId) return acc
+
+      const voucherDue = Math.max(parseFloat(voucher.due_amount) || 0, 0)
+      acc[studentId] = (acc[studentId] || 0) + voucherDue
+      return acc
+    }, {})
+
+    const enrichedVouchers = mappedVouchers.map(voucher => ({
+      ...voucher,
+      student_total_due: Math.max(studentDueTotals[voucher.student_id] || 0, 0),
+    }))
+
     // Sort by class sequence, then section name, then roll number
-    mappedVouchers.sort((a, b) => {
+    enrichedVouchers.sort((a, b) => {
       const classOrderA = getClassSortOrder(a.class_name)
       const classOrderB = getClassSortOrder(b.class_name)
       if (classOrderA !== classOrderB) return classOrderA - classOrderB
@@ -555,26 +581,26 @@ const FeeVoucherManagement = () => {
 
     // Apply amount sorting if set
     if (amountSortOrder === 'low-to-high') {
-      mappedVouchers.sort((a, b) => a.total_amount - b.total_amount)
+      enrichedVouchers.sort((a, b) => a.total_amount - b.total_amount)
     } else if (amountSortOrder === 'high-to-low') {
-      mappedVouchers.sort((a, b) => b.total_amount - a.total_amount)
+      enrichedVouchers.sort((a, b) => b.total_amount - a.total_amount)
     }
 
     // When student is selected, API already filters by student_id server-side.
     // Still apply text search if manually typed.
     if (selectedListStudent) {
-      if (!debouncedSearch) return mappedVouchers
+      if (!debouncedSearch) return enrichedVouchers
       const searchLower = debouncedSearch.toLowerCase()
-      return mappedVouchers.filter(v =>
+      return enrichedVouchers.filter(v =>
         v.student_name?.toLowerCase().includes(searchLower) ||
         v.voucher_no?.toLowerCase().includes(searchLower)
       )
     }
 
-    if (!debouncedSearch) return mappedVouchers
+    if (!debouncedSearch) return enrichedVouchers
     
     const searchLower = debouncedSearch.toLowerCase()
-    return mappedVouchers.filter(v => 
+    return enrichedVouchers.filter(v => 
       v.student_name?.toLowerCase().includes(searchLower) ||
       v.student_roll_no?.toLowerCase().includes(searchLower) ||
       v.voucher_no?.toLowerCase().includes(searchLower)
@@ -2067,7 +2093,7 @@ const FeeVoucherManagement = () => {
                       <td>{renderStatusBadge(voucher.status)}</td>
                       <td>
                         <div className="action-buttons" style={{ display: 'flex', flexDirection: 'row', gap: '0.35rem', alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'center', whiteSpace: 'nowrap' }}>
-                          {voucher.is_latest_for_student && voucher.status !== VOUCHER_STATUS.PAID && (
+                          {voucher.is_latest_for_student && (voucher.student_total_due || 0) > 0 && (
                             <>
                               <button 
                                 className="btn-action btn-pay btn-small"
@@ -2090,7 +2116,7 @@ const FeeVoucherManagement = () => {
                               >
                                 💰
                               </button>
-                              {isAdmin() && (
+                              {isAdmin() && voucher.status !== VOUCHER_STATUS.PAID && (
                                 <button 
                                   className="btn-action btn-edit btn-small"
                                   onClick={() => openEditItemsModal(voucher)}

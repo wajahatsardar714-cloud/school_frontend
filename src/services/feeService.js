@@ -139,12 +139,13 @@ export const feeVoucherService = {
    */
   printVoucher(id) {
     const token = apiClient.getToken()
-    const url = `${apiClient.baseURL}${API_ENDPOINTS.FEE_VOUCHER_PRINT(id)}`
+    const url = `${apiClient.baseURL}${API_ENDPOINTS.FEE_VOUCHER_PRINT(id)}?t=${Date.now()}`
     
     // Open in new tab with authorization
     const printWindow = window.open('', '_blank')
     
     fetch(url, {
+      cache: 'no-store',
       headers: {
         'Authorization': `Bearer ${token}`,
       },
