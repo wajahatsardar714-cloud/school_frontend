@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { feePaymentService } from '../services/feeService'
 import { studentService } from '../services/studentService'
-import { PrintReportHeader, ReportTable } from './PrintReport'
+import { ReportTable } from './PrintReport'
 import schoolLogo from '../assets/logo.png'
 import '../fee.css'
 import './StudentFeeHistory.css'
@@ -30,6 +30,8 @@ const normalizeStudent = (student) => {
     class_name: className,
     section_name: sectionName,
     father_name: fatherName,
+    admission_no: student.admission_no || student.admission_number || student.serial_number || '',
+    roll_no: student.roll_no || student.student_roll_no || '',
   }
 }
 
@@ -44,49 +46,128 @@ const extractHistoryRows = (response) => {
   return Array.isArray(rows) ? rows : []
 }
 
-const buildReportRows = (history, student) => {
-  return history.map((record, index) => {
-    const items = Array.isArray(record.items) ? record.items : []
-    const hasItemBreakdown = items.length > 0
-    const monthlyFee = items.reduce((sum, item) => {
-      const itemType = String(item?.item_type || '').toUpperCase()
-      const amount = parseFloat(item?.amount)
-      if (Number.isNaN(amount) || amount <= 0) return sum
-      return itemType === 'MONTHLY' || itemType === 'MONTHLY_FEE' ? sum + amount : sum
-    }, 0)
-    const dues = items.reduce((sum, item) => {
-      const itemType = String(item?.item_type || '').toUpperCase()
-      const amount = parseFloat(item?.amount)
-      if (Number.isNaN(amount) || amount <= 0) return sum
-      return itemType === 'MONTHLY' || itemType === 'MONTHLY_FEE' ? sum : sum + amount
-    }, 0)
-    const parsedTotalFee = parseFloat(record.total_fee)
-    const totalFee = hasItemBreakdown
-      ? monthlyFee + dues
-      : (Number.isNaN(parsedTotalFee) ? 0 : parsedTotalFee)
-    const paidAmount = parseFloat(record.paid_amount) || 0
-    const dueAmount = Math.max(totalFee - paidAmount, 0)
-    const status = dueAmount <= 0 ? 'PAID' : paidAmount > 0 ? 'PARTIAL' : 'UNPAID'
+const toVoucherNo = (record, fallbackIndex) => {
+  const voucherNo = record?.voucher_no || record?.voucherNo
+  if (voucherNo) return String(voucherNo)
+
+  const voucherId = record?.voucher_id || record?.voucherId || record?.id || fallbackIndex
+  if (!voucherId) return 'N/A'
+
+  return `V-${voucherId}`
+}
+
+const parseRecordAmounts = (record) => {
+  const items = Array.isArray(record.items) ? record.items : []
+  const hasItemBreakdown = items.length > 0
+
+  const monthlyFee = items.reduce((sum, item) => {
+    const itemType = String(item?.item_type || '').toUpperCase()
+    const amount = parseFloat(item?.amount)
+    if (Number.isNaN(amount) || amount <= 0) return sum
+    return itemType === 'MONTHLY' || itemType === 'MONTHLY_FEE' ? sum + amount : sum
+  }, 0)
+
+  const dues = items.reduce((sum, item) => {
+    const itemType = String(item?.item_type || '').toUpperCase()
+    const amount = parseFloat(item?.amount)
+    if (Number.isNaN(amount) || amount <= 0) return sum
+    return itemType === 'MONTHLY' || itemType === 'MONTHLY_FEE' ? sum : sum + amount
+  }, 0)
+
+  const parsedTotalFee = parseFloat(record.total_fee)
+  const totalFee = hasItemBreakdown
+    ? monthlyFee + dues
+    : (Number.isNaN(parsedTotalFee) ? 0 : parsedTotalFee)
+
+  const paidAmount = parseFloat(record.paid_amount) || 0
+  const dueAmount = Math.max(totalFee - paidAmount, 0)
+  const status = dueAmount <= 0 ? 'PAID' : paidAmount > 0 ? 'PARTIAL' : 'UNPAID'
+
+  return {
+    monthlyFee,
+    dues,
+    totalFee,
+    paidAmount,
+    dueAmount,
+    status,
+  }
+}
+
+const getMonthLabel = (monthValue) => {
+  const monthDate = monthValue ? new Date(monthValue) : null
+  if (!monthDate || Number.isNaN(monthDate.getTime())) return 'N/A'
+
+  return monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+}
+
+const formatCurrency = (value) => `Rs. ${Number(value || 0).toLocaleString()}`
+
+const getStudentAdmissionRoll = (student) => {
+  return student.admission_no || student.admission_number || student.roll_no || student.serial_number || 'N/A'
+}
+
+const buildStudentSummary = (history, student) => {
+  const totals = history.reduce((acc, record, index) => {
+    const amounts = parseRecordAmounts(record)
+    const voucherNo = toVoucherNo(record, index + 1)
+
+    acc.totalPaid += amounts.paidAmount
+    acc.totalDue += amounts.dueAmount
+    if (!acc.latestVoucherNo || acc.latestVoucherNo === 'N/A') {
+      acc.latestVoucherNo = voucherNo
+    }
+
     const monthDate = record.month ? new Date(record.month) : null
-    const monthYear = monthDate && !Number.isNaN(monthDate.getTime())
-      ? monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-      : 'N/A'
+    if (monthDate && !Number.isNaN(monthDate.getTime())) {
+      acc.monthDates.push(monthDate)
+    }
+
+    return acc
+  }, {
+    totalPaid: 0,
+    totalDue: 0,
+    latestVoucherNo: 'N/A',
+    monthDates: [],
+  })
+
+  let dateRange = 'N/A'
+  if (totals.monthDates.length > 0) {
+    const sortedMonths = [...totals.monthDates].sort((a, b) => a.getTime() - b.getTime())
+    const fromDate = sortedMonths[0].toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+    const toDate = sortedMonths[sortedMonths.length - 1].toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+    dateRange = `${fromDate} - ${toDate}`
+  }
+
+  return {
+    studentName: student.name || 'N/A',
+    fatherName: student.father_name || 'N/A',
+    className: student.class_name || 'N/A',
+    sectionName: student.section_name || 'N/A',
+    admissionRoll: getStudentAdmissionRoll(student),
+    latestVoucherNo: totals.latestVoucherNo,
+    dateRange,
+    printedOn: new Date().toLocaleDateString('en-GB'),
+    totalPaid: formatCurrency(totals.totalPaid),
+    totalDue: formatCurrency(totals.totalDue),
+  }
+}
+
+const buildReportRows = (history) => {
+  return history.map((record, index) => {
+    const amounts = parseRecordAmounts(record)
 
     return {
       id: record.voucher_id || index,
-      name: <strong>{record.student_name || student.name || 'N/A'}</strong>,
-      fatherName: record.father_name || student.father_name || 'N/A',
-      className: record.class_name || student.class_name || 'N/A',
-      sectionName: record.section_name || student.section_name || 'N/A',
-      monthYear,
-      monthlyFee: <strong>Rs. {monthlyFee.toLocaleString()}</strong>,
-      dues: <span style={{ color: dues > 0 ? '#dc3545' : '#6c757d' }}>Rs. {dues.toLocaleString()}</span>,
-      totalFee: <strong>Rs. {totalFee.toLocaleString()}</strong>,
-      paidAmount: <span style={{ color: '#28a745' }}>Rs. {paidAmount.toLocaleString()}</span>,
-      dueAmount: <span style={{ color: dueAmount > 0 ? '#dc3545' : '#6c757d' }}>Rs. {dueAmount.toLocaleString()}</span>,
+      voucherNo: <strong>{toVoucherNo(record, index + 1)}</strong>,
+      monthYear: getMonthLabel(record.month),
+      monthlyFee: <strong>{formatCurrency(amounts.monthlyFee)}</strong>,
+      dues: <span style={{ color: amounts.dues > 0 ? '#dc3545' : '#6c757d' }}>{formatCurrency(amounts.dues)}</span>,
+      totalFee: <strong>{formatCurrency(amounts.totalFee)}</strong>,
+      paidAmount: <span style={{ color: '#166534' }}>{formatCurrency(amounts.paidAmount)}</span>,
+      dueAmount: <span style={{ color: amounts.dueAmount > 0 ? '#dc3545' : '#6c757d' }}>{formatCurrency(amounts.dueAmount)}</span>,
       status: (
-        <span className={`status-badge status-${String(status).toLowerCase()}`}>
-          {status}
+        <span className={`status-badge status-${String(amounts.status).toLowerCase()}`}>
+          {amounts.status}
         </span>
       ),
     }
@@ -94,17 +175,14 @@ const buildReportRows = (history, student) => {
 }
 
 const reportColumns = [
-  { key: 'name', label: 'Name', printWidth: '12%', printAlign: 'left' },
-  { key: 'fatherName', label: 'Father Name', printWidth: '12%', printAlign: 'left' },
-  { key: 'className', label: 'Class', printWidth: '7%', printAlign: 'left' },
-  { key: 'sectionName', label: 'Section', printWidth: '7%', printAlign: 'left' },
-  { key: 'monthYear', label: 'MonthYear', printWidth: '10%', printAlign: 'center' },
-  { key: 'monthlyFee', label: 'Monthly Fee', printWidth: '9%', printAlign: 'right' },
-  { key: 'dues', label: 'Dues', printWidth: '9%', printAlign: 'right' },
-  { key: 'totalFee', label: 'Total Fee', printWidth: '9%', printAlign: 'right' },
-  { key: 'paidAmount', label: 'Paid Amount', printWidth: '9%', printAlign: 'right' },
-  { key: 'dueAmount', label: 'Due Amount', printWidth: '9%', printAlign: 'right' },
-  { key: 'status', label: 'Status', printWidth: '7%', printAlign: 'center' },
+  { key: 'voucherNo', label: 'Voucher No', printWidth: '11%', printAlign: 'left' },
+  { key: 'monthYear', label: 'Month', printWidth: '13%', printAlign: 'center' },
+  { key: 'monthlyFee', label: 'Monthly Fee', printWidth: '12%', printAlign: 'right' },
+  { key: 'dues', label: 'Dues', printWidth: '11%', printAlign: 'right' },
+  { key: 'totalFee', label: 'Total Fee', printWidth: '12%', printAlign: 'right' },
+  { key: 'paidAmount', label: 'Paid Amount', printWidth: '12%', printAlign: 'right' },
+  { key: 'dueAmount', label: 'Due Amount', printWidth: '12%', printAlign: 'right' },
+  { key: 'status', label: 'Status', printWidth: '17%', printAlign: 'center' },
 ]
 
 const StudentFeeHistory = () => {
@@ -277,7 +355,9 @@ const StudentFeeHistory = () => {
 
   return (
     <div className="fee-management">
-      <img src={schoolLogo} alt="" className="fee-report-watermark print-only" />
+      <div className="fee-report-watermark print-only" aria-hidden="true">
+        <img src={schoolLogo} alt="" />
+      </div>
 
       <div className="fee-header">
         <h1>Student Fee History</h1>
@@ -431,34 +511,34 @@ const StudentFeeHistory = () => {
               loading: true,
               error: '',
             }
+            const reportSummary = buildStudentSummary(studentState.history, student)
+            const reportRows = buildReportRows(studentState.history)
 
             return (
               <div
                 className={`table-section fee-history-report-only student-history-block${index === 0 ? ' student-history-first' : ''}`}
                 key={student.id}
               >
-                <div className="student-history-info no-print">
-                  <h4>{index + 1}. {student.name || 'N/A'}</h4>
-                  <div className="student-history-meta">
-                    <span><strong>Father:</strong> {student.father_name || 'N/A'}</span>
-                    <span><strong>Class:</strong> {student.class_name || 'N/A'}</span>
-                    <span><strong>Section:</strong> {student.section_name || 'N/A'}</span>
-                  </div>
+                <div className="student-report-print-header print-only">
+                  <div className="school-name">Muslim Public Higher Secondary School Lar</div>
+                  <div className="report-title">Student Fee History Report</div>
+                  <hr className="student-report-divider" />
                 </div>
 
-                <PrintReportHeader
-                  title="Student Fee History Report"
-                  meta={[
-                    { label: 'Student', value: student.name || 'N/A' },
-                    { label: 'Father Name', value: student.father_name || 'N/A' },
-                    { label: 'Class', value: student.class_name || 'N/A' },
-                    { label: 'Section', value: student.section_name || 'N/A' },
-                    { label: 'Order', value: `${index + 1} of ${selectedStudents.length}` },
-                    { label: 'Printed On', value: new Date().toLocaleDateString('en-GB') },
-                  ]}
-                />
+                <div className="student-summary-bar">
+                  <span className="student-summary-item"><strong>Student:</strong> {reportSummary.studentName}</span>
+                  <span className="student-summary-item"><strong>Father:</strong> {reportSummary.fatherName}</span>
+                  <span className="student-summary-item"><strong>Class:</strong> {reportSummary.className}</span>
+                  <span className="student-summary-item"><strong>Section:</strong> {reportSummary.sectionName}</span>
+                  <span className="student-summary-item"><strong>Admission/Roll:</strong> {reportSummary.admissionRoll}</span>
+                  <span className="student-summary-item"><strong>Voucher No:</strong> {reportSummary.latestVoucherNo}</span>
+                  <span className="student-summary-item"><strong>Date Range:</strong> {reportSummary.dateRange}</span>
+                  <span className="student-summary-item"><strong>Printed On:</strong> {reportSummary.printedOn}</span>
+                  <span className="student-summary-item student-summary-item--strong"><strong>Total Paid:</strong> {reportSummary.totalPaid}</span>
+                  <span className="student-summary-item student-summary-item--strong"><strong>Total Due:</strong> {reportSummary.totalDue}</span>
+                </div>
 
-                <div className="table-container">
+                <div className="student-history-table-wrap">
                   {studentState.loading ? (
                     <div className="loading">Loading history...</div>
                   ) : studentState.error ? (
@@ -472,7 +552,7 @@ const StudentFeeHistory = () => {
                   ) : (
                     <ReportTable
                       columns={reportColumns}
-                      rows={buildReportRows(studentState.history, student)}
+                      rows={reportRows}
                     />
                   )}
                 </div>

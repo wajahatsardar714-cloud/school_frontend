@@ -2,8 +2,8 @@
 .student-search-section {
   background: #ffffff;
   border-radius: 8px;
-  padding: 32px;
-  margin-bottom: 32px;
+  padding: 20px;
+  margin-bottom: 16px;
   position: relative;
   box-shadow: none;
   border: 1px solid #d7dde8;
@@ -16,16 +16,16 @@
 }
 
 .search-header h3 {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
   color: #1e293b;
-  margin: 0 0 8px 0;
+  margin: 0 0 4px 0;
 }
 
 .search-header p {
-  font-size: 15px;
+  font-size: 13px;
   color: #64748b;
-  margin: 0 0 24px 0;
+  margin: 0 0 12px 0;
 }
 
 .search-input-container {
@@ -35,10 +35,10 @@
 
 .student-search-input {
   width: 100%;
-  padding: 16px 50px 16px 18px;
+  padding: 11px 44px 11px 12px;
   border: 1px solid #cfd8e3;
   border-radius: 6px;
-  font-size: 16px;
+  font-size: 14px;
   background: #ffffff;
   transition: border-color 0.2s ease;
   box-shadow: none;
@@ -121,7 +121,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 22px;
+  padding: 12px 14px;
   border-bottom: 1px solid #f1f5f9;
   cursor: pointer;
   transition: background 0.15s ease;
@@ -147,13 +147,13 @@
 .student-card-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   flex: 1;
 }
 
 .student-avatar {
-  width: 52px;
-  height: 52px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: #e2e8f0;
   display: flex;
@@ -161,7 +161,7 @@
   justify-content: center;
   color: #1e293b;
   font-weight: 600;
-  font-size: 20px;
+  font-size: 14px;
   box-shadow: none;
 }
 
@@ -172,15 +172,15 @@
 .student-name-highlight {
   font-weight: 600;
   color: #1e293b;
-  font-size: 16px;
-  margin-bottom: 6px;
+  font-size: 14px;
+  margin-bottom: 4px;
 }
 
 .student-meta-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  font-size: 13px;
+  gap: 10px;
+  font-size: 12px;
 }
 
 .meta-item {
@@ -206,11 +206,11 @@
   background: #f8fafc;
   color: #1e3a8a;
   border: 1px solid #cfd8e3;
-  padding: 10px 18px;
+  padding: 7px 10px;
   border-radius: 6px;
   font-weight: 500;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
   transition: background 0.2s ease;
   box-shadow: none;
 }
@@ -227,8 +227,8 @@
   background: #ffffff;
   border: 1px solid #d1d9e6;
   border-radius: 8px;
-  padding: 16px 20px;
-  margin-top: 20px;
+  padding: 10px 12px;
+  margin-top: 12px;
   box-shadow: none;
   gap: 12px;
 }
@@ -248,9 +248,9 @@
   background: #f8fafc;
   border: 1px solid #d7dde8;
   border-radius: 6px;
-  padding: 6px 10px;
+  padding: 5px 8px;
   color: #334155;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .selected-chip-remove {
@@ -276,7 +276,7 @@
 .selected-text {
   font-weight: 500;
   color: #334155;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .clear-selection-btn {
@@ -303,9 +303,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-  padding: 10px 12px;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 8px 12px;
   background: #ffffff;
   border: 1px solid #d7dde8;
   border-radius: 6px;
@@ -319,40 +319,70 @@
 
 .fee-history-report-header h3 {
   margin: 0;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .student-history-block {
-  background: #fbfcff;
-  border: 1px solid #e2e8f2;
+  background: #ffffff;
+  border: 1px solid #d7dde8;
   border-radius: 6px;
   box-shadow: none;
+  padding: 8px;
 }
 
-.student-history-info {
-  border: 1px solid #e2e8f2;
-  border-radius: 6px;
-  padding: 10px 12px;
-  margin-bottom: 10px;
-  background: #f8fbff;
+.student-report-print-header {
+  display: none;
 }
 
-.student-history-info h4 {
-  margin: 0 0 6px 0;
-  font-size: 16px;
-  font-weight: 700;
-  color: #1e293b;
+.student-report-divider {
+  border: none;
+  border-top: 2px solid #1e3a8a;
+  margin: 0.18rem 0 0;
 }
 
-.student-history-meta {
+.student-summary-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 14px;
-  font-size: 13px;
-  color: #334155;
+  align-items: center;
+  gap: 6px 14px;
+  padding: 7px 10px;
+  margin-bottom: 8px;
+  border: 1px solid #b5c3e8;
+  border-radius: 4px;
+  background: #e8edf8;
+  font-size: 12px;
+  color: #0f172a;
+}
+
+.student-summary-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.2rem;
+  white-space: nowrap;
+}
+
+.student-summary-item strong {
+  color: #1e3a8a;
+}
+
+.student-summary-item--strong {
+  font-weight: 700;
+}
+
+.student-history-table-wrap .table-container {
+  margin: 0;
+  border-radius: 4px;
+}
+
+.student-history-table-wrap .data-table th,
+.student-history-table-wrap .data-table td {
+  white-space: nowrap;
+  padding: 0.26rem 0.5rem;
 }
 
 .student-history-block + .student-history-block {
-  margin-top: 14px;
+  margin-top: 12px;
 }
 
 @media print {
@@ -368,172 +398,150 @@
     display: none !important;
   }
 
-  .fee-history-report-only {
-    margin-top: 0 !important;
-    background: #ffffff !important;
-    border: none !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-  }
-
   .fee-management {
     position: relative !important;
   }
 
   .fee-report-watermark {
+    display: block !important;
     position: fixed !important;
+    inset: 0 !important;
+    z-index: 0 !important;
+    pointer-events: none !important;
+  }
+
+  .fee-report-watermark img {
+    position: absolute !important;
     top: 50% !important;
     left: 50% !important;
     transform: translate(-50%, -50%) !important;
     width: 320px !important;
+    max-width: 45vw !important;
     height: auto !important;
-    opacity: 0.08 !important;
-    z-index: 0 !important;
-    pointer-events: none !important;
+    opacity: 0.07 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  .fee-management > :not(.fee-report-watermark) {
-    position: relative;
-    z-index: 1;
+  .fee-history-report-only {
+    margin: 0 0 0.4cm 0 !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    position: relative !important;
+    z-index: 1 !important;
   }
 
-  /* Print school heading only once at top */
-  .student-history-block:not(.student-history-first) .print-header__title-section,
-  .student-history-block:not(.student-history-first) .print-header__divider {
-    display: none !important;
-  }
-
-  .student-history-block:not(.student-history-first) .print-header {
-    margin-top: 0 !important;
-  }
-
-  .student-history-first .print-header__title-section,
-  .student-history-first .print-header__divider {
-    display: block !important;
+  .student-history-block {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    break-inside: auto;
+    page-break-inside: auto;
   }
 
   .student-history-block + .student-history-block {
-    margin-top: 8px !important;
+    page-break-before: always;
+    break-before: page;
+    margin-top: 0 !important;
   }
 
-  .fee-history-report-only .print-header__meta {
-    font-size: 8pt !important;
-    column-gap: 0.75rem !important;
-    row-gap: 0.18rem !important;
-    padding: 0.28rem 0.45rem !important;
-    border: 1px solid #c4d0ea !important;
-    border-top: none !important;
-    background: #eef3fb !important;
-    color: #1e293b !important;
+  .student-report-print-header {
+    display: block !important;
+    margin-bottom: 0 !important;
+    text-align: center;
   }
 
-  .fee-history-report-only .print-header__meta-label {
-    color: #2a4f97 !important;
+  .student-report-print-header .school-name {
+    font-size: 11pt !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+    color: #000 !important;
+    margin-bottom: 0.15rem !important;
+  }
+
+  .student-report-print-header .report-title {
+    font-size: 13pt !important;
     font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    color: #1e3a8a !important;
+    margin-bottom: 0.2rem !important;
   }
 
-  .fee-history-report-only .print-header__meta-value {
-    color: #0f172a !important;
-    font-weight: 600 !important;
+  .student-summary-bar {
+    border-radius: 0 !important;
+    border: 1px solid #b5c3e8 !important;
+    border-top: none !important;
+    margin-bottom: 0.35rem !important;
+    padding: 0.28rem 0.6rem !important;
+    font-size: 8pt !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  .fee-history-report-only .print-header__divider {
-    border-top: 1px solid #2a4f97 !important;
+  .student-summary-item {
+    gap: 0.18rem;
   }
 
-  .fee-history-report-only .school-name {
-    color: #0f172a !important;
-  }
-
-  .fee-history-report-only .report-title {
-    color: #2a4f97 !important;
-  }
-
-  .fee-history-report-only .table-container {
+  .student-history-table-wrap .table-container {
     border: none !important;
     border-radius: 0 !important;
-    overflow: visible !important;
     box-shadow: none !important;
+    overflow: visible !important;
     margin: 0 !important;
   }
 
-  .fee-history-report-only .data-table col:nth-child(1) { width: 12% !important; }
-  .fee-history-report-only .data-table col:nth-child(2) { width: 12% !important; }
-  .fee-history-report-only .data-table col:nth-child(3) { width: 7% !important; }
-  .fee-history-report-only .data-table col:nth-child(4) { width: 7% !important; }
-  .fee-history-report-only .data-table col:nth-child(5) { width: 10% !important; }
-  .fee-history-report-only .data-table col:nth-child(6) { width: 9% !important; }
-  .fee-history-report-only .data-table col:nth-child(7) { width: 9% !important; }
-  .fee-history-report-only .data-table col:nth-child(8) { width: 9% !important; }
-  .fee-history-report-only .data-table col:nth-child(9) { width: 9% !important; }
-  .fee-history-report-only .data-table col:nth-child(10) { width: 9% !important; }
-  .fee-history-report-only .data-table col:nth-child(11) { width: 7% !important; }
-
-  .fee-history-report-only .data-table {
+  .student-history-table-wrap .data-table {
     table-layout: fixed !important;
-    font-size: 7.4pt !important;
-    border: 1px solid #b5c3e8 !important;
+    width: 100% !important;
+    page-break-inside: auto;
+    font-size: 8pt !important;
+    border: 1px solid #c0c0c0 !important;
   }
 
-  .fee-history-report-only .data-table th {
-    font-size: 6.2pt !important;
-    letter-spacing: 0 !important;
-    line-height: 1.05 !important;
-    padding: 0.2rem 0.22rem !important;
-    white-space: normal !important;
-    overflow: visible !important;
-    text-overflow: clip !important;
-    word-break: break-word !important;
-    border: 1px solid #4a66a8 !important;
-    background: #3158a5 !important;
-    color: #ffffff !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+  .student-history-table-wrap .data-table thead {
+    display: table-header-group !important;
   }
 
-  .fee-history-report-only .data-table td {
-    font-size: 7.2pt !important;
-    line-height: 1.12 !important;
-    padding: 0.2rem 0.22rem !important;
+  .student-history-table-wrap .data-table th {
+    font-size: 7pt !important;
+    letter-spacing: 0.02em !important;
+    padding: 0.24rem 0.35rem !important;
+    border: 1px solid #1e3a8a !important;
     white-space: nowrap !important;
-    overflow: visible !important;
-    border: 1px solid #c3cede !important;
-    background: #ffffff !important;
-    color: #1e293b !important;
   }
 
-  .fee-history-report-only .data-table tbody tr:nth-child(odd) td,
-  .fee-history-report-only .data-table tbody tr:nth-child(even) td {
+  .student-history-table-wrap .data-table td {
+    font-size: 8pt !important;
+    padding: 0.18rem 0.35rem !important;
+    border: 0.5px solid #c0c0c0 !important;
+    white-space: nowrap !important;
+  }
+
+  .student-history-table-wrap .data-table tbody tr:nth-child(even) td {
+    background: #f0f4ff !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  .fee-history-report-only .data-table tbody tr:nth-child(odd) td {
+  .student-history-table-wrap .data-table tbody tr:nth-child(odd) td {
     background: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  .fee-history-report-only .data-table tbody tr:nth-child(even) td {
-    background: #f8faff !important;
+  .student-history-table-wrap .data-table tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 
-  .fee-history-report-only .data-table td:nth-child(1),
-  .fee-history-report-only .data-table td:nth-child(2) {
-    white-space: normal !important;
-    word-break: break-word !important;
-  }
-
-  .fee-history-report-only .data-table td:nth-child(3),
-  .fee-history-report-only .data-table td:nth-child(4),
-  .fee-history-report-only .data-table td:nth-child(5),
-  .fee-history-report-only .data-table td:nth-child(11) {
-    text-align: center !important;
-  }
-
-  .fee-history-report-only .status-badge {
-    font-size: 6.8pt !important;
+  .student-history-table-wrap .status-badge {
+    font-size: 7pt !important;
     padding: 0.08rem 0.38rem !important;
     border-radius: 999px !important;
     border: 1px solid transparent !important;
@@ -541,19 +549,19 @@
     print-color-adjust: exact !important;
   }
 
-  .fee-history-report-only .status-paid {
+  .status-paid {
     background: #dcfce7 !important;
     color: #166534 !important;
     border-color: #bbf7d0 !important;
   }
 
-  .fee-history-report-only .status-unpaid {
+  .status-unpaid {
     background: #fef3c7 !important;
     color: #92400e !important;
     border-color: #fde68a !important;
   }
 
-  .fee-history-report-only .status-partial {
+  .status-partial {
     background: #e0f2fe !important;
     color: #0c4a6e !important;
     border-color: #bae6fd !important;
@@ -608,6 +616,20 @@
 
   .selected-students-list {
     width: 100%;
+  }
+
+  .student-summary-bar {
+    gap: 6px 10px;
+    font-size: 11px;
+    padding: 6px;
+  }
+
+  .student-history-table-wrap .table-container {
+    overflow-x: auto;
+  }
+
+  .student-history-table-wrap .data-table {
+    min-width: 780px;
   }
 
   .clear-selection-btn {

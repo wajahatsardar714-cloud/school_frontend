@@ -218,6 +218,7 @@ const FeeVoucherManagement = () => {
     payment_method: 'CASH',
     reference_no: '',
   })
+  const [paymentMaxAmount, setPaymentMaxAmount] = useState(0)
 
   // Yearly college voucher payment ledger state
   const [voucherPayments, setVoucherPayments] = useState([])
@@ -1149,6 +1150,15 @@ const FeeVoucherManagement = () => {
     return Math.max(totalAmount - paidAmount, 0)
   }, [])
 
+  const getPaymentAllowedMaxAmount = useCallback((voucher) => {
+    const studentDue = parseFloat(paymentMaxAmount)
+    if (Number.isFinite(studentDue) && studentDue > 0) {
+      return Math.max(studentDue, 0)
+    }
+
+    return getVoucherDueAmount(voucher)
+  }, [paymentMaxAmount, getVoucherDueAmount])
+
   const handlePaymentAmountChange = useCallback((rawValue) => {
     if (rawValue === '') {
       setPaymentForm(prev => ({ ...prev, amount: '' }))
@@ -1160,23 +1170,31 @@ const FeeVoucherManagement = () => {
       return
     }
 
-    const dueAmount = getVoucherDueAmount(selectedVoucher)
-    const clampedAmount = Math.min(Math.max(parsedAmount, 0), dueAmount)
+    const maxAllowedAmount = getPaymentAllowedMaxAmount(selectedVoucher)
+    const clampedAmount = Math.min(Math.max(parsedAmount, 0), maxAllowedAmount)
 
     setPaymentForm(prev => ({
       ...prev,
       amount: clampedAmount.toString(),
     }))
-  }, [getVoucherDueAmount, selectedVoucher])
+  }, [getPaymentAllowedMaxAmount, selectedVoucher])
 
   const openPaymentModal = useCallback(async (voucher) => {
+    let resolvedVoucher = voucher
     setSelectedVoucher(voucher)
     const initialDueAmount = getVoucherDueAmount(voucher)
+    setPaymentMaxAmount(initialDueAmount)
 
     try {
       const detailResponse = await feeVoucherService.getById(voucher.id)
       const detailVoucher = detailResponse?.data || detailResponse
       if (detailVoucher) {
+        resolvedVoucher = {
+          ...voucher,
+          ...detailVoucher,
+          id: voucher?.id || detailVoucher.voucher_id || detailVoucher.id,
+        }
+
         setSelectedVoucher(prev => ({
           ...prev,
           ...detailVoucher,
@@ -1187,8 +1205,26 @@ const FeeVoucherManagement = () => {
       console.error('Failed to load voucher item details:', error)
     }
 
+    let maxAllowedAmount = initialDueAmount
+    const studentId = parseInt(resolvedVoucher?.student_id, 10)
+
+    if (Number.isFinite(studentId) && studentId > 0) {
+      try {
+        const dueResponse = await feePaymentService.getStudentDue(studentId)
+        const dueData = dueResponse?.data || dueResponse || {}
+        const totalDue = parseFloat(dueData.total_due)
+        if (Number.isFinite(totalDue)) {
+          maxAllowedAmount = Math.max(totalDue, 0)
+        }
+      } catch (error) {
+        console.error('Failed to load student total due for payment cap:', error)
+      }
+    }
+
+    setPaymentMaxAmount(maxAllowedAmount)
+
     setPaymentForm({
-      amount: initialDueAmount > 0 ? initialDueAmount.toString() : '',
+      amount: maxAllowedAmount > 0 ? maxAllowedAmount.toString() : '',
       payment_date: new Date().toISOString().split('T')[0],
       payment_method: 'CASH',
       reference_no: '',
@@ -1236,6 +1272,7 @@ const FeeVoucherManagement = () => {
 
         const mappedVoucher = {
           id: voucher.voucher_id || voucher.id,
+          student_id: voucher.student_id,
           voucher_no: `V-${voucher.voucher_id || voucher.id}`,
           student_name: voucher.student_name,
           total_amount: parseFloat(voucher.total_fee) || 0,
@@ -1269,6 +1306,7 @@ const FeeVoucherManagement = () => {
     setShowPaymentModal(false)
     setSelectedVoucher(null)
     setVoucherPayments([])
+    setPaymentMaxAmount(0)
     setPaymentForm({
       amount: '',
       payment_date: new Date().toISOString().split('T')[0],
@@ -1280,7 +1318,7 @@ const FeeVoucherManagement = () => {
   const handlePaymentSubmit = useCallback(async (e) => {
     e.preventDefault()
 
-    const dueAmount = getVoucherDueAmount(selectedVoucher)
+    const maxAllowedAmount = getPaymentAllowedMaxAmount(selectedVoucher)
     const paymentAmount = parseFloat(paymentForm.amount)
 
     if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
@@ -1288,8 +1326,8 @@ const FeeVoucherManagement = () => {
       return
     }
 
-    if (paymentAmount > dueAmount) {
-      alert(`Payment amount cannot exceed voucher due amount (Rs. ${dueAmount.toLocaleString()})`)
+    if (paymentAmount > maxAllowedAmount) {
+      alert(`Payment amount cannot exceed allocatable due amount (Rs. ${maxAllowedAmount.toLocaleString()})`)
       return
     }
 
@@ -1312,7 +1350,7 @@ const FeeVoucherManagement = () => {
     }
 
     await paymentMutation.mutate(paymentForm)
-  }, [paymentForm, paymentMutation, getVoucherDueAmount, selectedVoucher])
+  }, [paymentForm, paymentMutation, getPaymentAllowedMaxAmount, selectedVoucher])
 
   // Handle print voucher (NEW - Issue #3)
   const handlePrintVoucher = useCallback((voucher) => {
@@ -2711,7 +2749,8 @@ const FeeVoucherManagement = () => {
                 <p><strong>Voucher:</strong> {selectedVoucher.voucher_no}</p>
                 <p><strong>Total:</strong> {formatCurrency(selectedVoucher.total_amount)}</p>
                 <p><strong>Paid:</strong> {formatCurrency(selectedVoucher.paid_amount)}</p>
-                <p><strong>Balance:</strong> {formatCurrency(selectedVoucher.due_amount)}</p>
+                <p><strong>Voucher Balance:</strong> {formatCurrency(selectedVoucher.due_amount)}</p>
+                <p><strong>Allocatable Due (All Pending Vouchers):</strong> {formatCurrency(getPaymentAllowedMaxAmount(selectedVoucher))}</p>
               </div>
 
               {Array.isArray(selectedVoucher.items) && selectedVoucher.items.length > 0 && (
@@ -2855,11 +2894,11 @@ const FeeVoucherManagement = () => {
                     onWheel={(e) => e.target.blur()}
                     min="0"
                     step="0.01"
-                    max={getVoucherDueAmount(selectedVoucher)}
+                    max={getPaymentAllowedMaxAmount(selectedVoucher)}
                     required
                   />
                   <small style={{ color: '#475569' }}>
-                    Allowed range: greater than 0 and up to Rs. {getVoucherDueAmount(selectedVoucher).toLocaleString()}
+                    Allowed range: greater than 0 and up to Rs. {getPaymentAllowedMaxAmount(selectedVoucher).toLocaleString()}
                   </small>
                 </div>
 
@@ -2907,7 +2946,7 @@ const FeeVoucherManagement = () => {
                       paymentMutation.loading ||
                       !paymentForm.amount ||
                       parseFloat(paymentForm.amount) <= 0 ||
-                      parseFloat(paymentForm.amount) > getVoucherDueAmount(selectedVoucher)
+                      parseFloat(paymentForm.amount) > getPaymentAllowedMaxAmount(selectedVoucher)
                     }
                   >
                     {paymentMutation.loading ? 'Processing...' : 'Record Payment'}
