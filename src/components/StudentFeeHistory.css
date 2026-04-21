@@ -393,6 +393,34 @@
   margin-top: 12px;
 }
 
+.student-payment-history-wrap {
+  margin-top: 10px;
+  border: 1px solid #d7dde8;
+  border-radius: 4px;
+  padding: 8px;
+  background: #f8fafc;
+}
+
+.student-payment-history-title {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #1e3a8a;
+}
+
+.student-payment-history-wrap .table-container {
+  margin: 0;
+  border-radius: 4px;
+}
+
+.student-payment-history-wrap .data-table th,
+.student-payment-history-wrap .data-table td {
+  white-space: nowrap;
+  padding: 0.26rem 0.5rem;
+}
+
 @media print {
   .student-search-section,
   .selected-student-badge,
@@ -560,6 +588,63 @@
     print-color-adjust: exact !important;
   }
 
+  .student-payment-history-wrap {
+    margin-top: 0.32rem !important;
+    border-radius: 0 !important;
+    border: 1px solid #b5c3e8 !important;
+    background: transparent !important;
+    padding: 0.22rem 0.3rem !important;
+  }
+
+  .student-payment-history-title {
+    font-size: 7pt !important;
+    color: #1e3a8a !important;
+    margin-bottom: 0.2rem !important;
+    letter-spacing: 0.03em !important;
+  }
+
+  .student-payment-history-wrap .table-container {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    overflow: visible !important;
+    margin: 0 !important;
+  }
+
+  .student-payment-history-wrap .data-table {
+    table-layout: fixed !important;
+    width: 100% !important;
+    page-break-inside: auto;
+    font-size: 7.5pt !important;
+    background: transparent !important;
+    border: 1px solid #c0c0c0 !important;
+  }
+
+  .student-payment-history-wrap .data-table thead {
+    display: table-header-group !important;
+  }
+
+  .student-payment-history-wrap .data-table th {
+    font-size: 7pt !important;
+    letter-spacing: 0.02em !important;
+    padding: 0.2rem 0.35rem !important;
+    border: 1px solid #1e3a8a !important;
+    white-space: nowrap !important;
+  }
+
+  .student-payment-history-wrap .data-table td {
+    font-size: 7.5pt !important;
+    padding: 0.16rem 0.35rem !important;
+    border: 0.5px solid #c0c0c0 !important;
+    white-space: nowrap !important;
+  }
+
+  .student-payment-history-wrap .data-table tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
   .status-paid {
     background: #dcfce7 !important;
     color: #166534 !important;
@@ -663,6 +748,14 @@
 
   .student-history-table-wrap .data-table {
     min-width: 780px;
+  }
+
+  .student-payment-history-wrap .table-container {
+    overflow-x: auto;
+  }
+
+  .student-payment-history-wrap .data-table {
+    min-width: 700px;
   }
 
   .clear-selection-btn {

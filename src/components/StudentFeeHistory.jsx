@@ -180,6 +180,33 @@ const getMonthLabel = (monthValue) => {
   return monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 }
 
+const toDateObject = (value) => {
+  if (!value) return null
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+const getPaymentTimestamp = (payment) => {
+  const directDate = toDateObject(payment?.payment_date || payment?.paymentDate)
+  if (directDate) return directDate.getTime()
+
+  const createdDate = toDateObject(payment?.created_at || payment?.createdAt)
+  if (createdDate) return createdDate.getTime()
+
+  return 0
+}
+
+const formatPaymentDateTime = (payment) => {
+  const date = toDateObject(payment?.payment_date || payment?.paymentDate || payment?.created_at || payment?.createdAt)
+  if (!date) return 'N/A'
+
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
 const formatCurrency = (value) => `Rs. ${Number(value || 0).toLocaleString()}`
 
 const getStudentSerialNo = (student) => {
@@ -254,6 +281,50 @@ const buildReportRows = (history) => {
   })
 }
 
+const buildPaymentHistoryRows = (history) => {
+  const collegeHistory = Array.isArray(history) ? history.filter(isCollegeHistoryRecord) : []
+  const rows = []
+
+  collegeHistory.forEach((record, recordIndex) => {
+    const payments = Array.isArray(record?.payments) ? record.payments : []
+    if (payments.length === 0) return
+
+    const amounts = parseRecordAmounts(record)
+    const sortedPayments = [...payments].sort((a, b) => getPaymentTimestamp(a) - getPaymentTimestamp(b))
+    let runningPaid = 0
+
+    sortedPayments.forEach((payment, paymentIndex) => {
+      const amount = parseFloat(payment?.amount)
+      if (!Number.isFinite(amount) || amount <= 0) return
+
+      runningPaid += amount
+      const balanceAfterPayment = Math.max(amounts.totalFee - runningPaid, 0)
+
+      rows.push({
+        id: `${record?.voucher_id || recordIndex}-payment-${paymentIndex}`,
+        voucherNoText: toVoucherNo(record, recordIndex + 1),
+        periodText: getMonthLabel(record?.month),
+        paidOnText: formatPaymentDateTime(payment),
+        amountValue: amount,
+        balanceValue: balanceAfterPayment,
+        paymentTimestamp: getPaymentTimestamp(payment),
+      })
+    })
+  })
+
+  return rows
+    .sort((a, b) => a.paymentTimestamp - b.paymentTimestamp)
+    .map((row, index) => ({
+      id: `${row.id}-${index}`,
+      serialNo: index + 1,
+      voucherNo: <strong>{row.voucherNoText}</strong>,
+      period: row.periodText,
+      paidOn: row.paidOnText,
+      amount: <span style={{ color: '#166534', fontWeight: 700 }}>{formatCurrency(row.amountValue)}</span>,
+      balance: <span style={{ color: row.balanceValue > 0 ? '#dc2626' : '#64748b', fontWeight: 700 }}>{formatCurrency(row.balanceValue)}</span>,
+    }))
+}
+
 const reportColumns = [
   { key: 'voucherNo', label: 'Voucher No', printWidth: '11%', printAlign: 'left' },
   { key: 'monthYear', label: 'Month', printWidth: '13%', printAlign: 'center' },
@@ -275,6 +346,27 @@ const getReportColumns = (history) => {
     }
     if (column.key === 'monthlyFee') {
       return { ...column, label: 'Annual Fee' }
+    }
+    return column
+  })
+}
+
+const paymentHistoryColumns = [
+  { key: 'serialNo', label: '#', printWidth: '6%', printAlign: 'center' },
+  { key: 'voucherNo', label: 'Voucher No', printWidth: '14%', printAlign: 'left' },
+  { key: 'period', label: 'Month', printWidth: '18%', printAlign: 'center' },
+  { key: 'paidOn', label: 'Paid On', printWidth: '24%', printAlign: 'center' },
+  { key: 'amount', label: 'Amount', printWidth: '18%', printAlign: 'right' },
+  { key: 'balance', label: 'Balance After Payment', printWidth: '20%', printAlign: 'right' },
+]
+
+const getPaymentHistoryColumns = (history) => {
+  const isCollegeOnlyHistory = Array.isArray(history) && history.length > 0 && history.every(isCollegeHistoryRecord)
+  if (!isCollegeOnlyHistory) return paymentHistoryColumns
+
+  return paymentHistoryColumns.map((column) => {
+    if (column.key === 'period') {
+      return { ...column, label: 'Session' }
     }
     return column
   })
@@ -614,6 +706,11 @@ const StudentFeeHistory = () => {
             }
             const reportSummary = buildStudentSummary(studentState.history, student)
             const reportRows = buildReportRows(studentState.history)
+            const collegeHistory = Array.isArray(studentState.history)
+              ? studentState.history.filter(isCollegeHistoryRecord)
+              : []
+            const hasCollegeHistory = collegeHistory.length > 0
+            const paymentHistoryRows = hasCollegeHistory ? buildPaymentHistoryRows(collegeHistory) : []
 
             return (
               <div
@@ -645,10 +742,31 @@ const StudentFeeHistory = () => {
                       <p>No fee history found for this student</p>
                     </div>
                   ) : (
-                    <ReportTable
-                      columns={getReportColumns(studentState.history)}
-                      rows={reportRows}
-                    />
+                    <>
+                      <ReportTable
+                        columns={getReportColumns(studentState.history)}
+                        rows={reportRows}
+                      />
+
+                      {hasCollegeHistory && (
+                        <div className="student-payment-history-wrap">
+                          <div className="student-payment-history-title">
+                            Payment History ({paymentHistoryRows.length} payment{paymentHistoryRows.length === 1 ? '' : 's'})
+                          </div>
+
+                          {paymentHistoryRows.length === 0 ? (
+                            <div className="empty-state" style={{ margin: 0 }}>
+                              <p>No payment entries found for this student</p>
+                            </div>
+                          ) : (
+                            <ReportTable
+                              columns={getPaymentHistoryColumns(collegeHistory)}
+                              rows={paymentHistoryRows}
+                            />
+                          )}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
