@@ -61,9 +61,56 @@ const toVoucherNo = (record, fallbackIndex) => {
   return `V-${voucherId}`
 }
 
+const isCollegeHistoryRecord = (record) => {
+  const items = Array.isArray(record?.items) ? record.items : []
+  const hasYearlyPackageItem = items.some((item) => {
+    const itemType = String(item?.item_type || '').toUpperCase().replace(/[\s-]+/g, '_')
+    const description = String(item?.description || '').toLowerCase()
+    return itemType === 'YEARLY_PACKAGE' || (description.includes('annual') && description.includes('package'))
+  })
+
+  const voucherType = String(record?.voucher_type || record?.voucherType || '').toUpperCase()
+  const classType = String(record?.class_type || record?.classType || '').toUpperCase()
+  return voucherType === 'YEARLY_COLLEGE' || classType === 'COLLEGE' || hasYearlyPackageItem
+}
+
 const parseRecordAmounts = (record) => {
+  const isCollegeRecord = isCollegeHistoryRecord(record)
   const items = Array.isArray(record.items) ? record.items : []
   const hasItemBreakdown = items.length > 0
+
+  if (isCollegeRecord) {
+    const annualFeeFromItems = items.reduce((sum, item) => {
+      const itemType = String(item?.item_type || '').toUpperCase().replace(/[\s-]+/g, '_')
+      const description = String(item?.description || '').toLowerCase()
+      const amount = parseFloat(item?.amount)
+      if (Number.isNaN(amount) || amount <= 0) return sum
+      const isAnnualPackage = itemType === 'YEARLY_PACKAGE' || (description.includes('annual') && description.includes('package'))
+      return isAnnualPackage ? sum + amount : sum
+    }, 0)
+
+    const parsedTotalFee = parseFloat(record.total_fee)
+    const totalFee = annualFeeFromItems > 0
+      ? annualFeeFromItems
+      : (Number.isNaN(parsedTotalFee) ? 0 : parsedTotalFee)
+
+    const paidAmount = parseFloat(record.paid_amount) || 0
+    const dueAmount = Math.max(totalFee - paidAmount, 0)
+
+    const statusFromRecord = String(record.status || '').toUpperCase()
+    const status = ['PAID', 'PARTIAL', 'UNPAID'].includes(statusFromRecord)
+      ? statusFromRecord
+      : (dueAmount <= 0 ? 'PAID' : paidAmount > 0 ? 'PARTIAL' : 'UNPAID')
+
+    return {
+      monthlyFee: totalFee,
+      dues: 0,
+      totalFee,
+      paidAmount,
+      dueAmount,
+      status,
+    }
+  }
 
   const monthlyFee = items.reduce((sum, item) => {
     const itemType = String(item?.item_type || '').toUpperCase()
@@ -217,6 +264,21 @@ const reportColumns = [
   { key: 'dueAmount', label: 'Due Amount', printWidth: '12%', printAlign: 'right' },
   { key: 'status', label: 'Status', printWidth: '17%', printAlign: 'center' },
 ]
+
+const getReportColumns = (history) => {
+  const isCollegeOnlyHistory = Array.isArray(history) && history.length > 0 && history.every(isCollegeHistoryRecord)
+  if (!isCollegeOnlyHistory) return reportColumns
+
+  return reportColumns.map((column) => {
+    if (column.key === 'monthYear') {
+      return { ...column, label: 'Session' }
+    }
+    if (column.key === 'monthlyFee') {
+      return { ...column, label: 'Annual Fee' }
+    }
+    return column
+  })
+}
 
 const StudentFeeHistory = () => {
   const [selectedStudents, setSelectedStudents] = useState([])
@@ -584,7 +646,7 @@ const StudentFeeHistory = () => {
                     </div>
                   ) : (
                     <ReportTable
-                      columns={reportColumns}
+                      columns={getReportColumns(studentState.history)}
                       rows={reportRows}
                     />
                   )}
