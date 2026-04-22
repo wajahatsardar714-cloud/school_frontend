@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { feePaymentService } from '../services/feeService'
 import { studentService } from '../services/studentService'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 import { ReportTable } from './PrintReport'
 import schoolLogo from '../assets/logo.png'
 import '../fee.css'
@@ -119,6 +121,17 @@ const parseRecordAmounts = (record) => {
     return itemType === 'MONTHLY' || itemType === 'MONTHLY_FEE' ? sum + amount : sum
   }, 0)
 
+  const billableFeeFromItems = items.reduce((sum, item) => {
+    const itemType = String(item?.item_type || '').toUpperCase()
+    const amount = parseFloat(item?.amount)
+    if (Number.isNaN(amount)) return sum
+
+    // Keep arrears/dues separate from base billable fee in this report.
+    if (itemType === 'ARREARS') return sum
+
+    return sum + amount
+  }, 0)
+
   const duesFromItems = items.reduce((sum, item) => {
     const itemType = String(item?.item_type || '').toUpperCase()
     const description = String(item?.description || '').toLowerCase()
@@ -155,9 +168,10 @@ const parseRecordAmounts = (record) => {
     : (hasItemBreakdown ? duesFromItems : 0)
 
   const parsedTotalFee = parseFloat(record.total_fee)
-  const totalFee = hasItemBreakdown
-    ? monthlyFee + dues
+  const baseBillableFee = hasItemBreakdown
+    ? billableFeeFromItems
     : (Number.isNaN(parsedTotalFee) ? 0 : parsedTotalFee)
+  const totalFee = baseBillableFee + dues
 
   const paidAmount = parseFloat(record.paid_amount) || 0
   const dueAmount = Math.max(totalFee - paidAmount, 0)
@@ -178,33 +192,6 @@ const getMonthLabel = (monthValue) => {
   if (!monthDate || Number.isNaN(monthDate.getTime())) return 'N/A'
 
   return monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-}
-
-const toDateObject = (value) => {
-  if (!value) return null
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? null : date
-}
-
-const getPaymentTimestamp = (payment) => {
-  const directDate = toDateObject(payment?.payment_date || payment?.paymentDate)
-  if (directDate) return directDate.getTime()
-
-  const createdDate = toDateObject(payment?.created_at || payment?.createdAt)
-  if (createdDate) return createdDate.getTime()
-
-  return 0
-}
-
-const formatPaymentDateTime = (payment) => {
-  const date = toDateObject(payment?.payment_date || payment?.paymentDate || payment?.created_at || payment?.createdAt)
-  if (!date) return 'N/A'
-
-  return date.toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
 }
 
 const formatCurrency = (value) => `Rs. ${Number(value || 0).toLocaleString()}`
@@ -281,50 +268,6 @@ const buildReportRows = (history) => {
   })
 }
 
-const buildPaymentHistoryRows = (history) => {
-  const collegeHistory = Array.isArray(history) ? history.filter(isCollegeHistoryRecord) : []
-  const rows = []
-
-  collegeHistory.forEach((record, recordIndex) => {
-    const payments = Array.isArray(record?.payments) ? record.payments : []
-    if (payments.length === 0) return
-
-    const amounts = parseRecordAmounts(record)
-    const sortedPayments = [...payments].sort((a, b) => getPaymentTimestamp(a) - getPaymentTimestamp(b))
-    let runningPaid = 0
-
-    sortedPayments.forEach((payment, paymentIndex) => {
-      const amount = parseFloat(payment?.amount)
-      if (!Number.isFinite(amount) || amount <= 0) return
-
-      runningPaid += amount
-      const balanceAfterPayment = Math.max(amounts.totalFee - runningPaid, 0)
-
-      rows.push({
-        id: `${record?.voucher_id || recordIndex}-payment-${paymentIndex}`,
-        voucherNoText: toVoucherNo(record, recordIndex + 1),
-        periodText: getMonthLabel(record?.month),
-        paidOnText: formatPaymentDateTime(payment),
-        amountValue: amount,
-        balanceValue: balanceAfterPayment,
-        paymentTimestamp: getPaymentTimestamp(payment),
-      })
-    })
-  })
-
-  return rows
-    .sort((a, b) => a.paymentTimestamp - b.paymentTimestamp)
-    .map((row, index) => ({
-      id: `${row.id}-${index}`,
-      serialNo: index + 1,
-      voucherNo: <strong>{row.voucherNoText}</strong>,
-      period: row.periodText,
-      paidOn: row.paidOnText,
-      amount: <span style={{ color: '#166534', fontWeight: 700 }}>{formatCurrency(row.amountValue)}</span>,
-      balance: <span style={{ color: row.balanceValue > 0 ? '#dc2626' : '#64748b', fontWeight: 700 }}>{formatCurrency(row.balanceValue)}</span>,
-    }))
-}
-
 const reportColumns = [
   { key: 'voucherNo', label: 'Voucher No', printWidth: '11%', printAlign: 'left' },
   { key: 'monthYear', label: 'Month', printWidth: '13%', printAlign: 'center' },
@@ -351,25 +294,569 @@ const getReportColumns = (history) => {
   })
 }
 
-const paymentHistoryColumns = [
-  { key: 'serialNo', label: '#', printWidth: '6%', printAlign: 'center' },
-  { key: 'voucherNo', label: 'Voucher No', printWidth: '14%', printAlign: 'left' },
-  { key: 'period', label: 'Month', printWidth: '18%', printAlign: 'center' },
-  { key: 'paidOn', label: 'Paid On', printWidth: '24%', printAlign: 'center' },
-  { key: 'amount', label: 'Amount', printWidth: '18%', printAlign: 'right' },
-  { key: 'balance', label: 'Balance After Payment', printWidth: '20%', printAlign: 'right' },
-]
+const escapeHtml = (value) => {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
 
-const getPaymentHistoryColumns = (history) => {
-  const isCollegeOnlyHistory = Array.isArray(history) && history.length > 0 && history.every(isCollegeHistoryRecord)
-  if (!isCollegeOnlyHistory) return paymentHistoryColumns
+const loadWatermarkLogoForPdf = () => {
+  return new Promise((resolve) => {
+    const image = new Image()
 
-  return paymentHistoryColumns.map((column) => {
-    if (column.key === 'period') {
-      return { ...column, label: 'Session' }
+    image.onload = () => {
+      const width = image.naturalWidth || image.width
+      const height = image.naturalHeight || image.height
+
+      if (!width || !height) {
+        resolve(null)
+        return
+      }
+
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+
+      const context = canvas.getContext('2d')
+      if (!context) {
+        resolve(null)
+        return
+      }
+
+      context.clearRect(0, 0, width, height)
+      context.globalAlpha = 0.08
+      context.drawImage(image, 0, 0, width, height)
+
+      resolve({
+        dataUrl: canvas.toDataURL('image/png'),
+        width,
+        height,
+      })
     }
-    return column
+
+    image.onerror = () => resolve(null)
+    image.src = schoolLogo
   })
+}
+
+const buildPrintableRows = (history) => {
+  return history.map((record, index) => {
+    const amounts = parseRecordAmounts(record)
+
+    return {
+      voucherNo: toVoucherNo(record, index + 1),
+      monthYear: getMonthLabel(record.month),
+      monthlyFee: formatCurrency(amounts.monthlyFee),
+      dues: formatCurrency(amounts.dues),
+      totalFee: formatCurrency(amounts.totalFee),
+      paidAmount: formatCurrency(amounts.paidAmount),
+      dueAmount: formatCurrency(amounts.dueAmount),
+      status: String(amounts.status || 'UNPAID').toUpperCase(),
+      hasDues: amounts.dues > 0,
+      hasDueAmount: amounts.dueAmount > 0,
+    }
+  })
+}
+
+const buildPrintableStudentBlock = (student, studentState) => {
+  const reportSummary = buildStudentSummary(studentState.history, student)
+  const printableRows = buildPrintableRows(studentState.history)
+  const feeLabel = getReportColumns(studentState.history).find((column) => column.key === 'monthlyFee')?.label || 'Monthly Fee'
+
+  const summaryItems = [
+    ['Student', reportSummary.studentName],
+    ['Father', reportSummary.fatherName],
+    ['Class', reportSummary.className],
+    ['Section', reportSummary.sectionName],
+    ['Serial No', reportSummary.serialNo],
+    ['Voucher No', reportSummary.latestVoucherNo],
+    ['Date Range', reportSummary.dateRange],
+    ['Printed On', reportSummary.printedOn],
+    ['Total Paid', reportSummary.totalPaid],
+    ['Total Dues', reportSummary.totalDues],
+  ]
+
+  const summaryHtml = summaryItems
+    .map(([label, value]) => `<span><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}</span>`)
+    .join('')
+
+  let tableRowsHtml = ''
+
+  if (studentState.error) {
+    tableRowsHtml = `<tr><td colspan="8" class="state-cell state-error">Unable to load history: ${escapeHtml(studentState.error)}</td></tr>`
+  } else if (!Array.isArray(studentState.history) || studentState.history.length === 0) {
+    tableRowsHtml = '<tr><td colspan="8" class="state-cell">No fee history found for this student</td></tr>'
+  } else {
+    tableRowsHtml = printableRows.map((row) => {
+      const statusClass = row.status === 'PAID'
+        ? 'status-paid'
+        : row.status === 'PARTIAL'
+          ? 'status-partial'
+          : 'status-unpaid'
+
+      return `
+        <tr>
+          <td><strong>${escapeHtml(row.voucherNo)}</strong></td>
+          <td>${escapeHtml(row.monthYear)}</td>
+          <td class="text-right"><strong>${escapeHtml(row.monthlyFee)}</strong></td>
+          <td class="text-right ${row.hasDues ? 'text-danger' : ''}">${escapeHtml(row.dues)}</td>
+          <td class="text-right"><strong>${escapeHtml(row.totalFee)}</strong></td>
+          <td class="text-right text-success">${escapeHtml(row.paidAmount)}</td>
+          <td class="text-right ${row.hasDueAmount ? 'text-danger' : ''}">${escapeHtml(row.dueAmount)}</td>
+          <td class="text-center"><span class="status-badge ${statusClass}">${escapeHtml(row.status)}</span></td>
+        </tr>
+      `
+    }).join('')
+  }
+
+  return `
+    <section class="student-block">
+      <div class="student-summary">${summaryHtml}</div>
+      <table>
+        <colgroup>
+          <col style="width:14%;" />
+          <col style="width:14%;" />
+          <col style="width:13%;" />
+          <col style="width:11%;" />
+          <col style="width:13%;" />
+          <col style="width:13%;" />
+          <col style="width:13%;" />
+          <col style="width:9%;" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Voucher No</th>
+            <th>Month</th>
+            <th>${escapeHtml(feeLabel)}</th>
+            <th>Dues</th>
+            <th>Total Fee</th>
+            <th>Paid Amount</th>
+            <th>Due Amount</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>${tableRowsHtml}</tbody>
+      </table>
+    </section>
+  `
+}
+
+const buildPrintableDocumentHtml = ({ selectedStudents, historiesByStudent }) => {
+  const printedOn = new Date().toLocaleDateString('en-GB')
+  const blocksHtml = selectedStudents
+    .map((student) => {
+      const studentState = historiesByStudent[String(student.id)] || {
+        history: [],
+        loading: false,
+        error: '',
+      }
+
+      return buildPrintableStudentBlock(student, studentState)
+    })
+    .join('')
+
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Student Fee History Report</title>
+  <style>
+    @page { size: A4 portrait; margin: 8mm; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #0f172a;
+      background: #fff;
+      font-size: 9pt;
+    }
+    .report-header {
+      text-align: center;
+      margin-bottom: 8px;
+      position: relative;
+      z-index: 1;
+    }
+    .school-name {
+      font-size: 11pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      margin-bottom: 3px;
+    }
+    .report-title {
+      font-size: 11.5pt;
+      font-weight: 700;
+      color: #1e3a8a;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .report-meta {
+      font-size: 9pt;
+      color: #334155;
+      margin-bottom: 8px;
+    }
+    .report-divider {
+      border: none;
+      border-top: 2px solid #1e3a8a;
+      margin: 0 0 8px;
+    }
+    .report-content {
+      padding-bottom: 22mm;
+      position: relative;
+      z-index: 1;
+    }
+    .report-watermark {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .report-watermark img {
+      width: 42%;
+      max-width: 320px;
+      height: auto;
+      opacity: 0.08;
+    }
+    .student-block {
+      margin: 0 0 4px;
+    }
+    .student-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px 8px;
+      border: 1px solid #b5c3e8;
+      background: #eef3ff;
+      padding: 3px 6px;
+      margin-bottom: 3px;
+      font-size: 6.9pt;
+    }
+    .student-summary strong {
+      color: #1e3a8a;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 6.8pt;
+    }
+    th {
+      border: 1px solid #1e3a8a;
+      padding: 2px 3px;
+      background: #1e3a8a;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: .02em;
+      font-size: 6.1pt;
+      white-space: nowrap;
+    }
+    td {
+      border: 1px solid #cbd5e1;
+      padding: 2px 3px;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+    .text-danger { color: #b91c1c; }
+    .text-success { color: #166534; }
+    .state-cell {
+      text-align: center;
+      padding: 12px;
+      color: #475569;
+      white-space: normal;
+    }
+    .state-error {
+      color: #b91c1c;
+      font-weight: 700;
+    }
+    .status-badge {
+      display: inline-block;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      padding: 1px 4px;
+      font-size: 6pt;
+      font-weight: 700;
+    }
+    .status-paid {
+      background: #dcfce7;
+      color: #166534;
+      border-color: #bbf7d0;
+    }
+    .status-partial {
+      background: #e0f2fe;
+      color: #0c4a6e;
+      border-color: #bae6fd;
+    }
+    .status-unpaid {
+      background: #fef3c7;
+      color: #92400e;
+      border-color: #fde68a;
+    }
+    .report-footer {
+      margin-top: 8px;
+      text-align: center;
+      font-size: 9pt;
+      color: #0f172a;
+      line-height: 1.4;
+      border-top: 1px solid #cbd5e1;
+      padding-top: 5px;
+      position: relative;
+      z-index: 1;
+    }
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .report-content {
+        padding-bottom: 22mm;
+      }
+      .report-footer {
+        position: fixed;
+        left: 8mm;
+        right: 8mm;
+        bottom: 7mm;
+        margin-top: 0;
+        background: #fff;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="report-watermark" aria-hidden="true">
+    <img src="${escapeHtml(schoolLogo)}" alt="" />
+  </div>
+  <header class="report-header">
+    <div class="school-name">${escapeHtml(SCHOOL_NAME)}</div>
+    <div class="report-title">Student Fee History Report</div>
+    <div class="report-meta"><strong>Printed On:</strong> ${escapeHtml(printedOn)} | <strong>Students:</strong> ${selectedStudents.length}</div>
+  </header>
+  <hr class="report-divider" />
+  <main class="report-content">${blocksHtml}</main>
+  <footer class="report-footer">
+    <div>${escapeHtml(SCHOOL_ADDRESS)}</div>
+    <div>Phone: ${escapeHtml(SCHOOL_PHONE)} | Email: ${escapeHtml(SCHOOL_EMAIL)}</div>
+  </footer>
+  <script>
+    window.addEventListener('load', function () {
+      setTimeout(function () {
+        window.print();
+      }, 250);
+    });
+    window.addEventListener('afterprint', function () {
+      window.close();
+    });
+  </script>
+</body>
+</html>`
+}
+
+const validateHistoryReadyForExport = (selectedStudents, historiesByStudent) => {
+  if (selectedStudents.length === 0) {
+    return {
+      ok: false,
+      message: 'Please select at least one student to continue.',
+    }
+  }
+
+  const hasLoadingHistory = selectedStudents.some((student) => {
+    const state = historiesByStudent[String(student.id)]
+    return !state || state.loading
+  })
+
+  if (hasLoadingHistory) {
+    return {
+      ok: false,
+      message: 'Please wait. Student fee history is still loading.',
+    }
+  }
+
+  return { ok: true }
+}
+
+const saveStudentHistoryAsPdf = async ({ selectedStudents, historiesByStudent }) => {
+  const pdf = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+    putOnlyUsedFonts: true,
+    compress: true,
+  })
+
+  const printedOn = new Date().toLocaleDateString('en-GB')
+  const createdOn = new Date().toISOString().slice(0, 10)
+  const pageWidth = pdf.internal.pageSize.getWidth()
+  const pageHeight = pdf.internal.pageSize.getHeight()
+  const watermarkLogo = await loadWatermarkLogoForPdf()
+
+  const drawWatermark = () => {
+    if (!watermarkLogo?.dataUrl || !watermarkLogo?.width || !watermarkLogo?.height) {
+      return
+    }
+
+    const logoRatio = watermarkLogo.height / watermarkLogo.width
+    const logoWidth = Math.min(pageWidth * 0.42, 85)
+    const logoHeight = logoWidth * logoRatio
+    const x = (pageWidth - logoWidth) / 2
+    const y = (pageHeight - logoHeight) / 2
+
+    try {
+      pdf.addImage(watermarkLogo.dataUrl, 'PNG', x, y, logoWidth, logoHeight, undefined, 'FAST')
+    } catch (error) {
+      console.error('Unable to draw watermark on PDF page:', error)
+    }
+  }
+
+  const drawFooter = () => {
+    pdf.setDrawColor(203, 213, 225)
+    pdf.line(10, pageHeight - 16, pageWidth - 10, pageHeight - 16)
+
+    pdf.setTextColor(15, 23, 42)
+    pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(9)
+    pdf.text(SCHOOL_ADDRESS, pageWidth / 2, pageHeight - 11, { align: 'center' })
+    pdf.text(`Phone: ${SCHOOL_PHONE} | Email: ${SCHOOL_EMAIL}`, pageWidth / 2, pageHeight - 6, { align: 'center' })
+  }
+
+  drawWatermark()
+
+  pdf.setTextColor(15, 23, 42)
+  pdf.setFont('helvetica', 'bold')
+  pdf.setFontSize(12)
+  pdf.text(SCHOOL_NAME, pageWidth / 2, 11, { align: 'center' })
+
+  pdf.setTextColor(30, 58, 138)
+  pdf.setFontSize(10.5)
+  pdf.text('Student Fee History Report', pageWidth / 2, 16.5, { align: 'center' })
+
+  pdf.setTextColor(51, 65, 85)
+  pdf.setFont('helvetica', 'normal')
+  pdf.setFontSize(8)
+  pdf.text(`Printed On: ${printedOn} | Students: ${selectedStudents.length}`, pageWidth / 2, 21, { align: 'center' })
+
+  pdf.setDrawColor(30, 58, 138)
+  pdf.line(8, 23, pageWidth - 8, 23)
+
+  let currentY = 27
+
+  selectedStudents.forEach((student, studentIndex) => {
+    const studentState = historiesByStudent[String(student.id)] || {
+      history: [],
+      error: '',
+    }
+
+    const reportSummary = buildStudentSummary(studentState.history, student)
+    const feeLabel = getReportColumns(studentState.history).find((column) => column.key === 'monthlyFee')?.label || 'Monthly Fee'
+
+    const sectionTitle = `Student ${studentIndex + 1}: ${reportSummary.studentName} | Father: ${reportSummary.fatherName} | Class: ${reportSummary.className} | Section: ${reportSummary.sectionName}`
+    const sectionSummary = [
+      `Serial No: ${reportSummary.serialNo}`,
+      `Voucher No: ${reportSummary.latestVoucherNo}`,
+      `Date Range: ${reportSummary.dateRange}`,
+      `Total Paid: ${reportSummary.totalPaid}`,
+      `Total Dues: ${reportSummary.totalDues}`,
+    ].join('   |   ')
+
+    const titleLines = pdf.splitTextToSize(sectionTitle, pageWidth - 16)
+    const summaryLines = pdf.splitTextToSize(sectionSummary, pageWidth - 16)
+    const sectionHeaderHeight = (titleLines.length * 3.4) + (summaryLines.length * 3.2) + 4
+
+    if (currentY + sectionHeaderHeight > pageHeight - 34) {
+      pdf.addPage()
+      drawWatermark()
+      currentY = 10
+    }
+
+    pdf.setTextColor(15, 23, 42)
+    pdf.setFont('helvetica', 'bold')
+    pdf.setFontSize(7.6)
+    pdf.text(titleLines, 8, currentY)
+
+    pdf.setTextColor(15, 23, 42)
+    pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(7)
+    pdf.text(summaryLines, 8, currentY + (titleLines.length * 3.4))
+
+    const startY = currentY + (titleLines.length * 3.4) + (summaryLines.length * 3.2) + 2
+
+    const tableBody = studentState.error
+      ? [[`Unable to load history: ${studentState.error}`, '', '', '', '', '', '', '']]
+      : studentState.history.length === 0
+        ? [['No fee history found for this student', '', '', '', '', '', '', '']]
+        : buildPrintableRows(studentState.history).map((row) => ([
+            row.voucherNo,
+            row.monthYear,
+            row.monthlyFee,
+            row.dues,
+            row.totalFee,
+            row.paidAmount,
+            row.dueAmount,
+            row.status,
+          ]))
+
+    autoTable(pdf, {
+      startY,
+      margin: { top: 8, right: 8, bottom: 20, left: 8 },
+      head: [['Voucher No', 'Month', feeLabel, 'Dues', 'Total Fee', 'Paid Amount', 'Due Amount', 'Status']],
+      body: tableBody,
+      theme: 'grid',
+      styles: {
+        font: 'helvetica',
+        fontSize: 6.6,
+        cellPadding: 1.2,
+        overflow: 'linebreak',
+        textColor: [15, 23, 42],
+      },
+      headStyles: {
+        fillColor: [30, 58, 138],
+        textColor: [255, 255, 255],
+        halign: 'center',
+        fontStyle: 'bold',
+        fontSize: 6,
+      },
+      columnStyles: {
+        0: { cellWidth: 24, halign: 'left' },
+        1: { cellWidth: 23, halign: 'center' },
+        2: { cellWidth: 24, halign: 'right' },
+        3: { cellWidth: 20, halign: 'right' },
+        4: { cellWidth: 24, halign: 'right' },
+        5: { cellWidth: 24, halign: 'right' },
+        6: { cellWidth: 24, halign: 'right' },
+        7: { cellWidth: 16, halign: 'center' },
+      },
+      didParseCell: (hookData) => {
+        if (hookData.section !== 'body') return
+
+        const cellText = String(hookData.cell.raw || '')
+        if (hookData.column.index === 3 && /^Rs\.\s*[1-9]/.test(cellText)) {
+          hookData.cell.styles.textColor = [185, 28, 28]
+        }
+        if (hookData.column.index === 6 && /^Rs\.\s*[1-9]/.test(cellText)) {
+          hookData.cell.styles.textColor = [185, 28, 28]
+        }
+        if (hookData.column.index === 5) {
+          hookData.cell.styles.textColor = [22, 101, 52]
+        }
+      },
+      didDrawPage: () => {
+        drawWatermark()
+        drawFooter()
+      },
+    })
+
+    currentY = (pdf.lastAutoTable?.finalY || startY) + 4
+
+    if (currentY > pageHeight - 28) {
+      pdf.addPage()
+      drawWatermark()
+      currentY = 10
+    }
+  })
+
+  pdf.save(`student-fee-history-${createdOn}.pdf`)
 }
 
 const StudentFeeHistory = () => {
@@ -532,8 +1019,39 @@ const StudentFeeHistory = () => {
     setShowResults(false)
   }
 
+  const handleOpenPrintableReport = () => {
+    const validation = validateHistoryReadyForExport(selectedStudents, historiesByStudent)
+    if (!validation.ok) {
+      alert(validation.message)
+      return
+    }
+
+    const popup = window.open('', '_blank', 'width=1200,height=820')
+    if (!popup) {
+      alert('Popup was blocked. Please allow popups for this site to print or save PDF.')
+      return
+    }
+
+    const html = buildPrintableDocumentHtml({ selectedStudents, historiesByStudent })
+
+    popup.document.open()
+    popup.document.write(html)
+    popup.document.close()
+    popup.focus()
+  }
+
   const handlePrintReport = () => {
-    window.print()
+    handleOpenPrintableReport()
+  }
+
+  const handleSavePdf = async () => {
+    const validation = validateHistoryReadyForExport(selectedStudents, historiesByStudent)
+    if (!validation.ok) {
+      alert(validation.message)
+      return
+    }
+
+    await saveStudentHistoryAsPdf({ selectedStudents, historiesByStudent })
   }
 
   const handleRefreshAll = () => {
@@ -686,6 +1204,9 @@ const StudentFeeHistory = () => {
             <h3>Student Fee History Report</h3>
             <div className="report-header-actions">
               <button className="btn-secondary" onClick={handleRefreshAll}>Refresh All</button>
+              <button className="rpt-btn rpt-btn--save" onClick={handleSavePdf}>
+                Save PDF
+              </button>
               <button className="rpt-btn rpt-btn--print" onClick={handlePrintReport}>
                 Print Report
               </button>
@@ -706,11 +1227,6 @@ const StudentFeeHistory = () => {
             }
             const reportSummary = buildStudentSummary(studentState.history, student)
             const reportRows = buildReportRows(studentState.history)
-            const collegeHistory = Array.isArray(studentState.history)
-              ? studentState.history.filter(isCollegeHistoryRecord)
-              : []
-            const hasCollegeHistory = collegeHistory.length > 0
-            const paymentHistoryRows = hasCollegeHistory ? buildPaymentHistoryRows(collegeHistory) : []
 
             return (
               <div
@@ -742,31 +1258,10 @@ const StudentFeeHistory = () => {
                       <p>No fee history found for this student</p>
                     </div>
                   ) : (
-                    <>
-                      <ReportTable
-                        columns={getReportColumns(studentState.history)}
-                        rows={reportRows}
-                      />
-
-                      {hasCollegeHistory && (
-                        <div className="student-payment-history-wrap">
-                          <div className="student-payment-history-title">
-                            Payment History ({paymentHistoryRows.length} payment{paymentHistoryRows.length === 1 ? '' : 's'})
-                          </div>
-
-                          {paymentHistoryRows.length === 0 ? (
-                            <div className="empty-state" style={{ margin: 0 }}>
-                              <p>No payment entries found for this student</p>
-                            </div>
-                          ) : (
-                            <ReportTable
-                              columns={getPaymentHistoryColumns(collegeHistory)}
-                              rows={paymentHistoryRows}
-                            />
-                          )}
-                        </div>
-                      )}
-                    </>
+                    <ReportTable
+                      columns={getReportColumns(studentState.history)}
+                      rows={reportRows}
+                    />
                   )}
                 </div>
               </div>

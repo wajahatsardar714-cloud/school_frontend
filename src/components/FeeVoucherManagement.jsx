@@ -59,6 +59,9 @@ const FEE_TYPES = [
   { value: 'OTHER', label: 'Other Charges', description: 'Add custom fees with name and amount' },
 ]
 
+// Keep MONTHLY included internally; hide only its checkbox from UI as requested.
+const FEE_TYPES_VISIBLE = FEE_TYPES.filter((feeType) => feeType.value !== 'MONTHLY')
+
 // Valid item types for the edit voucher modal (matches DB constraint)
 const EDIT_FEE_TYPES = [
   { value: 'MONTHLY',    label: 'Monthly Fee' },
@@ -2484,9 +2487,9 @@ const FeeVoucherManagement = () => {
             {!(generateForm.type === 'single' && selectedStudentClassType === 'COLLEGE') && (
             <div className="form-section">
               <h3>Fee Types to Include *</h3>
-              <p className="form-hint">Select which fees to include. Monthly fee uses each student's individual fee amount.</p>
+              <p className="form-hint">Monthly fee is included automatically for each student. Select any extra fee types below.</p>
               <div className="checkbox-group">
-                {FEE_TYPES.map(feeType => (
+                {FEE_TYPES_VISIBLE.map(feeType => (
                   <label key={feeType.value} className="checkbox-label">
                     <input
                       type="checkbox"
