@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import jsPDF from 'jspdf'
 import { studentService } from '../../services/studentService'
 import { useFetch } from '../../hooks/useApi'
-import { DOCUMENT_TYPE_LABELS } from '../../utils/documentUtils'
 import './StudentProfileDocument.css'
 
 const EMPTY_VALUE = 'Empty'
@@ -22,9 +22,17 @@ const formatDate = (value) => {
   return date.toLocaleDateString()
 }
 
+const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
+  const reader = new FileReader()
+  reader.onloadend = () => resolve(reader.result)
+  reader.onerror = reject
+  reader.readAsDataURL(blob)
+})
+
 const StudentProfileDocument = () => {
   const { studentId } = useParams()
   const [photoUrl, setPhotoUrl] = useState('')
+  const [photoDataUrl, setPhotoDataUrl] = useState('')
   const [loadingPhoto, setLoadingPhoto] = useState(false)
 
   const { data: studentResponse, loading: studentLoading, error: studentError } = useFetch(
@@ -33,7 +41,7 @@ const StudentProfileDocument = () => {
     { enabled: !!studentId }
   )
 
-  const { data: docsResponse, loading: docsLoading } = useFetch(
+  const { data: docsResponse } = useFetch(
     () => studentService.getDocuments(studentId),
     [studentId],
     { enabled: !!studentId }
@@ -57,6 +65,7 @@ const StudentProfileDocument = () => {
       const photoDoc = documents.find((doc) => doc?.document_type === 'PHOTO')
       if (!photoDoc?.id) {
         setPhotoUrl('')
+        setPhotoDataUrl('')
         return
       }
 
@@ -66,10 +75,19 @@ const StudentProfileDocument = () => {
         if (isMounted) {
           objectUrl = URL.createObjectURL(blob)
           setPhotoUrl(objectUrl)
+          try {
+            const dataUrl = await blobToDataUrl(blob)
+            if (isMounted) setPhotoDataUrl(String(dataUrl || ''))
+          } catch {
+            if (isMounted) setPhotoDataUrl('')
+          }
         }
       } catch (error) {
         console.error('Failed to load profile photo:', error)
-        if (isMounted) setPhotoUrl('')
+        if (isMounted) {
+          setPhotoUrl('')
+          setPhotoDataUrl('')
+        }
       } finally {
         if (isMounted) setLoadingPhoto(false)
       }
@@ -131,24 +149,82 @@ const StudentProfileDocument = () => {
   }, [])
 
   const handleSaveAsPdf = useCallback(() => {
-    window.print()
-  }, [])
-
-  const openDocument = useCallback(async (doc) => {
-    if (!doc?.id) return
     try {
-      const blob = await studentService.downloadDocument(doc.id)
-      const objectUrl = URL.createObjectURL(blob)
-      const newWindow = window.open(objectUrl, '_blank', 'noopener,noreferrer')
-      if (!newWindow) {
-        alert('Please allow popups to view documents.')
+      const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const margin = 12
+      let y = 16
+
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(15)
+      doc.text('Student Profile Card', margin, y)
+      y += 6
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(10)
+      doc.text('Muslim Public Higher Secondary School', margin, y)
+
+      const photoX = pageWidth - margin - 34
+      const photoY = 14
+      const photoW = 34
+      const photoH = 42
+
+      doc.setDrawColor(180, 180, 180)
+      doc.rect(photoX, photoY, photoW, photoH)
+
+      if (photoDataUrl && photoDataUrl.startsWith('data:image/')) {
+        const format = photoDataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG'
+        doc.addImage(photoDataUrl, format, photoX + 0.5, photoY + 0.5, photoW - 1, photoH - 1, undefined, 'FAST')
       }
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000)
+
+      y = 28
+      const renderSection = (title, fields) => {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(11)
+        doc.text(title, margin, y)
+        y += 5
+
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(9.5)
+
+        fields.forEach((field) => {
+          const line = `${field.label}: ${formatValue(field.value)}`
+          const wrapped = doc.splitTextToSize(line, pageWidth - (margin * 2))
+          doc.text(wrapped, margin, y)
+          y += (wrapped.length * 4.2)
+        })
+
+        y += 2
+      }
+
+      renderSection('Student Information', studentInfoFields)
+      renderSection('Father Information', fatherInfoFields)
+      renderSection('Academic Information', academicInfoFields)
+
+      if (otherInfoFields.length > 0) {
+        renderSection('Other Information', otherInfoFields)
+      }
+
+      doc.setFontSize(8)
+      doc.setTextColor(90, 90, 90)
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, margin, 286)
+
+      const safeName = String(student.name || `student-${studentId}`)
+        .replace(/[^a-z0-9\-_]+/gi, '_')
+        .replace(/^_+|_+$/g, '')
+      doc.save(`${safeName || 'student'}-profile-card.pdf`)
     } catch (error) {
-      console.error('Failed to open document:', error)
-      alert('Failed to open document.')
+      console.error('Failed to save profile PDF:', error)
+      alert('Failed to save PDF. Please try again.')
     }
-  }, [])
+  }, [
+    academicInfoFields,
+    fatherInfoFields,
+    otherInfoFields,
+    photoDataUrl,
+    student.name,
+    studentId,
+    studentInfoFields
+  ])
 
   if (studentLoading) {
     return (
@@ -245,29 +321,6 @@ const StudentProfileDocument = () => {
                   </div>
                 ))}
               </div>
-            </section>
-          )}
-
-          {(docsLoading || documents.length > 0) && (
-            <section className="student-document-section">
-              <h2>Documents</h2>
-              {docsLoading ? (
-                <p className="student-document-muted">Loading documents...</p>
-              ) : (
-                <div className="student-document-doc-list">
-                  {documents.map((doc) => (
-                    <div className="student-document-doc-row" key={doc.id}>
-                      <div>
-                        <p className="student-document-doc-name">{doc.file_name || 'Unnamed file'}</p>
-                        <p className="student-document-doc-type">{DOCUMENT_TYPE_LABELS[doc.document_type] || doc.document_type || 'Document'}</p>
-                      </div>
-                      <button type="button" className="student-document-btn secondary no-print" onClick={() => openDocument(doc)}>
-                        View
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
             </section>
           )}
 
