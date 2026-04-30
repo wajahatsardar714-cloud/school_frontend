@@ -4,7 +4,7 @@ import { apiClient } from './src/services/apiClient.js'
 
 // Test API connectivity
 async function testAPI() {
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://school-backend-onou.onrender.com'
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://school-backend-eosin-nine.vercel.app'
   console.log('🔍 Testing API Connection...')
   console.log('API Base URL:', apiBaseUrl)
   

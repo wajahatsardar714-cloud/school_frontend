@@ -1,5 +1,12 @@
 const configuredApiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').trim()
-export const API_BASE_URL = configuredApiBaseUrl || 'https://school-backend-onou.onrender.com'
+const isValidApiBaseUrl = configuredApiBaseUrl && configuredApiBaseUrl !== 'base' && /^https?:\/\//i.test(configuredApiBaseUrl)
+export const API_BASE_URL = isValidApiBaseUrl
+  ? configuredApiBaseUrl
+  : 'https://school-backend-eosin-nine.vercel.app'
+
+if (!isValidApiBaseUrl && configuredApiBaseUrl) {
+  console.warn('Invalid VITE_API_BASE_URL detected, falling back to Fly:', configuredApiBaseUrl)
+}
 
 export const API_ENDPOINTS = {
   // Auth
