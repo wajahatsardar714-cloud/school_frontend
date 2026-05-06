@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-const backendTarget = process.env.VITE_API_BASE_URL || 'https://school-backend-eosin-nine.vercel.app'
+const backendTarget = process.env.VITE_API_BASE_URL || 'https://school-b-zk0h.onrender.com'
 
 // https://vite.dev/config/
 export default defineConfig({

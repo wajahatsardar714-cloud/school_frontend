@@ -2,7 +2,7 @@ const configuredApiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').trim()
 const isValidApiBaseUrl = configuredApiBaseUrl && configuredApiBaseUrl !== 'base' && /^https?:\/\//i.test(configuredApiBaseUrl)
 export const API_BASE_URL = isValidApiBaseUrl
   ? configuredApiBaseUrl
-  : 'https://school-backend-eosin-nine.vercel.app'
+  : 'https://school-b-zk0h.onrender.com'
 
 if (!isValidApiBaseUrl && configuredApiBaseUrl) {
   console.warn('Invalid VITE_API_BASE_URL detected, falling back to Fly:', configuredApiBaseUrl)
